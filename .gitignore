@@ -1,0 +1,115 @@
+*.DS_Store
+
+# Claude Code local settings and plans (user-specific, not checked in)
+.claude/settings.local.json
+.claude/plans/
+
+# Editor temp files
+*.swp
+*~
+
+# ---------------------------------------------------------------------------
+# Recommended ignores for Apple-platform app projects (Xcode, Swift, SPM,
+# CocoaPods, Carthage, fastlane). Uncomment or keep as a reference for apps
+# that adopt this bootstrap.
+# ---------------------------------------------------------------------------
+
+# Xcode — user-specific files
+*xcuserdata*
+*.xcuserstate
+*.xcuserdatad
+*.xcscmblueprint
+*.xccheckout
+
+# Xcode — build artifacts
+DerivedData/
+build/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+Packages/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# CocoaPods (uncomment if the project uses CocoaPods)
+# Pods/
+# *.xcworkspace
+
+# Carthage
+Carthage/Build/
+Carthage/Checkouts/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# IDE files
+.idea/
+*.iml
+
+# ---------------------------------------------------------------------------
+# Recommended ignores for Android projects (Gradle, Android Studio, Kotlin).
+# Kept here for future Android-side bootstrapping.
+# ---------------------------------------------------------------------------
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+gradle-app.setting
+.gradletasknamecache
+
+# Android Studio / IntelliJ
+captures/
+.navigation/
+.externalNativeBuild/
+.cxx/
+*.hprof
+
+# Android build outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+release/
+
+# Local config
+local.properties
+keystore.properties
+*.jks
+*.keystore
+
+# Log files
+*.log
+
+# NDK
+obj/
+
+# Lint
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/
+lint/reports/
+
+# Kotlin
+.kotlin/
