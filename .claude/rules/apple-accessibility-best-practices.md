@@ -52,6 +52,14 @@ All views must be fully accessible. VoiceOver, Dynamic Type, and Reduce Motion s
 
 - Buttons with `.disabled` conditions should provide `.accessibilityHint` explaining why the button is disabled (e.g., "Complete all required fields to enable this button").
 
+## Streaming AI Text (Foundation Models / chat UIs)
+
+- While a response is generating, set `.accessibilityLabel` to a localized "thinking" string (e.g., `Strings.Accessibility.chatAssistantThinking`). Once the stream completes, swap to the final content.
+- **Do not announce every streamed token** — VoiceOver will stutter and interrupt itself. Let the final label update carry the message.
+- Decorative "typing" indicators (animated dots, shimmering placeholders) must use `.accessibilityHidden(true)`; the label on the parent element already communicates state.
+- Error banners for AI failures must be focusable and announced — use `.accessibilityLabel` with the localized error and `.accessibilityAddTraits(.isStaticText)`.
+- Respect `@Environment(\.accessibilityReduceMotion)` for typing-indicator animations — disable the shimmer when motion is reduced.
+
 ## Patterns to Follow
 
 ```swift

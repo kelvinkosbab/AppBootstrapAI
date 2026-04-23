@@ -14,6 +14,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-accessibility-best-practices.md    # Android: TalkBack / Compose semantics
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
+│   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
 │   └── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
 ├── skills/                        # On-demand Claude Code skills (Apple-only today)
 │   ├── swift-concurrency-pro/     # Reviews Swift concurrency correctness
@@ -69,6 +70,15 @@ The rules in `.claude/rules/` are loaded automatically for every Swift file in t
 - Avoid `DispatchQueue.main.async`; prefer structured concurrency.
 - Avoid global mutable `static var` state.
 - ObjC delegate conformances use `@preconcurrency`, not `nonisolated` methods.
+
+### Apple Foundation Models (`apple-foundation-models.md`)
+
+- Session holders are `@MainActor @Observable final class` — never structs, views, or background actors.
+- Keep one `LanguageModelSession` alive per conversation; only recreate on config change (document that history is lost).
+- Gate at two levels: `SystemLanguageModel.default.availability` (handle each `.unavailable(_)` reason distinctly) AND a user preference.
+- Streaming pattern: append placeholder → mutate in place → remove on error. Check `Task.isCancelled` inside the loop; `defer { isGenerating = false }` at function top.
+- Catch errors broadly and surface `error.localizedDescription`; do not pattern-match specific cases (the enum changes across OS releases).
+- Testability: protocol wrapper + Real/Mock/Simulator implementations, injected via `@Environment` with lazy fallback. Real impl is the only file that touches `import FoundationModels`.
 
 ### Android project rules (`android-project-rules.md`)
 

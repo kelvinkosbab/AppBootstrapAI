@@ -77,6 +77,17 @@ swift test --package-path <PackagePath>   # if SPM-based
 - <e.g., NSBonjourServices must mirror the service-type library>
 - <e.g., Hilt does not inject into Composables directly — use hiltViewModel()>
 
+## AI / Foundation Models
+
+<!-- Delete this section if the app doesn't integrate Apple Foundation Models or equivalent on-device LLM. -->
+
+- Entry point: <e.g., `BonjourChatSession`, `BonjourServiceExplainer` — the @MainActor @Observable session holders>
+- Protocol wrapper: <e.g., `ChatSessionProtocol` — views depend on this, not on `FoundationModels` directly>
+- Availability utility: <e.g., `AppleIntelligenceSupport` — centralizes `SystemLanguageModel.default.availability` checks>
+- Injection: <e.g., `@Environment(\.chatSession)` with lazy local fallback via `Self.makeSession()`>
+- Mock / Simulator strategy: <e.g., `MockChatSession` for unit tests; `SimulatorChatSession` streams lorem ipsum so the simulator demos real streaming UI>
+- Minimum OS: <iOS 26 / macOS 26> (the `@available` boundary for `FoundationModels` imports)
+
 ## AI Rules and Skills
 
 This repo uses the AppBootstrapAI bundle in `.claude/`:
