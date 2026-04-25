@@ -14,6 +14,11 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`swift-concurrency-pro` skill** — reviews async/await, actors, structured concurrency.
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
+- **`coredata-swift6-pro` skill** — Core Data under Swift 6 strict concurrency, `viewContext`/`@MainActor`, SPM `.xcdatamodeld` caveats.
+- **`swift-docc-pro` skill** — DocC comment review: parameter/return/throws tags, double-backtick symbol linking, Topics organization.
+- **`swift-error-handling-pro` skill** — typed throws, Result vs throws, `LocalizedError`, Sendable errors, async propagation.
+- **`swift-logging-pro` skill** — `os.Logger` review: subsystem/category conventions, privacy markers, log-level semantics.
+- **`swift-package-pro` skill** — SPM library design: public API surface, `InternalImportsByDefault`, resources, versioning, dependency hygiene.
 
 ### Android (secondary)
 
@@ -55,6 +60,11 @@ Skills auto-trigger when their description matches. You can also invoke explicit
 - "Use `swift-concurrency-pro` to review `NetworkClient.swift`."
 - "Use `swiftui-pro` to check `SettingsView.swift` for modern API and a11y."
 - "Use `swift-testing-pro` to write tests for `UserSession`."
+- "Use `coredata-swift6-pro` to review `PersistenceController.swift`."
+- "Use `swift-docc-pro` to review the public API in `MyPackage`."
+- "Use `swift-error-handling-pro` to review my typed throws migration."
+- "Use `swift-logging-pro` to audit `Logger` usage across the project."
+- "Use `swift-package-pro` to review `Package.swift` and the public API surface."
 
 Each produces a file-by-file findings report with before/after fixes and a prioritized summary.
 
@@ -70,7 +80,12 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 │   │   ├── apple-foundation-models.md                 # On-device LLM patterns
 │   │   └── apple-swift6-strict-concurrency.md         # Swift 6.2 strict concurrency
 │   ├── skills/                        # On-demand skills (Apple-only today)
+│   │   ├── coredata-swift6-pro/
 │   │   ├── swift-concurrency-pro/
+│   │   ├── swift-docc-pro/
+│   │   ├── swift-error-handling-pro/
+│   │   ├── swift-logging-pro/
+│   │   ├── swift-package-pro/
 │   │   ├── swift-testing-pro/
 │   │   └── swiftui-pro/
 │   └── settings.json                  # Baseline permissions

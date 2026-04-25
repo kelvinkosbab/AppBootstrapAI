@@ -17,7 +17,12 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
 │   └── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
 ├── skills/                        # On-demand Claude Code skills (Apple-only today)
+│   ├── coredata-swift6-pro/       # Core Data under Swift 6 strict concurrency
 │   ├── swift-concurrency-pro/     # Reviews Swift concurrency correctness
+│   ├── swift-docc-pro/            # Reviews DocC documentation comments
+│   ├── swift-error-handling-pro/  # Typed throws, Result, LocalizedError
+│   ├── swift-logging-pro/         # os.Logger review (privacy, levels, subsystems)
+│   ├── swift-package-pro/         # SPM library design and API hygiene
 │   ├── swift-testing-pro/         # Writes/reviews Swift Testing code
 │   └── swiftui-pro/               # Reviews SwiftUI for modern APIs and a11y
 └── settings.json                  # Baseline Claude Code permissions (git, xcodebuild, gradlew, etc.)
@@ -55,6 +60,11 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `swift-concurrency-pro` to review the changes in `NetworkClient.swift`."
 - "Use `swiftui-pro` to review `SettingsView.swift` for modern API and a11y."
 - "Use `swift-testing-pro` to write tests for `UserSession`."
+- "Use `coredata-swift6-pro` to review the persistence layer."
+- "Use `swift-docc-pro` to review documentation in this package."
+- "Use `swift-error-handling-pro` to review error types and throwing functions."
+- "Use `swift-logging-pro` to audit Logger usage."
+- "Use `swift-package-pro` to review `Package.swift` and the public API."
 
 Each skill produces a file-by-file findings report with before/after code fixes and a prioritized summary.
 
