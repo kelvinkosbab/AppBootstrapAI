@@ -15,7 +15,8 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
-│   └── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
+│   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
+│   └── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
 ├── skills/                        # On-demand Claude Code skills (Apple-only today)
 │   ├── coredata-swift6-pro/       # Core Data under Swift 6 strict concurrency
 │   ├── swift-concurrency-pro/     # Reviews Swift concurrency correctness
@@ -80,6 +81,15 @@ The rules in `.claude/rules/` are loaded automatically for every Swift file in t
 - Avoid `DispatchQueue.main.async`; prefer structured concurrency.
 - Avoid global mutable `static var` state.
 - ObjC delegate conformances use `@preconcurrency`, not `nonisolated` methods.
+
+### SwiftUI MVVM conventions (`apple-swiftui-mvvm.md`)
+
+- Extract a view model when the View has business logic, multi-step async, 5+ interacting `@State`, needs unit-testing, or is split across extension files.
+- View models are `@MainActor @Observable final class` with state + long-lived deps captured at init.
+- Choose ownership by lifecycle: `@State` (per-view) vs `@Bindable` (shared when two instances would race over a single resource — delegate slots, scans, persistent connections).
+- View models stay free of `@Environment` and `Binding<T>`. Pass environment values into methods as parameters.
+- View keeps `@FocusState`, `@Environment` reads, pure UI flags, and SwiftUI-specific bindings; the view model holds everything else.
+- Split large VMs into `+Send.swift`/`+Scroll.swift`/`+Intents.swift` extension files; use `internal` for cross-file helpers, `private` only for in-file helpers.
 
 ### Apple Foundation Models (`apple-foundation-models.md`)
 

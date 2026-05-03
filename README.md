@@ -11,6 +11,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.2 strict concurrency, enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text).
 - **`apple-foundation-models.md`** — Apple Foundation Models patterns: session ownership, two-level availability gating, streaming placeholder-then-mutate, `Task.isCancelled` discipline, protocol + mock + simulator testability.
+- **`apple-swiftui-mvvm.md`** — SwiftUI MVVM conventions: when to extract a view model, `@State` vs `@Bindable` ownership, dependency plumbing, what stays on the View vs the view model, splitting large VMs across extension files.
 - **`swift-concurrency-pro` skill** — reviews async/await, actors, structured concurrency.
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
@@ -78,7 +79,8 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
 │   │   ├── apple-foundation-models.md                 # On-device LLM patterns
-│   │   └── apple-swift6-strict-concurrency.md         # Swift 6.2 strict concurrency
+│   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.2 strict concurrency
+│   │   └── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
 │   ├── skills/                        # On-demand skills (Apple-only today)
 │   │   ├── coredata-swift6-pro/
 │   │   ├── swift-concurrency-pro/
