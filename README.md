@@ -2,7 +2,7 @@
 
 A drop-in bundle of **Claude Code skills** and **AI steering rules** for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) and Android in one bundle, so single-platform and mixed-stack teams can share one source of truth.
 
-This repo is not a Swift package — it's a curated `.claude/` directory plus onboarding docs, distilled from production use across the Kozinga app projects. Copy it into any new app and Claude Code picks up consistent review, testing, and style guidance on day one.
+This repo is not a Swift package — it's a curated `.claude/` directory plus onboarding docs. Copy it into any new app and Claude Code picks up consistent review, testing, and style guidance on day one.
 
 ## What you get
 
@@ -155,7 +155,7 @@ See [CLAUDE.md](CLAUDE.md) for:
 ## Roadmap
 
 - **Skills (deep-dive review agents) currently exist for Apple only.** Kotlin/Compose-side equivalents of `swiftui-pro`, `swift-concurrency-pro`, `swift-testing-pro`, etc. are not yet included — Android coverage is rules + steering for now.
-- All rules (Apple + Android) are loaded automatically by `globs` and apply equally; there is no "primary" / "secondary" platform in the bundle's design — Apple just has older lived-in patterns the rules were originally distilled from.
+- All rules (Apple + Android) are loaded automatically by `globs` and apply equally; there is no "primary" / "secondary" platform in the bundle's design — Apple-side skills are simply further along, with Android skill-equivalents (Compose-pro, coroutines-pro, etc.) on the roadmap.
 
 ## Credits
 
@@ -165,7 +165,6 @@ See [CLAUDE.md](CLAUDE.md) for:
   - [`swiftui-agent-skill`](https://github.com/twostraws/swiftui-agent-skill)
   - [`swiftdata-agent-skill`](https://github.com/twostraws/swiftdata-agent-skill)
   - …and more on his profile. Author attribution is retained in each `SKILL.md` frontmatter.
-- Steering rules and onboarding structure adapted from **KozBon** and **BasicSwiftUtilities**.
 
 ## License
 

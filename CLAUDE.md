@@ -301,12 +301,14 @@ license: MIT
 
 Split deep context into `references/<topic>.md` files the skill loads on demand — keeps the main skill compact and avoids blowing context on tangential material. See `swift-concurrency-pro` for a mature example.
 
-## References: source repos this was distilled from
+## Used by
 
-- **KozBon** — production multi-platform Bonjour service discovery app. Source of the strict-concurrency and accessibility rules.
-- **BasicSwiftUtilities** — foundational Swift 6 utilities package (logging, retry, storage, SwiftUI/UIKit helpers). Source of the skill bundles.
+AppBootstrapAI is the canonical source of AI rules and skills for downstream Kozinga projects:
 
-The skills were originally authored by Paul Hudson (MIT licensed); the rules and onboarding structure are adapted from production usage across the Kozinga app projects.
+- **KozBon** — multi-platform Bonjour service discovery app. Consumes the Apple rules + skills.
+- **BasicSwiftUtilities** — foundational Swift 6 utilities package. Consumes the Apple rules + skills.
+
+The bundled skills were originally authored by Paul Hudson and remain MIT-licensed with author attribution in each `SKILL.md`.
 
 ## License
 
