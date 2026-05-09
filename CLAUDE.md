@@ -14,14 +14,17 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-accessibility-best-practices.md    # Android: TalkBack / Compose semantics
 │   ├── android-compose-best-practices.md          # Android: Jetpack Compose patterns
 │   ├── android-coroutines-best-practices.md       # Android: Kotlin coroutines / structured concurrency
+│   ├── android-documentation-strategy.md          # Android: KDoc strategy + Dokka
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
+│   ├── apple-documentation-strategy.md            # Apple: DocC strategy + deprecation
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
 │   ├── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
-│   └── apple-testing-strategy.md                  # Apple: test strategy + coverage
+│   ├── apple-testing-strategy.md                  # Apple: test strategy + coverage
+│   └── project-documentation.md                   # Cross-platform: README/CHANGELOG/ADR
 ├── skills/                        # On-demand Claude Code skills (Apple-only today)
 │   ├── coredata-swift6-pro/       # Core Data under Swift 6 strict concurrency
 │   ├── swift-concurrency-pro/     # Reviews Swift concurrency correctness
@@ -126,6 +129,34 @@ The rules in `.claude/rules/` are loaded automatically for every Swift file in t
 - Streaming pattern: append placeholder → mutate in place → remove on error. Check `Task.isCancelled` inside the loop; `defer { isGenerating = false }` at function top.
 - Catch errors broadly and surface `error.localizedDescription`; do not pattern-match specific cases (the enum changes across OS releases).
 - Testability: protocol wrapper + Real/Mock/Simulator implementations, injected via `@Environment` with lazy fallback. Real impl is the only file that touches `import FoundationModels`.
+
+### Apple documentation strategy (`apple-documentation-strategy.md`)
+
+- Document every `public` / `open` symbol — summary line + `- Parameter` / `- Returns` / `- Throws` / complexity / concurrency / side effects / preconditions.
+- Skip the signature-restating noise, generated code (Codable, `@Observable`), trivial accessors, and negative facts the type system already encodes.
+- Use double-backticks for symbol links (` ``User.ID`` `); single backticks are *just* code formatting and don't link.
+- Deprecate with mandatory `message:` and `renamed:` (when applicable) — no rotting deprecations; escalate to `obsoleted:` over releases.
+- Use `// MARK: -` for source navigation; use DocC `## Topics` for the rendered API page.
+- Prefer DocC Articles over multi-paragraph doc comments; samples must compile.
+
+### Android documentation strategy (`android-documentation-strategy.md`)
+
+- KDoc with `@param` / `@return` / `@throws` / `@property` / `@sample` / `@see`. Symbol references in `[brackets]`, not single backticks (Dokka doesn't link single backticks).
+- For `@Composable`s: document state hoisting, semantics exposed to TalkBack, and skippable-vs-restartable status.
+- For Hilt modules: explain *what* is bound and *why*, not just that the module exists.
+- Suspend functions: document cancellation behavior and dispatcher requirements.
+- Deprecate with mandatory `message =` and `replaceWith = ReplaceWith(...)`. Escalate `WARNING` → `ERROR` → `HIDDEN` over releases.
+- Wire Dokka `externalDocumentationLink` to AndroidX/stdlib so symbols like `[Activity]` resolve.
+
+### Project-level documentation (`project-documentation.md`)
+
+Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`. Encodes:
+
+- **README:** title + one-line description, badges (only if accurate), Quick Start (3–5 lines, real commands), Install, Usage (one realistic example), Configuration, Examples link, Contributing link, License link. No marketing copy before runnable code.
+- **CHANGELOG:** [Keep a Changelog](https://keepachangelog.com) format — Added / Changed / Deprecated / Removed / Fixed / Security, ISO dates, PR/issue links per entry.
+- **ADRs:** under `docs/adr/####-title.md`, immutable once accepted, supersede with new ADRs that link back.
+- **Inline comments** explain *why*, not *what*. If you need a "what" comment, refactor first.
+- **Link rot defenses:** pin versions in install commands, permalink to source by SHA (not `main`), avoid blog posts as canonical sources.
 
 ### Apple test strategy & coverage (`apple-testing-strategy.md`)
 
