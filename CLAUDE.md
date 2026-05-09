@@ -15,6 +15,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
+│   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
 │   └── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
 ├── skills/                        # On-demand Claude Code skills (Apple-only today)
@@ -99,6 +100,29 @@ The rules in `.claude/rules/` are loaded automatically for every Swift file in t
 - Streaming pattern: append placeholder → mutate in place → remove on error. Check `Task.isCancelled` inside the loop; `defer { isGenerating = false }` at function top.
 - Catch errors broadly and surface `error.localizedDescription`; do not pattern-match specific cases (the enum changes across OS releases).
 - Testability: protocol wrapper + Real/Mock/Simulator implementations, injected via `@Environment` with lazy fallback. Real impl is the only file that touches `import FoundationModels`.
+
+### Modern Objective-C (`apple-objc-best-practices.md`)
+
+Scoped to `**/*.{h,m,mm}`. Encodes the evergreen modern-ObjC patterns:
+
+- **ARC only.** No manual `retain`/`release`/`autorelease`. `__weak`/`__strong` dance for blocks. `@autoreleasepool { }` in long allocating loops.
+- **Nullability everywhere.** `NS_ASSUME_NONNULL_BEGIN`/`END` wrapping every header; explicit `nullable` annotations; `NS_NOESCAPE` on non-escaping block parameters.
+- **Type system.** `instancetype` not `id`; lightweight generics on collections; forward-declare with `@class`/`@protocol` in headers.
+- **Properties.** Prefer over ivars; explicit ownership (`copy` for strings/arrays/blocks); `nonatomic` default; class extensions for private API.
+- **Initializers.** `NS_DESIGNATED_INITIALIZER` + `NS_UNAVAILABLE` on inherited inits. Never call subclassable methods inside `-init`/`-dealloc`.
+- **Modern syntax.** Literal/subscript syntax; `typedef`'d block types; `-isEqualToString:` not `==`; `#pragma mark - Section` for organization.
+- **Swift interop.** Bridging-header discipline; `NS_SWIFT_NAME(...)` to control names; `NS_REFINED_FOR_SWIFT` to wrap raw APIs.
+
+## Working with AI on legacy / mixed-language Apple codebases
+
+When a project mixes Swift and Objective-C (or has any sizable ObjC surface area), a few workflow disciplines keep AI agents from making things worse:
+
+- **Refactor in small scopes.** Ask Claude to refactor a single method or a single file at a time, not "modernize the whole module." Large, unbounded refactors mix unrelated concerns and produce diffs that are hard to review.
+- **Don't paste the full build log on failures.** Paste the failing function name, the specific compiler error lines (typically 5–20), and the immediately surrounding source. Pasting hundreds of lines of unrelated warnings drowns the actual signal and inflates context.
+- **Be explicit about bridging-header changes.** When adding a new ObjC class that Swift needs to call, say so: *"Add `MyService.h` to `<ProjectName>-Bridging-Header.h`."* Claude will not infer this from context — and a missing import causes "Cannot find type" errors that look unrelated.
+- **State the language explicitly when ambiguous.** *"Implement `MyViewController` in Objective-C, not Swift"* — file extensions disambiguate but prompt phrasing sometimes doesn't.
+- **Verify against the actual toolchain, not my training data.** If you ask Claude about a specific Xcode menu path, simulator behavior, or new SDK API, treat the answer as a starting point — confirm in Xcode itself before encoding it as a rule. The package's value is that its rules are ground truth.
+- **Optional companion tooling:** [`XcodeBuildMCP`](https://github.com/cameroncooke/XcodeBuildMCP) is a community MCP server that lets agents drive Xcode (build schemes, simulators, log capture). Useful when you want Claude to run real builds and tests instead of guessing at outcomes.
 
 ### Android project rules (`android-project-rules.md`)
 

@@ -12,6 +12,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text).
 - **`apple-foundation-models.md`** — Apple Foundation Models patterns: session ownership, two-level availability gating, streaming placeholder-then-mutate, `Task.isCancelled` discipline, protocol + mock + simulator testability.
 - **`apple-swiftui-mvvm.md`** — SwiftUI MVVM conventions: when to extract a view model, `@State` vs `@Bindable` ownership, dependency plumbing, what stays on the View vs the view model, splitting large VMs across extension files.
+- **`apple-objc-best-practices.md`** — Modern Objective-C for legacy / mixed-language codebases: ARC discipline, nullability, lightweight generics, `instancetype`, designated initializers, modern literals/blocks, Swift bridging-header conventions.
 - **`swift-concurrency-pro` skill** — reviews async/await, actors, structured concurrency.
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
@@ -33,6 +34,10 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`.gitignore`** — recommended entries for Xcode, SPM, CocoaPods, Carthage, fastlane, plus Gradle/Android Studio/Kotlin.
 - **`install.sh`** — one-command bootstrap into any target repo.
 - **`templates/CLAUDE.template.md`** — starter `CLAUDE.md` for the target app, with placeholders you fill in.
+
+### Recommended companion tooling (optional)
+
+- **[XcodeBuildMCP](https://github.com/cameroncooke/XcodeBuildMCP)** — community MCP server that lets Claude drive Xcode: build schemes, run simulators, capture logs. Useful when you want the agent to verify changes against real builds and tests instead of guessing at outcomes. Especially valuable for legacy / mixed-language Apple codebases.
 
 ## Quick start
 
@@ -79,6 +84,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
 │   │   ├── apple-foundation-models.md                 # On-device LLM patterns
+│   │   ├── apple-objc-best-practices.md               # Modern Objective-C
 │   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.2 strict concurrency
 │   │   └── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
 │   ├── skills/                        # On-demand skills (Apple-only today)
