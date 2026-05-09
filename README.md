@@ -37,7 +37,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`settings.json`** — safe defaults for `xcodebuild`, `swift`, `swiftlint`, `./gradlew`, `gradle`, `ktlint`, `adb`, `git`, `gh`, plus Apple/Android docs domains for `WebFetch`.
 - **`.gitignore`** — recommended entries for Xcode, SPM, CocoaPods, Carthage, fastlane, plus Gradle/Android Studio/Kotlin.
 - **`install.sh`** — one-command bootstrap into any target repo. Supports `--platform apple|android|both`, `--apple-language swift|objc|both` (so legacy ObjC projects don't get Swift-only rules), `--list` (preview the catalog of rules and skills with one-line descriptions), and `--help`.
-- **`templates/CLAUDE.template.md`** — starter `CLAUDE.md` for the target app, with placeholders you fill in.
+- **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 
 ### Recommended companion tooling (optional)
 
@@ -48,17 +48,23 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 From the root of a new app repo:
 
 ```bash
-# One-command install (recommended)
-/path/to/AppBootstrapAI/install.sh . --platform apple    # or: android | both
+# Pure-Swift Apple project
+/path/to/AppBootstrapAI/install.sh . --platform apple
 
-# Apple-side, Objective-C only (legacy projects)
+# Android project (Kotlin + Compose)
+/path/to/AppBootstrapAI/install.sh . --platform android
+
+# Cross-platform monorepo (one repo with both)
+/path/to/AppBootstrapAI/install.sh . --platform both
+
+# Apple legacy project — Objective-C only
 /path/to/AppBootstrapAI/install.sh . --platform apple --apple-language objc
 
-# Apple-side, Swift + ObjC (mixed-language projects)
+# Apple mixed-language — Swift + ObjC
 /path/to/AppBootstrapAI/install.sh . --platform apple --apple-language both
 
-# See exactly what would be installed for any flag combination
-/path/to/AppBootstrapAI/install.sh --list --platform apple --apple-language swift
+# Preview what any flag combo will install (no files written)
+/path/to/AppBootstrapAI/install.sh --list --platform android
 
 # Full help
 /path/to/AppBootstrapAI/install.sh --help
@@ -75,9 +81,11 @@ It never overwrites an existing `CLAUDE.md` or `settings.json` — it prints wha
 
 After install, edit the new `CLAUDE.md` and fill in the `<PLACEHOLDER>` sections. Keep the `.claude/rules/` and `.claude/skills/` as-is unless you need to extend them.
 
-## Invoking the skills
+## How it fires
 
-Skills auto-trigger when their description matches. You can also invoke explicitly:
+**Rules** (`.claude/rules/`) load automatically based on each file's `globs:` frontmatter — Apple rules fire on `*.swift` / `*.{h,m,mm}`, Android rules fire on `*.{kt,kts}`. No invocation needed; they steer Claude as soon as a matching file enters context. This is the bulk of what you get on the Android side today.
+
+**Skills** (`.claude/skills/`) are deeper review agents that fire on demand — currently Apple-only. Trigger by description match or invoke explicitly:
 
 - "Use `swift-concurrency-pro` to review `NetworkClient.swift`."
 - "Use `swiftui-pro` to check `SettingsView.swift` for modern API and a11y."
