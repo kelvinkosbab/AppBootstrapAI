@@ -15,11 +15,13 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-compose-best-practices.md          # Android: Jetpack Compose patterns
 │   ├── android-coroutines-best-practices.md       # Android: Kotlin coroutines / structured concurrency
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
+│   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
-│   └── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
+│   ├── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
+│   └── apple-testing-strategy.md                  # Apple: test strategy + coverage
 ├── skills/                        # On-demand Claude Code skills (Apple-only today)
 │   ├── coredata-swift6-pro/       # Core Data under Swift 6 strict concurrency
 │   ├── swift-concurrency-pro/     # Reviews Swift concurrency correctness
@@ -125,6 +127,16 @@ The rules in `.claude/rules/` are loaded automatically for every Swift file in t
 - Catch errors broadly and surface `error.localizedDescription`; do not pattern-match specific cases (the enum changes across OS releases).
 - Testability: protocol wrapper + Real/Mock/Simulator implementations, injected via `@Environment` with lazy fallback. Real impl is the only file that touches `import FoundationModels`.
 
+### Apple test strategy & coverage (`apple-testing-strategy.md`)
+
+- Test pyramid: bulk unit tests, fewer integration, fewest UI (XCUITest, on schedule).
+- Test the *behavior* through public API; skip private impl, third-party SDKs, generated code, DI wiring.
+- Name tests by behavior (`loginRejectsExpiredToken`), not by method-under-test.
+- Determinism is mandatory: inject clocks/UUIDs/randomness/network. No `Date()` / `UUID()` / `Thread.sleep` / live network in code under test.
+- Default to Swift Testing for new tests; keep XCTest only for UI (`XCUITest`) and performance (`measure`).
+- XCUITest: locate by `.accessibilityIdentifier`, never visible localized text.
+- Coverage: track in CI (Slather / Codecov / `xcrun xccov`), set a *policy* gate (commonly 70–80%), exclude generated code, DI, model-only types, and `@main`. Coverage is a hint, not a goal — don't game it.
+
 ### Modern Objective-C (`apple-objc-best-practices.md`)
 
 Scoped to `**/*.{h,m,mm}`. Encodes the evergreen modern-ObjC patterns:
@@ -175,6 +187,16 @@ Scoped to `**/*.{kt,kts}`. Encodes:
 - `Modifier` order matters: layout → drawing → input. `.padding().background()` ≠ `.background().padding()`.
 - `derivedStateOf` to filter recomposition noise; stable `key` lambdas on `LazyColumn`/`LazyRow`.
 - Always `collectAsStateWithLifecycle()` for `Flow`/`StateFlow`.
+
+### Android test strategy & coverage (`android-testing-strategy.md`)
+
+- Source-set discipline: `src/test/` for unit tests (JUnit, MockK, Turbine, optional Robolectric), `src/androidTest/` for instrumentation (Compose UI, real Room, Hilt-injected components).
+- Coroutines: `runTest`, `StandardTestDispatcher` for virtual time, `UnconfinedTestDispatcher` for eager. Inject dispatchers; install/reset `Dispatchers.Main` via a `MainDispatcherRule`. Never `runBlocking` or `Thread.sleep`.
+- `Flow`/`StateFlow` testing: Turbine `.test { awaitItem(); awaitComplete() }`; close every flow with `awaitComplete()` / `cancelAndIgnoreRemainingEvents()`.
+- Compose UI: locate by `testTag` / `contentDescription` (semantics), never visible localized text. Use `waitForIdle` / `waitUntil`, never `Thread.sleep`.
+- Hilt tests: `@HiltAndroidTest`, `HiltAndroidRule`, `@UninstallModules` + `@BindValue` to swap real bindings for fakes.
+- MockK: `mockk<T>()` / `coEvery` / `coVerify`; don't mock data classes — use static factory fixtures.
+- Coverage: JaCoCo with a CI gate (commonly 70–80%); exclude Hilt-generated, KSP outputs, Activities/Application, Compose `@Preview`, DI modules. A failing gate or it's decorative.
 
 ### Apple accessibility (`apple-accessibility-best-practices.md`)
 

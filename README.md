@@ -13,6 +13,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`apple-foundation-models.md`** — Apple Foundation Models patterns: session ownership, two-level availability gating, streaming placeholder-then-mutate, `Task.isCancelled` discipline, protocol + mock + simulator testability.
 - **`apple-swiftui-mvvm.md`** — SwiftUI MVVM conventions: when to extract a view model, `@State` vs `@Bindable` ownership, dependency plumbing, what stays on the View vs the view model, splitting large VMs across extension files.
 - **`apple-objc-best-practices.md`** — Modern Objective-C for legacy / mixed-language codebases: ARC discipline, nullability, lightweight generics, `instancetype`, designated initializers, modern literals/blocks, Swift bridging-header conventions.
+- **`apple-testing-strategy.md`** — what to test (and what not), Given/When/Then naming, determinism (inject clocks/UUIDs/network), Swift Testing vs XCTest split, XCUITest discipline, CI coverage gates with sensible exclusions.
 - **`swift-concurrency-pro` skill** — reviews async/await, actors, structured concurrency.
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
@@ -28,6 +29,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
 - **`android-compose-best-practices.md`** — state hoisting, side effects (`LaunchedEffect`/`DisposableEffect`/`SideEffect`), `Modifier` ordering, recomposition stability (`@Stable`/`@Immutable`), lifecycle-aware `collectAsStateWithLifecycle()`, `LazyColumn` keys.
 - **`android-accessibility-best-practices.md`** — TalkBack semantics, 48dp touch targets, dynamic text, WCAG AA contrast, reduce-motion.
+- **`android-testing-strategy.md`** — test pyramid, source-set discipline (`src/test` vs `src/androidTest`), `runTest` + `StandardTestDispatcher` patterns, Turbine for `Flow`, Compose UI tests via semantics (not visible text), Hilt test modules, MockK conventions, JaCoCo coverage gates with generated-code exclusions.
 - *(No Android skills yet — on the roadmap.)*
 
 ### Baseline
@@ -98,11 +100,13 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 │   │   ├── android-compose-best-practices.md          # Jetpack Compose patterns
 │   │   ├── android-coroutines-best-practices.md       # Structured concurrency
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
+│   │   ├── android-testing-strategy.md                # Android test strategy + JaCoCo
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
 │   │   ├── apple-foundation-models.md                 # On-device LLM patterns
 │   │   ├── apple-objc-best-practices.md               # Modern Objective-C
 │   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.2 strict concurrency
-│   │   └── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
+│   │   ├── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
+│   │   └── apple-testing-strategy.md                  # Apple test strategy + coverage
 │   ├── skills/                        # On-demand skills (Apple-only today)
 │   │   ├── coredata-swift6-pro/
 │   │   ├── swift-concurrency-pro/
