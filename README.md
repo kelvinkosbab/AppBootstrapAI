@@ -159,7 +159,12 @@ See [CLAUDE.md](CLAUDE.md) for:
 
 ## Credits
 
-- Skills authored by **Paul Hudson** (MIT). Retained with author attribution in each `SKILL.md`.
+- Skills authored by **Paul Hudson** ([@twostraws](https://github.com/twostraws)) and licensed MIT. Original sources, linked from the bundled skill references and worth starring at the source:
+  - [`swift-concurrency-agent-skill`](https://github.com/twostraws/swift-concurrency-agent-skill)
+  - [`swift-testing-agent-skill`](https://github.com/twostraws/swift-testing-agent-skill)
+  - [`swiftui-agent-skill`](https://github.com/twostraws/swiftui-agent-skill)
+  - [`swiftdata-agent-skill`](https://github.com/twostraws/swiftdata-agent-skill)
+  - …and more on his profile. Author attribution is retained in each `SKILL.md` frontmatter.
 - Steering rules and onboarding structure adapted from **KozBon** and **BasicSwiftUtilities**.
 
 ## License
