@@ -13,7 +13,7 @@
 
 <PROJECT_NAME> is <ONE_SENTENCE_DESCRIPTION>. <BUNDLE_ID_OR_PACKAGE>.
 
-- Primary platform(s): <apple | android | both>
+- Platform(s): <apple | android | both>
 - Minimum OS: <iOS 18 / Android 14 / ...>
 - Language: <Swift 6.2 / Kotlin 2.x>
 

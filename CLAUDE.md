@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Primary focus is Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) with Swift 6.2 concurrency, SwiftUI, and Swift Testing guidance. Secondary focus is Android (Kotlin, Jetpack Compose, MVVM, Hilt) — rules only for now, no dedicated skills yet.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.2 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) currently exist for the Apple side only; Android is covered by steering rules until production patterns surface enough to harden a skill against.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
