@@ -3,25 +3,51 @@
 #
 # Usage:
 #   ./install.sh [TARGET_DIR] [--platform apple|android|both]
+#                             [--apple-language swift|objc|both]
+#   ./install.sh --list
+#   ./install.sh --help
 #
-# Defaults: TARGET_DIR=.  --platform both
+# Defaults: TARGET_DIR=.  --platform both  --apple-language swift
+#
+# Flags:
+#   --platform           Which platform's rules and skills to install.
+#                        - apple   → install apple-* rules + skills
+#                        - android → install android-* rules (no skills yet)
+#                        - both    → install everything
+#   --apple-language     When --platform is apple or both, narrows the Apple
+#                        side to a specific language:
+#                        - swift (default) → all apple- rules except apple-objc-*
+#                                            + all skills (skills are Swift-tied)
+#                        - objc            → apple-objc-* only, no skills
+#                        - both            → all apple- rules + all skills
+#   --list               Print the catalog of available rules and skills with
+#                        one-line descriptions, and exit. Use this to see what
+#                        a given --platform / --apple-language combo would
+#                        actually install.
+#   -h, --help           Print this help and exit.
 #
 # What it does:
-#   - Copies .claude/skills/ (Apple skills)
-#   - Copies .claude/rules/ matching the chosen platform
-#   - Copies .claude/settings.json if none exists in TARGET_DIR
-#   - Renders templates/CLAUDE.template.md into TARGET_DIR/CLAUDE.md (only if
-#     CLAUDE.md does not already exist — it never overwrites)
-#   - Appends recommended .gitignore entries for the chosen platform(s)
+#   - Copies .claude/skills/ when the platform/language combo includes Swift.
+#   - Copies .claude/rules/ matching the chosen platform and language.
+#   - Copies .claude/settings.json if none exists in TARGET_DIR.
+#   - Renders the platform-appropriate CLAUDE template into TARGET_DIR/CLAUDE.md
+#     (apple → CLAUDE.template.apple.md, android → CLAUDE.template.android.md,
+#      both → CLAUDE.template.md). Only if CLAUDE.md does not already exist —
+#      it never overwrites.
+#   - Appends recommended .gitignore entries for the chosen platform(s).
 #
-# It never overwrites an existing CLAUDE.md or settings.json; it prints what it
-# skipped so you can merge manually.
+# It never overwrites an existing CLAUDE.md or settings.json; it prints what
+# it skipped so you can merge manually.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET="${1:-.}"
 PLATFORM="both"
+APPLE_LANG="swift"
+ACTION="install"
+
+# --- Argument parsing ---------------------------------------------------------
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -29,8 +55,16 @@ while [[ $# -gt 0 ]]; do
             PLATFORM="$2"
             shift 2
             ;;
+        --apple-language)
+            APPLE_LANG="$2"
+            shift 2
+            ;;
+        --list)
+            ACTION="list"
+            shift
+            ;;
         -h|--help)
-            sed -n '2,20p' "${BASH_SOURCE[0]}"
+            sed -n '2,42p' "${BASH_SOURCE[0]}"
             exit 0
             ;;
         *)
@@ -43,10 +77,89 @@ done
 case "$PLATFORM" in
     apple|android|both) ;;
     *)
-        echo "error: --platform must be apple, android, or both" >&2
+        echo "error: --platform must be apple, android, or both (got: $PLATFORM)" >&2
         exit 1
         ;;
 esac
+
+case "$APPLE_LANG" in
+    swift|objc|both) ;;
+    *)
+        echo "error: --apple-language must be swift, objc, or both (got: $APPLE_LANG)" >&2
+        exit 1
+        ;;
+esac
+
+# --- Inclusion predicates -----------------------------------------------------
+# Decide whether a given rule file should be installed for the current
+# (PLATFORM, APPLE_LANG) combo.
+
+should_install_rule() {
+    local name="$1"
+    case "$name" in
+        apple-objc-*)
+            # ObjC rule: include only if Apple is in scope AND language permits objc.
+            [[ "$PLATFORM" != "android" ]] && [[ "$APPLE_LANG" != "swift" ]]
+            ;;
+        apple-*)
+            # Other apple-* rules are Swift-side: include if Apple in scope and
+            # language is swift or both (not objc-only).
+            [[ "$PLATFORM" != "android" ]] && [[ "$APPLE_LANG" != "objc" ]]
+            ;;
+        android-*)
+            [[ "$PLATFORM" != "apple" ]]
+            ;;
+        *)
+            # Unprefixed rules: include for both platforms.
+            true
+            ;;
+    esac
+}
+
+# Skills are all Swift-tied today; install only when Apple/Swift is in scope.
+should_install_skills() {
+    [[ "$PLATFORM" != "android" ]] && [[ "$APPLE_LANG" != "objc" ]]
+}
+
+# Pull the `description:` line out of a rule's YAML frontmatter (best-effort).
+rule_description() {
+    awk '
+        /^---$/ { if (seen) exit; seen=1; next }
+        /^description:/ { sub(/^description:[[:space:]]*/, ""); print; exit }
+    ' "$1"
+}
+
+# Pull the `description:` line out of a skill's SKILL.md.
+skill_description() {
+    rule_description "$1/SKILL.md"
+}
+
+# --- --list mode --------------------------------------------------------------
+
+if [[ "$ACTION" == "list" ]]; then
+    echo "AppBootstrapAI catalog"
+    echo "  current selection: --platform $PLATFORM --apple-language $APPLE_LANG"
+    echo ""
+    echo "Rules:"
+    shopt -s nullglob
+    for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
+        name="$(basename "$f")"
+        if should_install_rule "$name"; then mark="✓"; else mark=" "; fi
+        printf "  [%s] %s\n        %s\n" "$mark" "$name" "$(rule_description "$f")"
+    done
+    echo ""
+    echo "Skills:"
+    if should_install_skills; then skills_mark="✓"; else skills_mark=" "; fi
+    for d in "$SCRIPT_DIR/.claude/skills/"*/; do
+        name="$(basename "$d")"
+        printf "  [%s] %s\n        %s\n" "$skills_mark" "$name" "$(skill_description "$d")"
+    done
+    echo ""
+    echo "Legend: [✓] = installed under current selection, [ ] = skipped."
+    exit 0
+fi
+
+# --- Install mode -------------------------------------------------------------
 
 if [[ ! -d "$TARGET" ]]; then
     echo "error: target directory does not exist: $TARGET" >&2
@@ -54,26 +167,27 @@ if [[ ! -d "$TARGET" ]]; then
 fi
 
 TARGET="$(cd "$TARGET" && pwd)"
-echo "==> Installing AppBootstrapAI into $TARGET (platform: $PLATFORM)"
+echo "==> Installing AppBootstrapAI into $TARGET"
+echo "    platform: $PLATFORM   apple-language: $APPLE_LANG"
 
 mkdir -p "$TARGET/.claude/rules" "$TARGET/.claude/skills"
 
-# Skills: currently Apple-only; copy for apple or both.
-if [[ "$PLATFORM" != "android" ]]; then
+# Skills.
+if should_install_skills; then
     echo "--> Copying skills"
     cp -R "$SCRIPT_DIR/.claude/skills/." "$TARGET/.claude/skills/"
+else
+    echo "--> Skipping skills (not in scope for current selection)"
 fi
 
-# Rules: copy platform-matching files.
+# Rules.
 echo "--> Copying rules"
 shopt -s nullglob
 for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
     name="$(basename "$f")"
-    case "$PLATFORM:$name" in
-        apple:apple-*|android:android-*|both:*)
-            cp "$f" "$TARGET/.claude/rules/$name"
-            ;;
-    esac
+    if should_install_rule "$name"; then
+        cp "$f" "$TARGET/.claude/rules/$name"
+    fi
 done
 
 # settings.json — never overwrite.
@@ -84,12 +198,20 @@ else
     echo "--> Skipping settings.json (already exists — merge manually)"
 fi
 
-# CLAUDE.md — render from template, never overwrite.
-if [[ ! -f "$TARGET/CLAUDE.md" ]] && [[ -f "$SCRIPT_DIR/templates/CLAUDE.template.md" ]]; then
-    echo "--> Creating CLAUDE.md from template (edit the placeholders)"
-    cp "$SCRIPT_DIR/templates/CLAUDE.template.md" "$TARGET/CLAUDE.md"
+# CLAUDE.md — render from the platform-appropriate template, never overwrite.
+case "$PLATFORM" in
+    apple)   TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.template.apple.md"   ;;
+    android) TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.template.android.md" ;;
+    both)    TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.template.md"         ;;
+esac
+
+if [[ -f "$TARGET/CLAUDE.md" ]]; then
+    echo "--> Skipping CLAUDE.md (already exists — merge manually)"
+elif [[ ! -f "$TEMPLATE" ]]; then
+    echo "--> Skipping CLAUDE.md (template missing: $TEMPLATE)"
 else
-    echo "--> Skipping CLAUDE.md (already exists or template missing)"
+    echo "--> Creating CLAUDE.md from $(basename "$TEMPLATE") (edit the placeholders)"
+    cp "$TEMPLATE" "$TARGET/CLAUDE.md"
 fi
 
 # .gitignore — append platform entries, deduped by marker.
@@ -148,3 +270,5 @@ echo "==> Done. Next steps:"
 echo "    1. Edit $TARGET/CLAUDE.md — fill in the <PLACEHOLDER> sections."
 echo "    2. Review $TARGET/.gitignore for merge conflicts."
 echo "    3. Commit the new files."
+echo ""
+echo "Tip: run \`./install.sh --list\` (with the same flags) to see what was installed."

@@ -12,6 +12,8 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 .claude/
 ├── rules/                         # Always-loaded AI steering (Cursor-style rule files)
 │   ├── android-accessibility-best-practices.md    # Android: TalkBack / Compose semantics
+│   ├── android-compose-best-practices.md          # Android: Jetpack Compose patterns
+│   ├── android-coroutines-best-practices.md       # Android: Kotlin coroutines / structured concurrency
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
@@ -33,7 +35,11 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 Plus, at the repo root:
 
 - `install.sh` — one-command bootstrap into any target repo (`--platform apple|android|both`).
-- `templates/CLAUDE.template.md` — starter `CLAUDE.md` for the target app, with placeholders.
+- `templates/CLAUDE.template.apple.md` — starter `CLAUDE.md` for Apple-only projects.
+- `templates/CLAUDE.template.android.md` — starter `CLAUDE.md` for Android-only projects.
+- `templates/CLAUDE.template.md` — starter `CLAUDE.md` for cross-platform projects.
+
+The installer picks the right template based on `--platform`.
 
 Each skill ships with:
 
@@ -47,11 +53,29 @@ Each skill ships with:
 Use the installer from the target repo:
 
 ```bash
-# From the root of your new app repo
-/path/to/AppBootstrapAI/install.sh . --platform apple     # apple | android | both
+# Pure-Swift Apple project (default)
+/path/to/AppBootstrapAI/install.sh . --platform apple
+
+# Legacy / Objective-C only
+/path/to/AppBootstrapAI/install.sh . --platform apple --apple-language objc
+
+# Mixed-language Apple project
+/path/to/AppBootstrapAI/install.sh . --platform apple --apple-language both
+
+# Android
+/path/to/AppBootstrapAI/install.sh . --platform android
+
+# Cross-platform (one repo with both)
+/path/to/AppBootstrapAI/install.sh . --platform both
+
+# Preview the rules and skills that any flag combo would install
+/path/to/AppBootstrapAI/install.sh --list --platform apple --apple-language swift
+
+# Full help
+/path/to/AppBootstrapAI/install.sh --help
 ```
 
-The installer copies skills, platform-matching rules, settings, a starter `CLAUDE.md` (from `templates/CLAUDE.template.md`), and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
+The installer copies skills (when Swift is in scope), platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
 Then customize the new repo's `CLAUDE.md` to describe **that** project's specifics: modules, build commands, dependency graph, gotchas. Keep the steering rules and skills as-is — they apply to any modern Apple or Android app.
 
@@ -132,6 +156,25 @@ Scoped to `**/*.{kt,kts}`. Encodes:
 - **Style:** ktlint, `PascalCase` Composables, `camelCase` members, no wildcard imports.
 - **Workflow:** `./gradlew assembleDebug | test | ktlintCheck` (run ktlint before every commit).
 - **Safety:** never hardcode secrets; all UI text in `strings.xml`.
+
+### Kotlin coroutines (`android-coroutines-best-practices.md`)
+
+- Right scope for the lifetime: `viewModelScope` for VMs, `lifecycleScope` for UI, `WorkManager` for process-death-surviving work. Never `GlobalScope`. Never `runBlocking` in app code.
+- Dispatchers: `Main` for UI, `IO` for blocking I/O, `Default` for CPU. Inject dispatchers so tests can substitute.
+- Cancellation is cooperative — never catch `CancellationException`; use `try { } finally { }` for cleanup.
+- `Flow` (cold) / `StateFlow` (hot value-holding) / `SharedFlow` (hot one-shot). Expose read-only base types from VMs.
+- Always `collectAsStateWithLifecycle()` in Compose — never raw `collectAsState()`.
+- `supervisorScope` / `SupervisorJob` for sibling-failure isolation. `CoroutineExceptionHandler` for top-level uncaught.
+
+### Jetpack Compose (`android-compose-best-practices.md`)
+
+- State hoisting: stateless Composables receive `value` + `onValueChange`; stateful wrappers read from VMs.
+- `remember` for in-composition state; `rememberSaveable` for config-change survivable state. Business state lives in VMs, never in `remember`.
+- Side effects in their proper wrappers: `LaunchedEffect`, `DisposableEffect`, `SideEffect`, `rememberCoroutineScope`, `produceState`. Never start work directly in the Composable body.
+- `@Stable` / `@Immutable` on data flowing into Composables to enable skippable composition. `kotlin.collections.List` is *not* stable by default — use `ImmutableList` or annotate the holder.
+- `Modifier` order matters: layout → drawing → input. `.padding().background()` ≠ `.background().padding()`.
+- `derivedStateOf` to filter recomposition noise; stable `key` lambdas on `LazyColumn`/`LazyRow`.
+- Always `collectAsStateWithLifecycle()` for `Flow`/`StateFlow`.
 
 ### Apple accessibility (`apple-accessibility-best-practices.md`)
 

@@ -25,6 +25,8 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 ### Android (secondary)
 
 - **`android-project-rules.md`** — Kotlin, Jetpack Compose, MVVM, Hilt, StateFlow, Retrofit/Moshi, ktlint.
+- **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
+- **`android-compose-best-practices.md`** — state hoisting, side effects (`LaunchedEffect`/`DisposableEffect`/`SideEffect`), `Modifier` ordering, recomposition stability (`@Stable`/`@Immutable`), lifecycle-aware `collectAsStateWithLifecycle()`, `LazyColumn` keys.
 - **`android-accessibility-best-practices.md`** — TalkBack semantics, 48dp touch targets, dynamic text, WCAG AA contrast, reduce-motion.
 - *(No Android skills yet — on the roadmap.)*
 
@@ -32,7 +34,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 
 - **`settings.json`** — safe defaults for `xcodebuild`, `swift`, `swiftlint`, `./gradlew`, `gradle`, `ktlint`, `adb`, `git`, `gh`, plus Apple/Android docs domains for `WebFetch`.
 - **`.gitignore`** — recommended entries for Xcode, SPM, CocoaPods, Carthage, fastlane, plus Gradle/Android Studio/Kotlin.
-- **`install.sh`** — one-command bootstrap into any target repo.
+- **`install.sh`** — one-command bootstrap into any target repo. Supports `--platform apple|android|both`, `--apple-language swift|objc|both` (so legacy ObjC projects don't get Swift-only rules), `--list` (preview the catalog of rules and skills with one-line descriptions), and `--help`.
 - **`templates/CLAUDE.template.md`** — starter `CLAUDE.md` for the target app, with placeholders you fill in.
 
 ### Recommended companion tooling (optional)
@@ -46,13 +48,25 @@ From the root of a new app repo:
 ```bash
 # One-command install (recommended)
 /path/to/AppBootstrapAI/install.sh . --platform apple    # or: android | both
+
+# Apple-side, Objective-C only (legacy projects)
+/path/to/AppBootstrapAI/install.sh . --platform apple --apple-language objc
+
+# Apple-side, Swift + ObjC (mixed-language projects)
+/path/to/AppBootstrapAI/install.sh . --platform apple --apple-language both
+
+# See exactly what would be installed for any flag combination
+/path/to/AppBootstrapAI/install.sh --list --platform apple --apple-language swift
+
+# Full help
+/path/to/AppBootstrapAI/install.sh --help
 ```
 
 The installer:
 
-- Copies `.claude/skills/` and platform-matching `.claude/rules/`.
+- Copies `.claude/skills/` (when `apple` or `both`) and platform-matching `.claude/rules/`.
 - Copies `.claude/settings.json` (only if one doesn't already exist).
-- Renders `templates/CLAUDE.template.md` into `CLAUDE.md` (only if missing).
+- Renders the **platform-appropriate** `CLAUDE.template.*.md` into `CLAUDE.md` (only if missing): `apple` → `CLAUDE.template.apple.md`, `android` → `CLAUDE.template.android.md`, `both` → `CLAUDE.template.md`.
 - Appends platform-specific entries to `.gitignore`, deduped by marker.
 
 It never overwrites an existing `CLAUDE.md` or `settings.json` — it prints what it skipped so you can merge.
@@ -81,6 +95,8 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 ├── .claude/
 │   ├── rules/
 │   │   ├── android-accessibility-best-practices.md    # Android a11y
+│   │   ├── android-compose-best-practices.md          # Jetpack Compose patterns
+│   │   ├── android-coroutines-best-practices.md       # Structured concurrency
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
 │   │   ├── apple-foundation-models.md                 # On-device LLM patterns
@@ -98,7 +114,9 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 │   │   └── swiftui-pro/
 │   └── settings.json                  # Baseline permissions
 ├── templates/
-│   └── CLAUDE.template.md             # Starter CLAUDE.md for target apps
+│   ├── CLAUDE.template.apple.md       # Starter for Apple-only projects
+│   ├── CLAUDE.template.android.md     # Starter for Android-only projects
+│   └── CLAUDE.template.md             # Starter for cross-platform projects
 ├── install.sh                         # One-command bootstrap
 ├── CLAUDE.md                          # This repo's own AI onboarding
 ├── LICENSE                            # MIT
