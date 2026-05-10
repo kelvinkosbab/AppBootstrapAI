@@ -1,0 +1,34 @@
+name: install-smoke-test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'install.sh'
+      - 'templates/**'
+      - '.claude/**'
+      - '.github/scripts/install-smoke-test.sh'
+      - '.github/workflows/install-smoke-test.yml'
+  pull_request:
+    paths:
+      - 'install.sh'
+      - 'templates/**'
+      - '.claude/**'
+      - '.github/scripts/install-smoke-test.sh'
+      - '.github/workflows/install-smoke-test.yml'
+
+jobs:
+  smoke-test:
+    # Run on Ubuntu and macOS — the installer ships to both kinds of dev
+    # machines and bash arithmetic / tempdir layout differ between them.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install smoke test
+        run: bash .github/scripts/install-smoke-test.sh

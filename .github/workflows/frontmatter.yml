@@ -1,0 +1,30 @@
+name: frontmatter
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.claude/rules/**'
+      - '.claude/skills/**'
+      - '.github/scripts/validate-frontmatter.py'
+      - '.github/workflows/frontmatter.yml'
+  pull_request:
+    paths:
+      - '.claude/rules/**'
+      - '.claude/skills/**'
+      - '.github/scripts/validate-frontmatter.py'
+      - '.github/workflows/frontmatter.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Validate rule and skill frontmatter
+        run: python3 .github/scripts/validate-frontmatter.py
