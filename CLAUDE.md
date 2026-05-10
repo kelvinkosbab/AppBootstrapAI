@@ -15,11 +15,13 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-compose-best-practices.md          # Android: Jetpack Compose patterns
 │   ├── android-coroutines-best-practices.md       # Android: Kotlin coroutines / structured concurrency
 │   ├── android-documentation-strategy.md          # Android: KDoc strategy + Dokka
+│   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
 │   ├── apple-documentation-strategy.md            # Apple: DocC strategy + deprecation
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
+│   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
 │   ├── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
@@ -129,6 +131,28 @@ The rules in `.claude/rules/` are loaded automatically for every Swift file in t
 - Streaming pattern: append placeholder → mutate in place → remove on error. Check `Task.isCancelled` inside the loop; `defer { isGenerating = false }` at function top.
 - Catch errors broadly and surface `error.localizedDescription`; do not pattern-match specific cases (the enum changes across OS releases).
 - Testability: protocol wrapper + Real/Mock/Simulator implementations, injected via `@Environment` with lazy fallback. Real impl is the only file that touches `import FoundationModels`.
+
+### Apple localization (`apple-localization-best-practices.md`)
+
+- String Catalogs (`.xcstrings`) are the modern source-of-truth (Xcode 15 / iOS 17+); legacy `.strings` / `.stringsdict` stays stable, new entries route through the catalog.
+- All UI code reads through a **type-safe enum facade** (`Strings.Sections.title`, `Strings.Errors.portMin(value)`) so a typo is a compile error, not a runtime broken string. UI never calls `String(localized:)` / `NSLocalizedString` directly.
+- `Text(_:)` / `.accessibilityLabel(_:)` accept `LocalizedStringResource` directly — use it.
+- Plurals via String Catalog variations (Russian has 4 forms, Arabic has 6); never `count == 1 ? "item" : "items"`.
+- Locale-aware formatters: `Text(value, format: .number)`, `Text(date, format: .dateTime.year().month().day())`, `.formatted(.currency(code:))`. Never `String(format: "%.2f", ...)` for user-visible output.
+- RTL: use `.leading` / `.trailing`, never `.left` / `.right`. Test with the RTL pseudo-language scheme. `.flipsForRightToLeftLayoutDirection(true)` on directional images only.
+- Every facade entry has a `comment:` for translators. Key naming carries context (`settings.save_button` over `save`).
+
+### Android localization (`android-localization-best-practices.md`)
+
+Scoped to `**/*.{kt,kts,xml}` (covers code and `res/values*/strings.xml`). Encodes:
+
+- Every user-facing string in `res/values/strings.xml`; locale overrides in `values-<locale>/`, region overrides in `values-<lang>-r<REGION>/`.
+- Compose: `stringResource(R.string.…)` / `pluralStringResource(R.plurals.…, count, count)`; non-Compose: `context.getString(...)` / `getQuantityString(...)`.
+- **Always positional format args** (`%1$s`, `%2$d`) — never bare `%s`/`%d`. Translators reorder.
+- `<plurals>` for any count-dependent string, even if English is `one`/`other`. Pass count *twice* to get it formatted in.
+- Locale-aware `NumberFormat` / `java.time.DateTimeFormatter`; never `String.format("%.2f", ...)` or `SimpleDateFormat`.
+- RTL: `<application android:supportsRtl="true">`; use `start`/`end` modifiers, never `left`/`right`. `android:autoMirrored="true"` on directional drawables.
+- Comment blocks in `strings.xml` describe where strings appear and what each `%1$s` means.
 
 ### Apple documentation strategy (`apple-documentation-strategy.md`)
 
