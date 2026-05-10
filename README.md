@@ -16,6 +16,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`apple-testing-strategy.md`** — what to test (and what not), Given/When/Then naming, determinism (inject clocks/UUIDs/network), Swift Testing vs XCTest split, XCUITest discipline, CI coverage gates with sensible exclusions.
 - **`apple-documentation-strategy.md`** — what to document (and what not), DocC discipline (summary line, `- Parameter`/`- Returns`/`- Throws`, double-backtick symbol linking, `## Topics` organization), deprecation discipline with mandatory migration paths, when to write a DocC Article vs. a doc comment.
 - **`apple-localization-best-practices.md`** — String Catalogs (`.xcstrings`) as the modern format, type-safe `Strings` enum facade pattern, `LocalizedStringResource` over `NSLocalizedString`, plurals, locale-aware `.formatted()` for numbers/dates/currency, RTL via leading/trailing modifiers, translator-context comments.
+- **`apple-spm-package-conventions.md`** — `Package.swift` authoring: `swift-tools-version` discipline, mandatory `platforms:`, per-module folder layout (`{Module}/Sources/{Module}` + `{Module}/Tests/{Module}Tests`), `makeTargets()` helper for many similar modules, resources (`.process` vs `.copy`), modern features (`InternalImportsByDefault`, `.swiftLanguageMode(.v6)`, `public import`), dependency hygiene (`from:` vs `exact:`).
 - **`swift-concurrency-pro` skill** — reviews async/await, actors, structured concurrency.
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
@@ -34,6 +35,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`android-testing-strategy.md`** — test pyramid, source-set discipline (`src/test` vs `src/androidTest`), `runTest` + `StandardTestDispatcher` patterns, Turbine for `Flow`, Compose UI tests via semantics (not visible text), Hilt test modules, MockK conventions, JaCoCo coverage gates with generated-code exclusions.
 - **`android-documentation-strategy.md`** — KDoc syntax (`@param` / `@return` / `@throws` / `@property` / `@sample` / `@see`), Composable docs (state hoisting, semantics, skippable vs. restartable), Hilt module docs, suspend / cancellation behavior, deprecation with `ReplaceWith`, Dokka conventions and external links.
 - **`android-localization-best-practices.md`** — `strings.xml` discipline, `stringResource` / `pluralStringResource` in Compose, positional format args (`%1$s` not `%s`), `<plurals>` with `getQuantityString`, locale-aware `NumberFormat` / `DateTimeFormatter`, RTL with `start`/`end` modifiers and `android:supportsRtl="true"`, translator-context comment blocks.
+- **`android-gradle-conventions.md`** — Kotlin DSL only, version catalogs (`gradle/libs.versions.toml`) as single source of truth, AGP/Kotlin/Compose-compiler co-versioning, `jvmToolchain`, `api` vs `implementation`, multi-module graph patterns (`:app` + `:feature:*` + `:data:*` + `:core:*`), library publishing with `consumer-rules.pro`, KSP over kapt.
 - *(No Android skills yet — on the roadmap.)*
 
 ### Cross-platform
@@ -116,6 +118,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 │   │   ├── android-compose-best-practices.md          # Jetpack Compose patterns
 │   │   ├── android-coroutines-best-practices.md       # Structured concurrency
 │   │   ├── android-documentation-strategy.md          # KDoc strategy + Dokka
+│   │   ├── android-gradle-conventions.md              # Gradle DSL, version catalogs, modules
 │   │   ├── android-localization-best-practices.md     # strings.xml, plurals, RTL
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
 │   │   ├── android-testing-strategy.md                # Android test strategy + JaCoCo
@@ -124,6 +127,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 │   │   ├── apple-foundation-models.md                 # On-device LLM patterns
 │   │   ├── apple-localization-best-practices.md       # String Catalogs, plurals, RTL
 │   │   ├── apple-objc-best-practices.md               # Modern Objective-C
+│   │   ├── apple-spm-package-conventions.md           # Package.swift authoring
 │   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.2 strict concurrency
 │   │   ├── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
 │   │   ├── apple-testing-strategy.md                  # Apple test strategy + coverage

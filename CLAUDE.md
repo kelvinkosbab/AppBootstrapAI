@@ -15,6 +15,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-compose-best-practices.md          # Android: Jetpack Compose patterns
 │   ├── android-coroutines-best-practices.md       # Android: Kotlin coroutines / structured concurrency
 │   ├── android-documentation-strategy.md          # Android: KDoc strategy + Dokka
+│   ├── android-gradle-conventions.md              # Android: Gradle DSL / version catalogs / modules
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
@@ -23,6 +24,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
 │   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
+│   ├── apple-spm-package-conventions.md           # Apple: Package.swift authoring
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
 │   ├── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
 │   ├── apple-testing-strategy.md                  # Apple: test strategy + coverage
