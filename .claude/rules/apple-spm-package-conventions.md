@@ -128,24 +128,83 @@ targets:
 - **Always access resources via `Bundle.module`** in code (`Bundle.module.url(forResource:withExtension:)`) — never `Bundle.main` (which is the consumer's app bundle, not yours).
 - **Core Data caveat:** SPM cannot compile `.xcdatamodeld` files via the CLI. Either ship the model as raw resources and build the `NSManagedObjectModel` programmatically (see `coredata-swift6-pro` skill), or require Xcode for the build path that needs it.
 
-## Modern Features (Swift 6+)
+## Swift Settings
+
+`swiftSettings:` on each target (or the `sharedSwiftSettings` constant in the template) controls language mode, concurrency strictness, upcoming-feature opt-ins, and per-platform / per-configuration build flags. Get this right once at the package level; per-target overrides should be rare and intentional.
+
+### Language mode: Swift 5 vs Swift 6
 
 ```swift
-.target(
-    name: "Core",
-    dependencies: [],
-    path: "Core/Sources/Core",
-    swiftSettings: [
-        .swiftLanguageMode(.v6),
-        .enableExperimentalFeature("InternalImportsByDefault"),
-        .enableUpcomingFeature("MemberImportVisibility")
-    ]
-)
+.swiftLanguageMode(.v5)  // legacy compatibility — current and explicit
+.swiftLanguageMode(.v6)  // strict concurrency, full Sendable enforcement
 ```
 
-- **`.swiftLanguageMode(.v6)`** opts into Swift 6 strict concurrency at the target level. Combine with the `apple-swift6-strict-concurrency.md` rule for full coverage.
+- **Default to `.v6`** for new packages and for code you're actively maintaining. The `apple-swift6-strict-concurrency.md` rule encodes what `.v6` enforces (Sendable checking, actor isolation, no `@unchecked Sendable` band-aids).
+- **Stay on `.v5` only when you have a documented migration plan** to `.v6`. The cost compounds the longer you wait — new APIs, third-party packages, and async patterns increasingly assume `.v6`-style isolation.
+- **Don't omit `.swiftLanguageMode(...)`** in a new package — letting it default to the tool-version's implicit mode means a future Swift bump silently changes your concurrency strictness. Pin it.
+- **Per-target overrides are legitimate during migration:** keep the package at `.v6` and override one slow-moving target to `.v5` until it catches up. Document the override in a comment with a target removal date.
+
+### Concurrency strictness under Swift 5 mode
+
+Under `.v6`, strict concurrency is on, full stop. Under `.v5`, you can dial it in incrementally:
+
+```swift
+// Swift 5 mode, opt into strict concurrency progressively:
+swiftSettings: [
+    .swiftLanguageMode(.v5),
+    .enableExperimentalFeature("StrictConcurrency"),
+    // OR with the compiler flag form for older toolchains that lack the feature flag:
+    // .unsafeFlags(["-strict-concurrency=complete"])
+]
+```
+
+- **`StrictConcurrency` was experimental in Swift 5.6–5.10**, graduated to the default behavior in `.v6`. If your toolchain is recent and you're staying on `.v5`, prefer the feature flag over `-strict-concurrency=complete` — feature flags are designed to graduate without consumer changes.
+- **Levels for the compiler flag** (Swift 5 mode only): `minimal` (just `Sendable` checks across actor boundaries), `targeted` (data-race-safety for marked declarations), `complete` (full enforcement, same as `.v6`'s default). Pick `complete` to make migration to `.v6` a no-op.
+- **Don't mix experimental and graduated forms** — e.g., `enableExperimentalFeature("RegionBasedIsolation")` inside `.v6` mode does nothing (it's already on) and looks like cargo-culting in code review.
+
+### Upcoming features worth opting into
+
+The `[upcoming features](https://github.com/apple/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md)` system lets you opt into specific source-breaking improvements *before* the next Swift major. Common ones for app/library code:
+
+```swift
+swiftSettings: [
+    .swiftLanguageMode(.v6),
+    .enableUpcomingFeature("InternalImportsByDefault"),  // imports are `internal` unless `public import`
+    .enableUpcomingFeature("MemberImportVisibility"),    // tighten member visibility across module boundaries
+    .enableUpcomingFeature("ExistentialAny"),            // require `any P` for protocol existentials
+]
+```
+
 - **`InternalImportsByDefault`** — module imports are `internal` unless marked `public import`. Forces explicit re-exports; catches accidental public-API leaks where an `import` of a dependency module makes it part of your package's public surface.
 - **`public import` for re-exported types only** — when a public function's signature uses a type from a dependency module (`func make() -> SomeKit.SomeType`), the import must be `public`. Plain `import` is internal.
+- **`ExistentialAny`** is high-value but disruptive on existing codebases — it surfaces every place you've written `let value: Codable` (which now requires `any Codable`). Worth doing as a focused migration PR.
+- **Don't blanket-enable every upcoming feature** — read the proposal first. Some have real ergonomic costs you may not want.
+- **Use `enableUpcomingFeature` for proposals that have been accepted** and are slated for a future Swift major. Use `enableExperimentalFeature` for pre-acceptance experiments. They graduate from experimental → upcoming → default; track which bucket each feature is in.
+
+### Per-platform and per-configuration conditionals
+
+```swift
+swiftSettings: [
+    .swiftLanguageMode(.v6),
+    // Warn-as-error only on platforms/configs where breaking the build is acceptable:
+    .unsafeFlags(["-warnings-as-errors"], .when(configuration: .debug)),
+    // Platform-specific define so you can `#if NETWORK_AVAILABLE` in source:
+    .define("NETWORK_AVAILABLE", .when(platforms: [.iOS, .macOS, .visionOS])),
+]
+```
+
+- **`.when(platforms:)`** narrows a setting to specific Apple platforms — useful for features that don't apply on watchOS / tvOS.
+- **`.when(configuration:)`** scopes to `.debug` vs `.release`. Useful for debug-only diagnostics or `-warnings-as-errors` in CI builds.
+- **`.define("SYMBOL")`** adds a `#if SYMBOL` guard you can use in source. Cleaner than `#if os(iOS) || os(macOS)` chains.
+- **Don't conditionalize what doesn't need to vary** — every `.when(...)` is one more axis a future contributor has to think through. If the setting is uniform across configurations, leave it unconditional.
+
+### What to avoid
+
+- **`.unsafeFlags(...)` in a published library** — packages using it cannot be consumed as a dependency from a *release* of another package. Fine in apps and CLI tools; avoid in libraries you publish. If you need a flag that only `unsafeFlags` exposes, file a Swift evolution proposal or wrap behind a `.when(configuration: .debug)` so release builds don't carry it.
+- **Mixing `enableExperimentalFeature` and `enableUpcomingFeature` for the same feature** — a feature lives in one bucket at a time. Mixing means one branch is dead code; the dead branch is the one you'll forget to remove.
+- **Setting `swiftSettings` on each target individually when they're meant to be uniform** — drift creeps in. Define `sharedSwiftSettings` once, reference it from every target (see [`templates/Package.template.swift`](../../templates/Package.template.swift)).
+- **`OTHER_SWIFT_FLAGS` from Xcode project settings leaking into SPM expectations** — Xcode and SPM have different flag surfaces. Don't copy-paste Xcode build settings into `unsafeFlags`; check what SPM's `SwiftSetting` API exposes first.
+- **Enabling concurrency strictness only in tests** — tests built against `.v5` source code while the source target is `.v6` will surface false positives in test failures. Keep language mode uniform across source and test targets in the same module.
 
 ## Dependencies
 

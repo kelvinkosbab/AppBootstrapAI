@@ -27,12 +27,52 @@ import PackageDescription
 /// Swift settings applied to *every* target — both source and test. Keep this
 /// short and uniform; per-target overrides are a sign your modules are
 /// diverging in ways that will hurt you later.
+///
+/// The default below assumes Swift 6 strict concurrency. If you're not ready
+/// for `.v6` yet, see the commented `swift5Settings` variant below — pick
+/// one or the other, don't mix.
 let sharedSwiftSettings: [SwiftSetting] = [
     .swiftLanguageMode(.v6),
     .enableUpcomingFeature("InternalImportsByDefault")
-    // Add other modern features here as you adopt them:
-    // .enableUpcomingFeature("MemberImportVisibility"),
+    // Other upcoming features worth considering — read each proposal before enabling:
+    // .enableUpcomingFeature("MemberImportVisibility"),  // tighter member import semantics
+    // .enableUpcomingFeature("ExistentialAny"),          // require `any P` for protocol existentials
 ]
+
+// MARK: Alternative Settings — uncomment one if it fits your situation
+
+/// SWIFT 5 with progressive strict-concurrency adoption.
+/// Use this while migrating an existing package toward `.v6`. Document a
+/// removal date so this doesn't become permanent.
+//let sharedSwiftSettings: [SwiftSetting] = [
+//    .swiftLanguageMode(.v5),
+//    .enableExperimentalFeature("StrictConcurrency"),
+//]
+
+/// SWIFT 5 with the equivalent compiler flag (for older toolchains that
+/// lack `StrictConcurrency` as a feature flag). Same semantics as the
+/// version above; pick whichever your toolchain supports.
+//let sharedSwiftSettings: [SwiftSetting] = [
+//    .swiftLanguageMode(.v5),
+//    .unsafeFlags(["-strict-concurrency=complete"]),
+//]
+
+/// SWIFT 6 with per-configuration warning-as-error.
+/// Treats warnings as errors only in debug builds, so CI catches them
+/// without making release archives needlessly fragile.
+//let sharedSwiftSettings: [SwiftSetting] = [
+//    .swiftLanguageMode(.v6),
+//    .enableUpcomingFeature("InternalImportsByDefault"),
+//    .unsafeFlags(["-warnings-as-errors"], .when(configuration: .debug)),
+//]
+
+/// SWIFT 6 with a platform-conditional `#if` define for network-capable platforms.
+/// Cleaner than `#if os(iOS) || os(macOS) || os(visionOS)` chains in source files.
+//let sharedSwiftSettings: [SwiftSetting] = [
+//    .swiftLanguageMode(.v6),
+//    .enableUpcomingFeature("InternalImportsByDefault"),
+//    .define("NETWORK_AVAILABLE", .when(platforms: [.iOS, .macOS, .visionOS])),
+//]
 
 // MARK: - Target Helper
 
