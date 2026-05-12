@@ -50,7 +50,12 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 
 - **`settings.json`** — safe defaults for `xcodebuild`, `swift`, `swiftlint`, `./gradlew`, `gradle`, `ktlint`, `adb`, `git`, `gh`, plus Apple/Android docs domains for `WebFetch`.
 - **`.gitignore`** — recommended entries for Xcode, SPM, CocoaPods, Carthage, fastlane, plus Gradle/Android Studio/Kotlin.
-- **`install.sh`** — one-command bootstrap into any target repo. Supports `--platform apple|android|both`, `--apple-language swift|objc|both` (so legacy ObjC projects don't get Swift-only rules), `--list` (preview the catalog of rules and skills with one-line descriptions), and `--help`.
+- **`install.sh`** — one-command bootstrap into any target repo. Flags:
+  - `--platform apple|android|both`
+  - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
+  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps; `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`); custom CSVs like `core,testing,docs` give fine-grained control
+  - `--list` previews the catalog with one-line descriptions + category tags
+  - `--help` documents every flag and enumerates all 13 categories
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 - **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
 
@@ -64,7 +69,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 From the root of a new app repo:
 
 ```bash
-# Pure-Swift Apple project
+# Pure-Swift Apple project — installs the "recommended" feature set by default
 /path/to/AppBootstrapAI/install.sh . --platform apple
 
 # Android project (Kotlin + Compose)
@@ -73,18 +78,27 @@ From the root of a new app repo:
 # Cross-platform monorepo (one repo with both)
 /path/to/AppBootstrapAI/install.sh . --platform both
 
+# Opt in to the FULL bundle including specialized opt-ins
+# (persistence/Core Data, ai/Foundation Models, migration, shrinking)
+/path/to/AppBootstrapAI/install.sh . --platform both --features all
+
+# Pick specific feature categories
+/path/to/AppBootstrapAI/install.sh . --platform apple --features core,testing,docs
+
 # Apple legacy project — Objective-C only
 /path/to/AppBootstrapAI/install.sh . --platform apple --apple-language objc
 
 # Apple mixed-language — Swift + ObjC
 /path/to/AppBootstrapAI/install.sh . --platform apple --apple-language both
 
-# Preview what any flag combo will install (no files written)
-/path/to/AppBootstrapAI/install.sh --list --platform android
+# Preview what any flag combo will install (no files written, with category tags)
+/path/to/AppBootstrapAI/install.sh --list --platform android --features all
 
-# Full help
+# Full help — documents --features categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
+
+**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization`. Specialized opt-ins not in `recommended`: `persistence` (Core Data), `ai` (Foundation Models, iOS 26+), `migration` (XML → Compose), `shrinking` (R8/ProGuard).
 
 The installer:
 
@@ -118,6 +132,26 @@ After install, edit the new `CLAUDE.md` and fill in the `<PLACEHOLDER>` sections
 - "Use `r8-shrink-pro` to audit my `proguard-rules.pro` for the next release."
 
 Each produces a file-by-file findings report with before/after fixes and a prioritized summary.
+
+## Using AI to install
+
+`install.sh` is a shell command — every coding agent can run it. If you'd rather *ask* the agent to bootstrap your repo than run the script by hand, three things make that work well:
+
+1. **Hand the agent this repo's URL and your project description.** Most agents need just enough context to pick the right flags. A prompt like *"Bootstrap this iOS+macOS app with AppBootstrapAI — Swift only, include the AI/Foundation Models category"* tells Claude / Cursor / Gemini / Kiro / Copilot what they need to know.
+2. **The agent can introspect the catalog before installing.** `./install.sh --list --features all` prints every rule and skill with its category and one-line description. Agents that read the output can recommend the right `--features` list for your project.
+3. **For Claude Code users who want first-class integration**, this repo ships an [MCP server](mcp-server/README.md) that exposes the installer as structured tools — `preview_install`, `install`, `describe_skill`, etc. Once configured in `.claude/settings.json`, Claude can run the installer through a typed API rather than parsing shell output. See [`mcp-server/`](mcp-server/) for setup.
+
+**Recommended prompts** (copy-paste-friendly for the agent of your choice):
+
+| Goal | Prompt |
+|------|--------|
+| Bootstrap a new Apple SwiftUI app with the recommended set | *"Run `/path/to/AppBootstrapAI/install.sh . --platform apple` in this directory, then walk me through what landed."* |
+| Bootstrap an Android Compose app with everything | *"Run `/path/to/AppBootstrapAI/install.sh . --platform android --features all` and summarize the new files."* |
+| Pick categories interactively | *"Show me `./install.sh --list --features all`, then ask me which categories to install."* |
+| Cross-platform monorepo with specific features | *"Bootstrap this repo for both Apple (Swift) and Android. Include `core`, `testing`, `docs`, `concurrency`, `ui`, and `localization`."* |
+| Mixed-language Apple project (Swift + ObjC) | *"Run `./install.sh . --platform apple --apple-language both --features all`."* |
+
+Agents that run in a terminal context (Claude Code, Cursor's agent mode, Gemini CLI, Kiro, Codex CLI) execute the shell command directly. Agents without shell access (Copilot Chat, web Claude.ai) can produce the command for you to run.
 
 ## Using with non-Claude AI agents
 

@@ -66,8 +66,14 @@ Each skill ships with:
 Use the installer from the target repo:
 
 ```bash
-# Pure-Swift Apple project (default)
+# Pure-Swift Apple project — installs the "recommended" features set (default)
 /path/to/AppBootstrapAI/install.sh . --platform apple
+
+# Opt in to specialized features (Core Data, Foundation Models, etc.)
+/path/to/AppBootstrapAI/install.sh . --platform apple --features all
+
+# Cherry-pick categories
+/path/to/AppBootstrapAI/install.sh . --platform apple --features core,testing,ui
 
 # Legacy / Objective-C only
 /path/to/AppBootstrapAI/install.sh . --platform apple --apple-language objc
@@ -75,20 +81,25 @@ Use the installer from the target repo:
 # Mixed-language Apple project
 /path/to/AppBootstrapAI/install.sh . --platform apple --apple-language both
 
-# Android
+# Android (default: recommended features)
 /path/to/AppBootstrapAI/install.sh . --platform android
+
+# Android + all features (including XML→Compose migration, R8/ProGuard)
+/path/to/AppBootstrapAI/install.sh . --platform android --features all
 
 # Cross-platform (one repo with both)
 /path/to/AppBootstrapAI/install.sh . --platform both
 
-# Preview the rules and skills that any flag combo would install
-/path/to/AppBootstrapAI/install.sh --list --platform apple --apple-language swift
+# Preview catalog with category tags
+/path/to/AppBootstrapAI/install.sh --list --platform apple --features all
 
-# Full help
+# Full help — enumerates all 13 feature categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The installer copies skills (when Swift is in scope), platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule.
+
+The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
 Then customize the new repo's `CLAUDE.md` to describe **that** project's specifics: modules, build commands, dependency graph, gotchas. Keep the steering rules and skills as-is — they apply to any modern Apple or Android app.
 
