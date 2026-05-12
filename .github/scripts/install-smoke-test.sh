@@ -97,8 +97,8 @@ run_combo() {
                     assert_file_exists "$target/.claude/rules/apple-swift6-strict-concurrency.md" "Apple+Swift in scope"
                     assert_file_exists "$target/.claude/rules/apple-swiftui-mvvm.md"              "Apple+Swift in scope"
                     assert_file_exists "$target/.claude/rules/apple-foundation-models.md"        "Apple+Swift in scope"
-                    assert_dir_exists  "$target/.claude/skills/swiftui-pro"                       "skills land when Swift in scope"
-                    assert_dir_exists  "$target/.claude/skills/swift-concurrency-pro"             "skills land when Swift in scope"
+                    assert_dir_exists  "$target/.claude/skills/swiftui-pro"                       "Apple skills land when Swift in scope"
+                    assert_dir_exists  "$target/.claude/skills/swift-concurrency-pro"             "Apple skills land when Swift in scope"
                     ;;
             esac
             case "$apple_lang" in
@@ -109,15 +109,21 @@ run_combo() {
                     assert_file_absent "$target/.claude/rules/apple-objc-best-practices.md" "ObjC NOT in scope under apple-language=swift"
                     ;;
             esac
-            if [[ "$apple_lang" == "objc" ]]; then
-                assert_dir_empty_or_missing "$target/.claude/skills" "skills are Swift-tied; objc-only must skip them"
+            if [[ "$apple_lang" == "objc" ]] && [[ "$platform" == "apple" ]]; then
+                # Pure objc-only: no Apple skills (Swift-tied) and no Android skills (Android not in scope).
+                assert_dir_empty_or_missing "$target/.claude/skills" "no skills when Apple+ObjC-only — Apple skills are Swift-tied, Android out of scope"
                 assert_file_absent "$target/.claude/rules/apple-swift6-strict-concurrency.md" "Swift-side rules excluded under apple-language=objc"
             fi
             ;;
         android)
             assert_file_absent "$target/.claude/rules/apple-swift6-strict-concurrency.md"  "Apple rules excluded for android"
             assert_file_absent "$target/.claude/rules/apple-objc-best-practices.md"        "Apple rules excluded for android"
-            assert_dir_empty_or_missing "$target/.claude/skills"                            "skills are Apple-only; android must skip them"
+            assert_dir_exists  "$target/.claude/skills/android-gradle-architecture-pro"    "Android skills land for android platform"
+            assert_dir_exists  "$target/.claude/skills/xml-to-compose-migration-pro"       "Android skills land for android platform"
+            assert_dir_exists  "$target/.claude/skills/r8-shrink-pro"                      "Android skills land for android platform"
+            # Apple skills should NOT land:
+            assert_file_absent "$target/.claude/skills/swiftui-pro/SKILL.md"                "Apple skills excluded for android"
+            assert_file_absent "$target/.claude/skills/swift-concurrency-pro/SKILL.md"      "Apple skills excluded for android"
             ;;
     esac
 
@@ -126,9 +132,13 @@ run_combo() {
             assert_file_exists "$target/.claude/rules/android-project-rules.md"             "Android rules in scope"
             assert_file_exists "$target/.claude/rules/android-compose-best-practices.md"    "Android rules in scope"
             assert_file_exists "$target/.claude/rules/android-coroutines-best-practices.md" "Android rules in scope"
+            assert_dir_exists  "$target/.claude/skills/android-gradle-architecture-pro"     "Android skills in scope"
+            assert_dir_exists  "$target/.claude/skills/xml-to-compose-migration-pro"        "Android skills in scope"
+            assert_dir_exists  "$target/.claude/skills/r8-shrink-pro"                       "Android skills in scope"
             ;;
         apple)
             assert_file_absent "$target/.claude/rules/android-project-rules.md"             "Android rules excluded for apple"
+            assert_file_absent "$target/.claude/skills/android-gradle-architecture-pro/SKILL.md" "Android skills excluded for apple"
             ;;
     esac
 

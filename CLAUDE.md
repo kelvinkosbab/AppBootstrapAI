@@ -29,15 +29,18 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
 │   ├── apple-testing-strategy.md                  # Apple: test strategy + coverage
 │   └── project-documentation.md                   # Cross-platform: README/CHANGELOG/ADR
-├── skills/                        # On-demand Claude Code skills (Apple-only today)
-│   ├── coredata-swift6-pro/       # Core Data under Swift 6 strict concurrency
-│   ├── swift-concurrency-pro/     # Reviews Swift concurrency correctness
-│   ├── swift-docc-pro/            # Reviews DocC documentation comments
-│   ├── swift-error-handling-pro/  # Typed throws, Result, LocalizedError
-│   ├── swift-logging-pro/         # os.Logger review (privacy, levels, subsystems)
-│   ├── swift-package-pro/         # SPM library design and API hygiene
-│   ├── swift-testing-pro/         # Writes/reviews Swift Testing code
-│   └── swiftui-pro/               # Reviews SwiftUI for modern APIs and a11y
+├── skills/                        # On-demand Claude Code skills
+│   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
+│   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
+│   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
+│   ├── swift-concurrency-pro/              # Apple: Swift concurrency review
+│   ├── swift-docc-pro/                     # Apple: DocC documentation
+│   ├── swift-error-handling-pro/           # Apple: typed throws, Result
+│   ├── swift-logging-pro/                  # Apple: os.Logger review
+│   ├── swift-package-pro/                  # Apple: SPM library design
+│   ├── swift-testing-pro/                  # Apple: Swift Testing code
+│   ├── swiftui-pro/                        # Apple: SwiftUI review
+│   └── xml-to-compose-migration-pro/       # Android: XML/Fragment → Compose
 └── settings.json                  # Baseline Claude Code permissions (git, xcodebuild, gradlew, etc.)
 ```
 
@@ -101,6 +104,9 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `swift-error-handling-pro` to review error types and throwing functions."
 - "Use `swift-logging-pro` to audit Logger usage."
 - "Use `swift-package-pro` to review `Package.swift` and the public API."
+- "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
+- "Use `xml-to-compose-migration-pro` to migrate `SettingsFragment` to Compose."
+- "Use `r8-shrink-pro` to audit my ProGuard rules before release."
 
 Each skill produces a file-by-file findings report with before/after code fixes and a prioritized summary.
 

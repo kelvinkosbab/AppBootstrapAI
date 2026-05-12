@@ -103,6 +103,94 @@ subprojects {
 - **`subprojects { ... }` for uniform application** is fine when every module needs the same plugin. When applications diverge (e.g., legacy module exempt from detekt), prefer per-module `alias(...)` for explicitness.
 - **Convention plugins for non-trivial configuration** — once your `subprojects { }` block grows past a dozen lines, factor into a `build-logic/` convention plugin module so the config is testable Kotlin instead of opaque Gradle DSL.
 
+## Migrating from Inline Strings to the Catalog
+
+A common starting state: `implementation("group:name:version")` strings scattered across module `build.gradle.kts` files. Migration is mechanical but worth doing in one PR per project (vs. trickling) so the catalog becomes load-bearing immediately.
+
+**Steps for migrating an existing project:**
+
+1. **Audit current inline dependencies** — `rg 'implementation\("' --type=gradle-kotlin` across the whole repo. Output is the to-do list.
+2. **Group versions** before extracting:
+
+    ```kotlin
+    // From — three artifacts at the same version:
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    ```
+
+    ```toml
+    # …becomes one [versions] entry referenced by three [libraries]:
+    [versions]
+    androidx-lifecycle = "2.8.7"
+
+    [libraries]
+    androidx-lifecycle-runtime-ktx     = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidx-lifecycle" }
+    androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+    androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+    ```
+
+3. **Rewrite module dependencies**:
+
+    ```kotlin
+    // After
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    ```
+
+4. **Consider `[bundles]`** for groups that always travel together:
+
+    ```toml
+    [bundles]
+    androidx-lifecycle = [
+        "androidx-lifecycle-runtime-ktx",
+        "androidx-lifecycle-viewmodel-compose",
+        "androidx-lifecycle-runtime-compose"
+    ]
+    ```
+
+    Then `implementation(libs.bundles.androidx.lifecycle)` replaces the three lines.
+
+5. **Migrate plugin declarations** the same way:
+
+    ```kotlin
+    // From — inline at the top of each module:
+    plugins {
+        id("com.android.application")
+        id("org.jetbrains.kotlin.android")
+        id("com.google.dagger.hilt.android") version "2.52"
+    }
+    ```
+
+    ```toml
+    # …to catalog plugin entries:
+    [plugins]
+    android-application = { id = "com.android.application", version.ref = "agp" }
+    kotlin-android      = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+    hilt                = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+    ```
+
+    ```kotlin
+    // …referenced via alias():
+    plugins {
+        alias(libs.plugins.android.application)
+        alias(libs.plugins.kotlin.android)
+        alias(libs.plugins.hilt)
+    }
+    ```
+
+6. **Drop `version =` lines from root `build.gradle.kts`** for plugins now in the catalog — `apply false` declarations come from the catalog instead.
+
+7. **Verify with `./gradlew --refresh-dependencies build`** that resolution still produces the same artifacts (compare lockfile if dependency locking is enabled).
+
+**Migration heuristics:**
+
+- **One PR per project, not per module.** Half-migrated state is worse than either fully inline or fully catalog — drift between the two formats is invisible to lint.
+- **Run `./gradlew lintDebug`** after migration. Lint surfaces accidentally-omitted dependencies.
+- **Use the IDE's catalog autocomplete** (Android Studio Koala+) to catch typos — `libs.androidx.core.ktx` autocompletes; `libs.androidx_core_ktx` doesn't.
+- **Don't migrate without `version.ref`** — extracting versions to `[versions]` is the *point* of the migration. `version = "1.2.3"` literals in `[libraries]` defeat the purpose.
+
 ## AGP / Kotlin / Compose-Compiler Co-Versioning
 
 These three move in lockstep — mismatched versions produce confusing errors.

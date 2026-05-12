@@ -37,8 +37,10 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`android-testing-strategy.md`** — test pyramid, source-set discipline (`src/test` vs `src/androidTest`), `runTest` + `StandardTestDispatcher` patterns, Turbine for `Flow`, Compose UI tests via semantics (not visible text), Hilt test modules, MockK conventions, JaCoCo coverage gates with generated-code exclusions.
 - **`android-documentation-strategy.md`** — KDoc syntax (`@param` / `@return` / `@throws` / `@property` / `@sample` / `@see`), Composable docs (state hoisting, semantics, skippable vs. restartable), Hilt module docs, suspend / cancellation behavior, deprecation with `ReplaceWith`, Dokka conventions and external links.
 - **`android-localization-best-practices.md`** — `strings.xml` discipline, `stringResource` / `pluralStringResource` in Compose, positional format args (`%1$s` not `%s`), `<plurals>` with `getQuantityString`, locale-aware `NumberFormat` / `DateTimeFormatter`, RTL with `start`/`end` modifiers and `android:supportsRtl="true"`, translator-context comment blocks.
-- **`android-gradle-conventions.md`** — Kotlin DSL only, version catalogs (`gradle/libs.versions.toml`) as single source of truth, AGP/Kotlin/Compose-compiler co-versioning, `jvmToolchain`, `api` vs `implementation`, multi-module graph patterns (`:app` + `:feature:*` + `:data:*` + `:core:*`), library publishing with `consumer-rules.pro`, KSP over kapt.
-- *(No Android skills yet — on the roadmap.)*
+- **`android-gradle-conventions.md`** — Kotlin DSL only, version catalogs (`gradle/libs.versions.toml`) as single source of truth, AGP/Kotlin/Compose-compiler co-versioning, `jvmToolchain`, `api` vs `implementation`, multi-module graph patterns (`:app` + `:feature:*` + `:data:*` + `:core:*`), library publishing with `consumer-rules.pro`, KSP over kapt. **Now includes** an inline-strings → catalog migration walkthrough for legacy projects.
+- **`android-gradle-architecture-pro` skill** — reviews multi-module Android builds against the **Now in Android** convention-plugin pattern: `build-logic/convention/` factoring, version-catalog depth, AGP co-versioning, KSP-over-kapt migration.
+- **`xml-to-compose-migration-pro` skill** — reviews and assists XML/Fragment → Compose migration: incremental interop via `ComposeView` / `AndroidView`, layout translation (LinearLayout/ConstraintLayout/FrameLayout → Modifier), RecyclerView → `LazyColumn` with stable keys, Fragment → Composable, Navigation Component → Navigation-Compose, ViewModel bridging, themes/styles → `MaterialTheme`.
+- **`r8-shrink-pro` skill** — reviews R8 / ProGuard configuration: `-keep` rule discipline, `consumer-rules.pro` contract for libraries, common reflection-library rules (Moshi, Room, Retrofit, Hilt, Glide, kotlinx-serialization), mapping-file workflow, debugging release-build crashes.
 
 ### Cross-platform
 
@@ -101,7 +103,7 @@ After install, edit the new `CLAUDE.md` and fill in the `<PLACEHOLDER>` sections
 
 **Rules** (`.claude/rules/`) load automatically based on each file's `globs:` frontmatter — Apple rules fire on `*.swift` / `*.{h,m,mm}`, Android rules fire on `*.{kt,kts}`. No invocation needed; they steer Claude as soon as a matching file enters context. This is the bulk of what you get on the Android side today.
 
-**Skills** (`.claude/skills/`) are deeper review agents that fire on demand — currently Apple-only. Trigger by description match or invoke explicitly:
+**Skills** (`.claude/skills/`) are deeper review agents that fire on demand. Trigger by description match or invoke explicitly:
 
 - "Use `swift-concurrency-pro` to review `NetworkClient.swift`."
 - "Use `swiftui-pro` to check `SettingsView.swift` for modern API and a11y."
@@ -111,6 +113,9 @@ After install, edit the new `CLAUDE.md` and fill in the `<PLACEHOLDER>` sections
 - "Use `swift-error-handling-pro` to review my typed throws migration."
 - "Use `swift-logging-pro` to audit `Logger` usage across the project."
 - "Use `swift-package-pro` to review `Package.swift` and the public API surface."
+- "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
+- "Use `xml-to-compose-migration-pro` to plan migrating `SettingsFragment` to Compose."
+- "Use `r8-shrink-pro` to audit my `proguard-rules.pro` for the next release."
 
 Each produces a file-by-file findings report with before/after fixes and a prioritized summary.
 
@@ -173,15 +178,18 @@ ruler apply                                            # ruler reads its config 
 │   │   ├── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
 │   │   ├── apple-testing-strategy.md                  # Apple test strategy + coverage
 │   │   └── project-documentation.md                   # README/CHANGELOG/ADR/inline comments
-│   ├── skills/                        # On-demand skills (Apple-only today)
+│   ├── skills/                        # On-demand skills
+│   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs
 │   │   ├── coredata-swift6-pro/
+│   │   ├── r8-shrink-pro/                      # ProGuard/R8 rules
 │   │   ├── swift-concurrency-pro/
 │   │   ├── swift-docc-pro/
 │   │   ├── swift-error-handling-pro/
 │   │   ├── swift-logging-pro/
 │   │   ├── swift-package-pro/
 │   │   ├── swift-testing-pro/
-│   │   └── swiftui-pro/
+│   │   ├── swiftui-pro/
+│   │   └── xml-to-compose-migration-pro/       # XML/Fragment → Compose migration
 │   └── settings.json                  # Baseline permissions
 ├── templates/
 │   ├── CLAUDE.template.apple.md       # Starter for Apple-only projects
@@ -204,17 +212,18 @@ See [CLAUDE.md](CLAUDE.md) for:
 
 ## Roadmap
 
-- **Skills (deep-dive review agents) currently exist for Apple only.** Kotlin/Compose-side equivalents of `swiftui-pro`, `swift-concurrency-pro`, `swift-testing-pro`, etc. are not yet included — Android coverage is rules + steering for now.
-- All rules (Apple + Android) are loaded automatically by `globs` and apply equally; there is no "primary" / "secondary" platform in the bundle's design — Apple-side skills are simply further along, with Android skill-equivalents (Compose-pro, coroutines-pro, etc.) on the roadmap.
+- **Skills exist for both Apple and Android.** Apple has 8 skills (concurrency, testing, SwiftUI, Core Data, DocC, error handling, logging, SPM); Android has 3 (Gradle architecture, XML-to-Compose migration, R8/ProGuard). Android skill coverage will grow as production patterns surface — Compose-pro and coroutines-pro equivalents of the Apple skills are on the roadmap.
+- All rules (Apple + Android) are loaded automatically by `globs` and apply equally; there is no "primary" / "secondary" platform in the bundle's design.
 
 ## Credits
 
-- Skills authored by **Paul Hudson** ([@twostraws](https://github.com/twostraws)) and licensed MIT. Original sources, linked from the bundled skill references and worth starring at the source:
+- Apple skills authored by **Paul Hudson** ([@twostraws](https://github.com/twostraws)) and licensed MIT. Original sources, linked from the bundled skill references:
   - [`swift-concurrency-agent-skill`](https://github.com/twostraws/swift-concurrency-agent-skill)
   - [`swift-testing-agent-skill`](https://github.com/twostraws/swift-testing-agent-skill)
   - [`swiftui-agent-skill`](https://github.com/twostraws/swiftui-agent-skill)
   - [`swiftdata-agent-skill`](https://github.com/twostraws/swiftdata-agent-skill)
   - …and more on his profile. Author attribution is retained in each `SKILL.md` frontmatter.
+- Android skills (`android-gradle-architecture-pro`, `xml-to-compose-migration-pro`, `r8-shrink-pro`) authored by AppBootstrapAI contributors. Grounded in [Android's Now in Android](https://github.com/android/nowinandroid) reference app and the official [Android Developers documentation](https://developer.android.com/build) for AGP, Compose, and R8 — the canonical primary sources. Licensed MIT.
 
 ## License
 

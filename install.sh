@@ -116,9 +116,33 @@ should_install_rule() {
     esac
 }
 
-# Skills are all Swift-tied today; install only when Apple/Swift is in scope.
-should_install_skills() {
-    [[ "$PLATFORM" != "android" ]] && [[ "$APPLE_LANG" != "objc" ]]
+# Per-skill inclusion. Apple/Swift skills install when Apple+Swift is in scope;
+# Android skills install when Android is in scope. apple-language=objc skips
+# all skills (Apple skills are Swift-only; Android skills aren't ObjC-relevant).
+should_install_skill() {
+    local name="$1"
+    case "$name" in
+        android-*|xml-to-compose-*|r8-shrink-*)
+            # Android skill — install when Android is in scope.
+            [[ "$PLATFORM" != "apple" ]]
+            ;;
+        *)
+            # Apple/Swift skill — install when Apple+Swift is in scope.
+            [[ "$PLATFORM" != "android" ]] && [[ "$APPLE_LANG" != "objc" ]]
+            ;;
+    esac
+}
+
+# Whether ANY skills will install — drives the "Copying skills" log message
+# and the `--list` "skills installed" marker.
+should_install_any_skills() {
+    shopt -s nullglob
+    for d in "$SCRIPT_DIR/.claude/skills/"*/; do
+        if should_install_skill "$(basename "$d")"; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 # Pull the `description:` line out of a rule's YAML frontmatter (best-effort).
@@ -149,10 +173,10 @@ if [[ "$ACTION" == "list" ]]; then
     done
     echo ""
     echo "Skills:"
-    if should_install_skills; then skills_mark="✓"; else skills_mark=" "; fi
     for d in "$SCRIPT_DIR/.claude/skills/"*/; do
         name="$(basename "$d")"
-        printf "  [%s] %s\n        %s\n" "$skills_mark" "$name" "$(skill_description "$d")"
+        if should_install_skill "$name"; then mark="✓"; else mark=" "; fi
+        printf "  [%s] %s\n        %s\n" "$mark" "$name" "$(skill_description "$d")"
     done
     echo ""
     echo "Legend: [✓] = installed under current selection, [ ] = skipped."
@@ -172,10 +196,16 @@ echo "    platform: $PLATFORM   apple-language: $APPLE_LANG"
 
 mkdir -p "$TARGET/.claude/rules" "$TARGET/.claude/skills"
 
-# Skills.
-if should_install_skills; then
+# Skills — copy each individually based on platform/language filter.
+if should_install_any_skills; then
     echo "--> Copying skills"
-    cp -R "$SCRIPT_DIR/.claude/skills/." "$TARGET/.claude/skills/"
+    shopt -s nullglob
+    for d in "$SCRIPT_DIR/.claude/skills/"*/; do
+        name="$(basename "$d")"
+        if should_install_skill "$name"; then
+            cp -R "$d" "$TARGET/.claude/skills/$name"
+        fi
+    done
 else
     echo "--> Skipping skills (not in scope for current selection)"
 fi
