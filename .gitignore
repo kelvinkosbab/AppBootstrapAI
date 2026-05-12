@@ -8,6 +8,10 @@
 *.swp
 *~
 
+# Node.js build artifacts (mcp-server has its own .gitignore too)
+node_modules/
+*.tsbuildinfo
+
 # ---------------------------------------------------------------------------
 # Recommended ignores for Apple-platform app projects (Xcode, Swift, SPM,
 # CocoaPods, Carthage, fastlane). Uncomment or keep as a reference for apps

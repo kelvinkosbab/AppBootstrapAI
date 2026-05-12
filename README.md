@@ -230,6 +230,10 @@ ruler apply                                            # ruler reads its config 
 │   ├── CLAUDE.template.android.md     # Starter for Android-only projects
 │   ├── CLAUDE.template.md             # Starter for cross-platform projects
 │   └── Package.template.swift         # Starter Package.swift with makeTargets() helper
+├── mcp-server/                        # MCP server wrapping install.sh as typed tools
+│   ├── src/index.ts                   # 5 tools: list_categories/rules/skills, preview_install, install
+│   ├── package.json
+│   └── README.md                      # MCP setup instructions for Claude Code / Cursor / others
 ├── install.sh                         # One-command bootstrap
 ├── CLAUDE.md                          # This repo's own AI onboarding
 ├── LICENSE                            # MIT

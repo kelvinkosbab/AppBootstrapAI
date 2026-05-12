@@ -1,0 +1,32 @@
+{
+  "name": "@kelvinkosbab/appbootstrap-mcp",
+  "version": "0.1.0",
+  "description": "MCP server wrapping AppBootstrapAI's install.sh so AI agents (Claude Code, Cursor, Gemini CLI, Kiro) can invoke it through structured tools instead of parsing shell output.",
+  "type": "module",
+  "bin": {
+    "appbootstrap-mcp": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prepare": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "license": "MIT",
+  "author": "AppBootstrapAI contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kelvinkosbab/AppBootstrapAI.git",
+    "directory": "mcp-server"
+  }
+}
