@@ -4,6 +4,8 @@ A drop-in bundle of **Claude Code skills** and **AI steering rules** for bootstr
 
 This repo is not a Swift package — it's a curated `.claude/` directory plus onboarding docs. Copy it into any new app and Claude Code picks up consistent review, testing, and style guidance on day one.
 
+**Claude Code is the native target — but the rule content is plain markdown.** Teams on Cursor, Gemini CLI, Kiro, Codex CLI, GitHub Copilot, Cline, Goose, Roo, Windsurf, etc. can fan the same rules out to their agent of choice via [`ruler`](https://github.com/intellectronica/ruler), [`block/ai-rules`](https://github.com/block/ai-rules), or [`ai-rules-sync`](https://github.com/lbb00/ai-rules-sync). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) below.
+
 ## What you get
 
 ### Apple
@@ -52,12 +54,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 ### Recommended companion tooling (optional)
 
 - **[XcodeBuildMCP](https://github.com/cameroncooke/XcodeBuildMCP)** — community MCP server that lets Claude drive Xcode: build schemes, run simulators, capture logs. Useful when you want the agent to verify changes against real builds and tests instead of guessing at outcomes. Especially valuable for legacy / mixed-language Apple codebases.
-- **Cross-tool rule sync** — if your team uses Kiro, Gemini CLI, Cursor, Copilot, Codex, or any other coding agent alongside (or instead of) Claude Code, point a dedicated sync tool at the `.claude/` directory this bundle drops in:
-  - **[`ruler`](https://github.com/intellectronica/ruler)** — applies the same rules to Claude Code, GitHub Copilot, Kilo Code, Codex CLI, OpenCode, Goose, Amp, Antigravity, Factory Droid, Mistral Vibe, Roo Code, Gemini CLI, Junie, Cursor, Windsurf.
-  - **[`block/ai-rules`](https://github.com/block/ai-rules)** — manages rules + commands + skills across Claude, Cline, Codex, Copilot, Cursor, Firebender, Gemini, Goose, Kilocode, Roo.
-  - **[`lbb00/ai-rules-sync`](https://github.com/lbb00/ai-rules-sync)** — npm-installable equivalent.
-
-  AppBootstrapAI itself stays Claude-native; the sync tools handle distribution to other agents. We deliberately don't reimplement the per-tool path matrix in `install.sh` because those conventions shift faster than this bundle ships — better to defer to maintainers who track them as a full-time concern.
+- **Cross-tool rule sync** — for teams running Cursor, Gemini CLI, Kiro, Copilot, Codex, or other agents alongside Claude Code. See the dedicated [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) section for the workflow, tool comparison, and caveats.
 
 ## Quick start
 
@@ -97,6 +94,8 @@ It never overwrites an existing `CLAUDE.md` or `settings.json` — it prints wha
 
 After install, edit the new `CLAUDE.md` and fill in the `<PLACEHOLDER>` sections. Keep the `.claude/rules/` and `.claude/skills/` as-is unless you need to extend them.
 
+> **Using a different agent?** See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) — `install.sh` lays down the Claude-native bundle, and a sync tool (`ruler` / `block/ai-rules`) fans the rules out to Cursor, Gemini CLI, Kiro, Copilot, Codex, and others.
+
 ## How it fires
 
 **Rules** (`.claude/rules/`) load automatically based on each file's `globs:` frontmatter — Apple rules fire on `*.swift` / `*.{h,m,mm}`, Android rules fire on `*.{kt,kts}`. No invocation needed; they steer Claude as soon as a matching file enters context. This is the bulk of what you get on the Android side today.
@@ -113,6 +112,41 @@ After install, edit the new `CLAUDE.md` and fill in the `<PLACEHOLDER>` sections
 - "Use `swift-package-pro` to review `Package.swift` and the public API surface."
 
 Each produces a file-by-file findings report with before/after fixes and a prioritized summary.
+
+## Using with non-Claude AI agents
+
+AppBootstrapAI ships in **Claude Code's** native layout: `.claude/rules/*.md` with `globs:` frontmatter, `.claude/skills/<name>/SKILL.md`, and a `CLAUDE.md` at the project root. The *content* of every rule and skill, though, is plain markdown that's relevant to any coding agent.
+
+To use the same rules with Cursor, Gemini CLI, Kiro, Codex CLI, GitHub Copilot, Cline, Goose, Amp, Antigravity, Factory Droid, Mistral Vibe, Roo Code, Junie, Windsurf, etc., layer a dedicated **rule-sync tool** on top of the `.claude/` directory this bundle installs:
+
+| Tool | Approach |
+|------|----------|
+| **[`ruler`](https://github.com/intellectronica/ruler)** | Reads from a unified source (you can point it at `.claude/rules/`) and applies the same rules to every supported agent's expected path on `ruler apply`. Maintains the per-tool path matrix for you. |
+| **[`block/ai-rules`](https://github.com/block/ai-rules)** | Manages rules, commands, and skills across Claude, Cline, Codex, Copilot, Cursor, Firebender, Gemini, Goose, Kilocode, Roo. Installs via `curl` to `~/.local/bin/ai-rules`. |
+| **[`lbb00/ai-rules-sync`](https://github.com/lbb00/ai-rules-sync)** | npm-installable CLI; similar fan-out model. |
+
+Typical workflow:
+
+```bash
+# 1. Bootstrap the .claude/ bundle in your repo (the AppBootstrapAI half)
+/path/to/AppBootstrapAI/install.sh . --platform apple
+
+# 2. Install a sync tool of your choice (see its README for the exact command)
+npm i -g @intellectronica/ruler                        # for ruler
+# or: curl -fsSL https://.../install | sh              # for block/ai-rules
+
+# 3. Point the sync tool at .claude/ and fan rules out
+ruler apply                                            # ruler reads its config and writes per-agent files
+# or: ai-rules sync                                     # block/ai-rules
+```
+
+**Why we don't bundle this directly:** per-tool config conventions (`.cursor/rules/*.mdc`, `GEMINI.md`, `.kiro/steering/`, `.copilot/`, etc.) shift faster than this package ships. The sync tools above track those conventions as their primary product. Reimplementing the path matrix in `install.sh` would silently rot; deferring to maintained tooling doesn't.
+
+**Practical notes for adopters:**
+
+- **Skills don't translate 1:1.** Claude Code's skill mechanism (procedural instructions + reference files, loaded on-demand via the Skill tool) is distinct from Cursor's `.cursor/commands/`, Gemini's prompts, and others. Sync tools generally translate *rules* faithfully; *skills* may flatten into prompts or skip entirely. Verify with your sync tool's docs.
+- **`CLAUDE.md` has analogues.** Cursor reads `.cursorrules`, Gemini reads `GEMINI.md`, Codex reads `AGENTS.md`. Most sync tools generate these from your `CLAUDE.md`.
+- **Project-specific overrides** (rules and skills you add for *your* app) ride along automatically — the sync tool doesn't care whether a `.claude/rules/<file>.md` came from AppBootstrapAI or from you.
 
 ## Repo layout
 
