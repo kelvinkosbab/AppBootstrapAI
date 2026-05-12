@@ -287,6 +287,7 @@ When you copy this into a new app, also think about adding:
 3. **A `settings.local.json`** (git-ignored) for per-developer permission overrides — never check it in.
 4. **Domain-specific rules** in `.claude/rules/` as you discover patterns. Each rule file should have frontmatter with `description:` and `globs:` so Claude applies it only where relevant.
 5. **Project-specific skills** in `.claude/skills/` for review workflows unique to your app (e.g., `core-data-migration-pro`, `localization-pro`).
+6. **Cross-tool rule sync** if your team uses Kiro / Gemini CLI / Cursor / Copilot alongside Claude Code. AppBootstrapAI stays Claude-native; point [`ruler`](https://github.com/intellectronica/ruler) or [`block/ai-rules`](https://github.com/block/ai-rules) at `.claude/` to fan the rules out to every other agent. Per-tool path conventions shift faster than this bundle ships — better to let a dedicated sync tool track them.
 
 ## Writing your own rules
 

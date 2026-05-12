@@ -52,6 +52,12 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 ### Recommended companion tooling (optional)
 
 - **[XcodeBuildMCP](https://github.com/cameroncooke/XcodeBuildMCP)** — community MCP server that lets Claude drive Xcode: build schemes, run simulators, capture logs. Useful when you want the agent to verify changes against real builds and tests instead of guessing at outcomes. Especially valuable for legacy / mixed-language Apple codebases.
+- **Cross-tool rule sync** — if your team uses Kiro, Gemini CLI, Cursor, Copilot, Codex, or any other coding agent alongside (or instead of) Claude Code, point a dedicated sync tool at the `.claude/` directory this bundle drops in:
+  - **[`ruler`](https://github.com/intellectronica/ruler)** — applies the same rules to Claude Code, GitHub Copilot, Kilo Code, Codex CLI, OpenCode, Goose, Amp, Antigravity, Factory Droid, Mistral Vibe, Roo Code, Gemini CLI, Junie, Cursor, Windsurf.
+  - **[`block/ai-rules`](https://github.com/block/ai-rules)** — manages rules + commands + skills across Claude, Cline, Codex, Copilot, Cursor, Firebender, Gemini, Goose, Kilocode, Roo.
+  - **[`lbb00/ai-rules-sync`](https://github.com/lbb00/ai-rules-sync)** — npm-installable equivalent.
+
+  AppBootstrapAI itself stays Claude-native; the sync tools handle distribution to other agents. We deliberately don't reimplement the per-tool path matrix in `install.sh` because those conventions shift faster than this bundle ships — better to defer to maintainers who track them as a full-time concern.
 
 ## Quick start
 
