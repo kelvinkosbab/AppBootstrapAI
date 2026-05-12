@@ -72,12 +72,12 @@ assert_grep() {
 }
 
 run_combo() {
-    local platform="$1" apple_lang="$2"
-    bold "==> Combo: --platform $platform --apple-language $apple_lang"
+    local platform="$1" apple_lang="$2" features="${3:-all}"
+    bold "==> Combo: --platform $platform --apple-language $apple_lang --features $features"
 
     local target
     target="$(mktemp -d)"
-    "$INSTALL" "$target" --platform "$platform" --apple-language "$apple_lang" >/dev/null
+    "$INSTALL" "$target" --platform "$platform" --apple-language "$apple_lang" --features "$features" >/dev/null
 
     # settings.json + .gitignore land for every combo
     assert_file_exists "$target/.claude/settings.json"   "settings.json should always be copied"
@@ -161,13 +161,75 @@ run_combo() {
 }
 
 # Run every meaningful combo. apple-language is irrelevant for android, but
-# we still pass a value to exercise the parser.
-run_combo apple   swift
-run_combo apple   objc
-run_combo apple   both
-run_combo android swift
-run_combo both    swift
-run_combo both    both
+# we still pass a value to exercise the parser. Existing combos use
+# --features all so the platform-level assertions stay valid.
+run_combo apple   swift all
+run_combo apple   objc  all
+run_combo apple   both  all
+run_combo android swift all
+run_combo both    swift all
+run_combo both    both  all
+
+# --- --features-specific tests -----------------------------------------------
+# Targeted assertions for the --features filter.
+
+bold "==> Feature filter: --features recommended (default behavior)"
+target_rec="$(mktemp -d)"
+"$INSTALL" "$target_rec" --platform both --apple-language both --features recommended >/dev/null
+
+# recommended INCLUDES: core, concurrency, ui, testing, docs, error-handling,
+# packaging, logging, localization. Spot-check one rule from each.
+assert_file_exists "$target_rec/.claude/rules/project-documentation.md"                    "recommended includes core"
+assert_file_exists "$target_rec/.claude/rules/apple-swift6-strict-concurrency.md"           "recommended includes concurrency"
+assert_file_exists "$target_rec/.claude/rules/apple-swiftui-mvvm.md"                        "recommended includes ui"
+assert_file_exists "$target_rec/.claude/rules/apple-testing-strategy.md"                    "recommended includes testing"
+assert_file_exists "$target_rec/.claude/rules/apple-documentation-strategy.md"              "recommended includes docs"
+assert_file_exists "$target_rec/.claude/rules/apple-localization-best-practices.md"         "recommended includes localization"
+# Skills covered by recommended:
+assert_dir_exists  "$target_rec/.claude/skills/swift-error-handling-pro"                    "recommended includes error-handling skill"
+assert_dir_exists  "$target_rec/.claude/skills/swift-logging-pro"                           "recommended includes logging skill"
+assert_dir_exists  "$target_rec/.claude/skills/swift-package-pro"                           "recommended includes packaging skill"
+
+# recommended EXCLUDES: persistence, ai, migration, shrinking.
+assert_file_absent "$target_rec/.claude/rules/apple-foundation-models.md"                   "recommended excludes ai (Foundation Models)"
+assert_dir_empty_or_missing "$target_rec/.claude/skills/coredata-swift6-pro"                "recommended excludes persistence (Core Data)"
+assert_dir_empty_or_missing "$target_rec/.claude/skills/xml-to-compose-migration-pro"       "recommended excludes migration"
+assert_dir_empty_or_missing "$target_rec/.claude/skills/r8-shrink-pro"                      "recommended excludes shrinking"
+rm -rf "$target_rec"
+
+bold "==> Feature filter: --features core,testing"
+target_min="$(mktemp -d)"
+"$INSTALL" "$target_min" --platform both --apple-language both --features core,testing >/dev/null
+
+assert_file_exists "$target_min/.claude/rules/project-documentation.md"        "core in scope"
+assert_file_exists "$target_min/.claude/rules/apple-testing-strategy.md"        "testing in scope"
+assert_file_exists "$target_min/.claude/rules/android-testing-strategy.md"      "testing in scope"
+assert_dir_exists  "$target_min/.claude/skills/swift-testing-pro"               "swift-testing-pro in scope"
+# Out of scope:
+assert_file_absent "$target_min/.claude/rules/apple-swift6-strict-concurrency.md" "concurrency not selected"
+assert_file_absent "$target_min/.claude/rules/apple-swiftui-mvvm.md"              "ui not selected"
+assert_file_absent "$target_min/.claude/rules/apple-documentation-strategy.md"    "docs not selected"
+assert_dir_empty_or_missing "$target_min/.claude/skills/swift-concurrency-pro"    "concurrency skill not selected"
+rm -rf "$target_min"
+
+bold "==> Feature filter: --features ai,persistence (apple, specialized opt-ins)"
+target_ai="$(mktemp -d)"
+"$INSTALL" "$target_ai" --platform apple --apple-language swift --features ai,persistence >/dev/null
+
+assert_file_exists "$target_ai/.claude/rules/apple-foundation-models.md"        "ai includes Foundation Models rule"
+assert_dir_exists  "$target_ai/.claude/skills/coredata-swift6-pro"              "persistence includes Core Data skill"
+# Out of scope:
+assert_file_absent "$target_ai/.claude/rules/apple-swift6-strict-concurrency.md" "concurrency not selected when only ai+persistence"
+assert_dir_empty_or_missing "$target_ai/.claude/skills/swiftui-pro"              "ui skill not selected"
+rm -rf "$target_ai"
+
+bold "==> Feature filter: invalid category should fail"
+if "$INSTALL" /tmp/never --platform apple --features bogus >/dev/null 2>&1; then
+    red "FAIL: invalid --features value should exit non-zero"
+    FAIL=$((FAIL + 1))
+else
+    PASS=$((PASS + 1))
+fi
 
 # --list and --help should both succeed and produce sentinel output.
 # Note: capture output before grepping. If we piped directly to `grep -q`,
