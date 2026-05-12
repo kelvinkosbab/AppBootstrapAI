@@ -50,6 +50,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`.gitignore`** — recommended entries for Xcode, SPM, CocoaPods, Carthage, fastlane, plus Gradle/Android Studio/Kotlin.
 - **`install.sh`** — one-command bootstrap into any target repo. Supports `--platform apple|android|both`, `--apple-language swift|objc|both` (so legacy ObjC projects don't get Swift-only rules), `--list` (preview the catalog of rules and skills with one-line descriptions), and `--help`.
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
+- **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
 
 ### Recommended companion tooling (optional)
 
@@ -185,7 +186,8 @@ ruler apply                                            # ruler reads its config 
 ├── templates/
 │   ├── CLAUDE.template.apple.md       # Starter for Apple-only projects
 │   ├── CLAUDE.template.android.md     # Starter for Android-only projects
-│   └── CLAUDE.template.md             # Starter for cross-platform projects
+│   ├── CLAUDE.template.md             # Starter for cross-platform projects
+│   └── Package.template.swift         # Starter Package.swift with makeTargets() helper
 ├── install.sh                         # One-command bootstrap
 ├── CLAUDE.md                          # This repo's own AI onboarding
 ├── LICENSE                            # MIT

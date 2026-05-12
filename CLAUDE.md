@@ -47,8 +47,9 @@ Plus, at the repo root:
 - `templates/CLAUDE.template.apple.md` — starter `CLAUDE.md` for Apple-only projects.
 - `templates/CLAUDE.template.android.md` — starter `CLAUDE.md` for Android-only projects.
 - `templates/CLAUDE.template.md` — starter `CLAUDE.md` for cross-platform projects.
+- `templates/Package.template.swift` — starter `Package.swift` with a `makeTargets()` helper that collapses per-module boilerplate; adding a new module is a two-line change (one in `products:`, one `+ makeTargets(...)` block).
 
-The installer picks the right template based on `--platform`.
+The installer picks the right `CLAUDE.md` template based on `--platform`. The `Package.template.swift` is copied manually into new SPM packages — `install.sh` doesn't drop it because the bundle target is usually an existing app, not a fresh package.
 
 Each skill ships with:
 

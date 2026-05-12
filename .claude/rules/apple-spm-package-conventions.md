@@ -7,6 +7,8 @@ globs: "Package.swift,**/Package.swift"
 
 Authoring strategy for `Package.swift`. Complements the `swift-package-pro` skill (which reviews public API, module organization, and dependency hygiene) by covering the manifest itself — what to pin, where to declare platforms, how to lay out modules, and which modern SPM features to opt into.
 
+> **Starter template:** [`templates/Package.template.swift`](../../templates/Package.template.swift) is a ready-to-edit `Package.swift` that uses the `makeTargets()` helper pattern below. For a new package, copy that file in instead of writing the manifest from scratch.
+
 ## Tool Version Pinning
 
 ```swift
@@ -54,71 +56,58 @@ products: [
 
 ## Per-Module Folder Layout
 
-For a multi-module package, use the per-module directory convention:
+For a multi-module package, use the per-module directory convention with **flat `Sources/`** and `Tests/` inside each module folder (not nested under another `<ModuleName>/` directory):
 
 ```
 MyPackage/
 ├── Package.swift
 ├── Core/
 │   ├── Sources/
-│   │   └── Core/
-│   │       └── ...
+│   │   └── *.swift
 │   └── Tests/
-│       └── CoreTests/
-│           └── ...
+│       └── *.swift
 ├── CoreUI/
 │   ├── Sources/
-│   │   └── CoreUI/
+│   │   ├── Resources/       (if the module ships assets/strings)
+│   │   └── *.swift
 │   └── Tests/
-│       └── CoreUITests/
+│       └── *.swift
 └── README.md
 ```
 
-- **`{Module}/Sources/{Module}/`** for source, **`{Module}/Tests/{Module}Tests/`** for tests — explicit `path:` in target declarations matches this layout.
-- **Don't pile every module's sources into a flat `Sources/`** unless you have exactly one module. Discoverability degrades fast at 4+ modules.
-- **`{Module}/` directory at the package root** is symmetric with how Xcode workspaces show local packages — keeps the navigator tidy.
+- **`{Module}/Sources/`** holds the source, **`{Module}/Tests/`** holds the tests. `path:` strings in target declarations match this layout 1:1 (`path: "\(name)/Sources"`, `path: "\(name)/Tests"`).
+- **Don't pile every module's sources into a flat top-level `Sources/`** unless you have exactly one module. Discoverability degrades fast at 4+ modules.
+- **`{Module}/` directory at the package root** keeps each module self-contained and shows up cleanly in Xcode's navigator.
+- **Resources sit at `{Module}/Sources/Resources/`** when present — uniform across modules, so the manifest just toggles `hasResources: true` (see the helper above) without needing bespoke `[Resource]` arrays per module.
 
 ## `makeTargets()` Helper for Many Similar Modules
 
-When 4+ modules share the same shape (regular target + test target, same path convention), reduce boilerplate with a helper at the bottom of `Package.swift`:
+When 2+ modules share the same shape (paired source + test target, optional resources, uniform Swift settings), reduce duplication with a helper at the bottom of `Package.swift`. The canonical version lives in [`templates/Package.template.swift`](../../templates/Package.template.swift) — copy that file rather than rewriting the helper each project. Signature:
 
 ```swift
-let package = Package(
-    name: "MyPackage",
-    platforms: [.iOS(.v17), .macOS(.v14)],
-    products: [
-        .library(name: "Core", targets: ["Core"]),
-        .library(name: "CoreUI", targets: ["CoreUI"]),
-        .library(name: "CoreStorage", targets: ["CoreStorage"]),
-    ],
-    targets: makeTargets(
-        ("Core", []),
-        ("CoreUI", ["Core"]),
-        ("CoreStorage", ["Core"])
-    )
-)
-
-func makeTargets(_ specs: (name: String, dependencies: [String])...) -> [Target] {
-    specs.flatMap { spec -> [Target] in
-        let deps: [Target.Dependency] = spec.dependencies.map { .target(name: $0) }
-        return [
-            .target(
-                name: spec.name,
-                dependencies: deps,
-                path: "\(spec.name)/Sources/\(spec.name)"
-            ),
-            .testTarget(
-                name: "\(spec.name)Tests",
-                dependencies: [.target(name: spec.name)],
-                path: "\(spec.name)/Tests/\(spec.name)Tests"
-            )
-        ]
-    }
-}
+func makeTargets(
+    name: String,
+    dependencies: [Target.Dependency] = [],
+    hasTests: Bool = true,
+    hasResources: Bool = false,
+    testDependencies: [Target.Dependency] = [],
+    testResources: [Resource]? = nil
+) -> [Target]
 ```
 
-- The helper is local to `Package.swift` — *don't* try to share it across packages via SPM (you can't import code into the manifest).
-- **Keep it small.** Once the helper has more parameters than the targets it's saving keystrokes on, write the targets out by hand.
+**Usage** — adding a new module is a two-line change (one `product:` line, one `+ makeTargets(...)` block):
+
+```swift
+targets:
+    makeTargets(name: "Core")
+    + makeTargets(name: "CoreUI", dependencies: ["Core"], hasResources: true)
+    + makeTargets(name: "CoreStorage", dependencies: ["Core"], testResources: [.process("Resources")])
+```
+
+- **The helper is local to `Package.swift`** — *don't* try to share it across packages via SPM (you can't import code into the manifest). Each package gets its own copy of `makeTargets()` and `sharedSwiftSettings`.
+- **`hasResources` follows a folder convention** — `{Module}/Sources/Resources/`. Keeping the on-disk layout uniform across modules means the manifest doesn't need bespoke `[Resource]` arrays per module.
+- **`hasTests: false` is for declarative resource-only targets** (a target that just ships strings or data files). Default is `true` — a missing test target is a problem to fix, not a config to support.
+- **`testDependencies` adds modules the tests need beyond the module-under-test** — typically test fixtures from sibling modules. The module itself is always injected via `.byName(name:)`.
 
 ## Resources
 
@@ -199,19 +188,51 @@ dependencies: [
 
 ## Patterns to Follow
 
+The canonical version of this pattern lives in [`templates/Package.template.swift`](../../templates/Package.template.swift). Abridged here for reference:
+
 ```swift
 // swift-tools-version: 6.0
 import PackageDescription
 
+let sharedSwiftSettings: [SwiftSetting] = [
+    .swiftLanguageMode(.v6),
+    .enableUpcomingFeature("InternalImportsByDefault")
+]
+
+func makeTargets(
+    name: String,
+    dependencies: [Target.Dependency] = [],
+    hasTests: Bool = true,
+    hasResources: Bool = false,
+    testDependencies: [Target.Dependency] = [],
+    testResources: [Resource]? = nil
+) -> [Target] {
+    var targets: [Target] = [
+        .target(
+            name: name,
+            dependencies: dependencies,
+            path: "\(name)/Sources",
+            resources: hasResources ? [.process("Resources")] : nil,
+            swiftSettings: sharedSwiftSettings
+        )
+    ]
+    if hasTests {
+        targets.append(
+            .testTarget(
+                name: "\(name)Tests",
+                dependencies: [.byName(name: name)] + testDependencies,
+                path: "\(name)/Tests",
+                resources: testResources,
+                swiftSettings: sharedSwiftSettings
+            )
+        )
+    }
+    return targets
+}
+
 let package = Package(
     name: "MyPackage",
-    platforms: [
-        .iOS(.v17),
-        .macOS(.v14),
-        .tvOS(.v17),
-        .watchOS(.v10),
-        .visionOS(.v1)
-    ],
+    platforms: [.iOS(.v17), .macOS(.v14), .tvOS(.v17), .watchOS(.v10), .visionOS(.v1)],
     products: [
         .library(name: "Core", targets: ["Core"]),
         .library(name: "CoreUI", targets: ["CoreUI"]),
@@ -220,44 +241,22 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-collections", from: "1.1.0")
     ],
-    targets: makeTargets(
-        ("Core",        ["Collections"], []),
-        ("CoreUI",      [],              ["Core"]),
-        ("CoreStorage", [],              ["Core"])
-    )
+    targets:
+        makeTargets(
+            name: "Core",
+            dependencies: [.product(name: "Collections", package: "swift-collections")]
+        )
+        + makeTargets(
+            name: "CoreUI",
+            dependencies: ["Core"],
+            hasResources: true   // pulls CoreUI/Sources/Resources/ automatically
+        )
+        + makeTargets(
+            name: "CoreStorage",
+            dependencies: ["Core"],
+            testResources: [.process("Resources")]
+        )
 )
-
-func makeTargets(
-    _ specs: (
-        name: String,
-        productDependencies: [String],
-        targetDependencies: [String]
-    )...
-) -> [Target] {
-    specs.flatMap { spec -> [Target] in
-        let deps: [Target.Dependency] =
-            spec.productDependencies.map { .product(name: $0, package: "swift-collections") } +
-            spec.targetDependencies.map  { .target(name: $0) }
-
-        let modernSettings: [SwiftSetting] = [
-            .swiftLanguageMode(.v6),
-            .enableExperimentalFeature("InternalImportsByDefault")
-        ]
-
-        return [
-            .target(
-                name: spec.name,
-                dependencies: deps,
-                path: "\(spec.name)/Sources/\(spec.name)",
-                swiftSettings: modernSettings
-            ),
-            .testTarget(
-                name: "\(spec.name)Tests",
-                dependencies: [.target(name: spec.name)],
-                path: "\(spec.name)/Tests/\(spec.name)Tests",
-                swiftSettings: modernSettings
-            )
-        ]
-    }
-}
 ```
+
+Adding `CoreNetworking` is now a **two-line change**: a new `.library(name: "CoreNetworking", targets: ["CoreNetworking"])` in `products:`, and a new `+ makeTargets(name: "CoreNetworking", dependencies: ["Core"])` block in `targets:`. The Swift settings, path conventions, and test-target wiring all come for free.

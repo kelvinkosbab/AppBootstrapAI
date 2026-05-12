@@ -1,0 +1,137 @@
+// swift-tools-version: 6.0
+// The swift-tools-version declares the minimum version of Swift required to build this package.
+//
+// Starter Package.swift from AppBootstrapAI. Distilled from the production
+// Package.swift files in KozBon (KozBonPackages) and BasicSwiftUtilities.
+//
+// The `makeTargets()` helper at the bottom collapses the per-module boilerplate
+// of `.target(...)` + `.testTarget(...)` into a single call. Adding a new module
+// is a *two-line* change: one line in `products:` (to expose it) and one
+// `+ makeTargets(name: ..., ...)` line in `targets:`.
+//
+// Conventions assumed:
+//   - One directory per module at the package root.
+//   - Inside each module: `Sources/` for source, `Tests/` for tests, optional
+//     `Sources/Resources/` for asset/string-catalog/data files.
+//   - Test target name is always `<ModuleName>Tests` and depends on the
+//     module by `.byName(name: ...)` — no manual cross-referencing.
+//   - All targets share the same Swift settings (defined in `sharedSwiftSettings`)
+//     so you can't accidentally leave one module on Swift 5 / Swift 6 minor mode.
+//
+// Replace every `<PLACEHOLDER>` below, then delete this comment block.
+
+import PackageDescription
+
+// MARK: - Shared Settings
+
+/// Swift settings applied to *every* target — both source and test. Keep this
+/// short and uniform; per-target overrides are a sign your modules are
+/// diverging in ways that will hurt you later.
+let sharedSwiftSettings: [SwiftSetting] = [
+    .swiftLanguageMode(.v6),
+    .enableUpcomingFeature("InternalImportsByDefault")
+    // Add other modern features here as you adopt them:
+    // .enableUpcomingFeature("MemberImportVisibility"),
+]
+
+// MARK: - Target Helper
+
+/// Creates a source target and (optionally) a test target for a module.
+///
+/// Directory layout this assumes:
+/// ```
+/// {name}/
+///     Sources/
+///         Resources/   (only if hasResources is true)
+///     Tests/           (only if hasTests is true)
+/// ```
+///
+/// - Parameters:
+///   - name: Module name. Used as both the target name and the on-disk folder.
+///   - dependencies: Other targets / package products this module imports.
+///     Use `"OtherModule"` for sibling targets in this package,
+///     `.product(name: "X", package: "Y")` for external package products.
+///   - hasTests: Whether to create a paired test target. Defaults to `true` —
+///     missing tests is a problem to fix, not a configuration to support.
+///     Set to `false` only for purely declarative resource-only targets.
+///   - hasResources: When `true`, the source target picks up
+///     `{name}/Sources/Resources/` via `.process("Resources")`. Use for
+///     `.xcassets`, `.xcstrings`, `.json` data files, etc.
+///   - testDependencies: Additional dependencies the test target needs
+///     beyond the module itself (test fixtures from sibling modules, e.g.).
+///     The module-under-test is always included automatically.
+///   - testResources: Resources for the test target (test fixtures, sample
+///     payloads). Less common than source resources.
+func makeTargets(
+    name: String,
+    dependencies: [Target.Dependency] = [],
+    hasTests: Bool = true,
+    hasResources: Bool = false,
+    testDependencies: [Target.Dependency] = [],
+    testResources: [Resource]? = nil
+) -> [Target] {
+    var targets: [Target] = [
+        .target(
+            name: name,
+            dependencies: dependencies,
+            path: "\(name)/Sources",
+            resources: hasResources ? [.process("Resources")] : nil,
+            swiftSettings: sharedSwiftSettings
+        )
+    ]
+    if hasTests {
+        targets.append(
+            .testTarget(
+                name: "\(name)Tests",
+                dependencies: [.byName(name: name)] + testDependencies,
+                path: "\(name)/Tests",
+                resources: testResources,
+                swiftSettings: sharedSwiftSettings
+            )
+        )
+    }
+    return targets
+}
+
+// MARK: - Package
+
+let package = Package(
+    name: "<PACKAGE_NAME>",
+    platforms: [
+        // Pick minimums you actually support. Lowering creates more `#available`
+        // guards in code; raising shrinks your audience.
+        .iOS(.v17),
+        .macOS(.v14),
+        .tvOS(.v17),
+        .watchOS(.v10),
+        .visionOS(.v1)
+    ],
+    products: [
+        // One product per logically separable feature. Consumers `import` these.
+        // Internal-only modules can stay out of `products:`.
+        .library(name: "Core", targets: ["Core"])
+        // .library(name: "CoreUI", targets: ["CoreUI"]),
+        // .library(name: "CoreStorage", targets: ["CoreStorage"]),
+    ],
+    dependencies: [
+        // External packages. Prefer `from:` for SemVer-honoring libraries,
+        // `exact:` for build reproducibility, `branch:` only during development.
+        // .package(url: "https://github.com/apple/swift-collections", from: "1.1.0"),
+    ],
+    targets:
+        // Add one `+ makeTargets(name: "<ModuleName>", ...)` block per module.
+        // The `+` operator concatenates the [Target] arrays each call returns.
+        makeTargets(
+            name: "Core"
+        )
+        // + makeTargets(
+        //     name: "CoreUI",
+        //     dependencies: ["Core"],
+        //     hasResources: true            // for theme assets, string catalogs, etc.
+        // )
+        // + makeTargets(
+        //     name: "CoreStorage",
+        //     dependencies: ["Core"],
+        //     testResources: [.process("Resources")]   // for test fixtures
+        // )
+)
