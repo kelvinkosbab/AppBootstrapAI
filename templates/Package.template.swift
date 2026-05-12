@@ -102,13 +102,17 @@ let sharedSwiftSettings: [SwiftSetting] = [
 ///     The module-under-test is always included automatically.
 ///   - testResources: Resources for the test target (test fixtures, sample
 ///     payloads). Less common than source resources.
+///   - plugins: Build-tool plugins attached to the source target (e.g.,
+///     `SwiftLintBuildToolPlugin`). Test targets don't inherit these by
+///     default — pass them explicitly here only if you want lint on source.
 func makeTargets(
     name: String,
     dependencies: [Target.Dependency] = [],
     hasTests: Bool = true,
     hasResources: Bool = false,
     testDependencies: [Target.Dependency] = [],
-    testResources: [Resource]? = nil
+    testResources: [Resource]? = nil,
+    plugins: [Target.PluginUsage]? = nil
 ) -> [Target] {
     var targets: [Target] = [
         .target(
@@ -116,7 +120,8 @@ func makeTargets(
             dependencies: dependencies,
             path: "\(name)/Sources",
             resources: hasResources ? [.process("Resources")] : nil,
-            swiftSettings: sharedSwiftSettings
+            swiftSettings: sharedSwiftSettings,
+            plugins: plugins
         )
     ]
     if hasTests {
@@ -157,6 +162,16 @@ let package = Package(
         // External packages. Prefer `from:` for SemVer-honoring libraries,
         // `exact:` for build reproducibility, `branch:` only during development.
         // .package(url: "https://github.com/apple/swift-collections", from: "1.1.0"),
+
+        // Build-tool plugins are package dependencies too. Common ones:
+        // .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.63.2"),
+        // .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.0"),
+
+        // Local-path dependency for iterating on a sibling package without
+        // round-tripping through Git. Mutually exclusive with a URL form for
+        // the same package — comment one out, uncomment the other.
+        // Don't ship a release with a path: dependency — consumers can't fetch it.
+        // .package(path: "../my-sibling-package"),
     ],
     targets:
         // Add one `+ makeTargets(name: "<ModuleName>", ...)` block per module.
@@ -173,5 +188,14 @@ let package = Package(
         //     name: "CoreStorage",
         //     dependencies: ["Core"],
         //     testResources: [.process("Resources")]   // for test fixtures
+        // )
+
+        // Example: a module with SwiftLint applied as a build-tool plugin.
+        // Requires SwiftLintPlugins listed in `dependencies:` above.
+        // + makeTargets(
+        //     name: "Linted",
+        //     plugins: [
+        //         .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
+        //     ]
         // )
 )

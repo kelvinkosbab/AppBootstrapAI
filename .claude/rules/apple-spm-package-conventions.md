@@ -220,6 +220,43 @@ dependencies: [
 - **`branch:` / `revision:`** for development pins only — never ship a release with a branch dependency. Consumers can't predict when a branch moves under them.
 - **Avoid transitive dependency duplication.** If `Core` depends on `swift-collections` and `CoreUI` does too, the version unifies via the package's top-level dependencies — declare it once at the top, then reference `.product(name: "Collections", package: "swift-collections")` from each target.
 
+## `Package.resolved` Discipline
+
+`Package.resolved` records the exact dependency versions SPM resolved at build time. Whether to commit it depends on what the package *is*:
+
+- **App packages (executable, end-user product):** **commit it.** Build reproducibility matters — your CI and every contributor's machine should resolve to the same transitive versions. Without it, two builds of the same source can land on different dependency versions and one of them has a regression you can't reproduce.
+- **Library packages (consumed as dependencies):** **gitignore it.** Consumers do their own dependency resolution against your `from:` / `exact:` constraints. Your `Package.resolved` is irrelevant to them — committing it just generates merge-conflict noise when you bump deps.
+
+For a monorepo with both shapes: commit `Package.resolved` at the *app* package's root, gitignore at every *library* package's root. The `.gitignore` entries from the AppBootstrapAI bundle already exclude it; un-ignore it explicitly for app packages.
+
+```
+# In the app package's .gitignore — un-ignore Package.resolved:
+!Package.resolved
+```
+
+Common pitfalls:
+- **Library author commits `Package.resolved`** — consumer CI hits confusing resolution mismatches and the library author wonders why every release branch carries a merge conflict on this file. Gitignore it.
+- **App author gitignores `Package.resolved`** — CI and a dev box silently resolve different versions; a regression slips through review because reviewers see different bytes than CI built. Commit it.
+
+## Local Development with Path Overrides
+
+When iterating on a sibling package without round-tripping through Git — a monorepo with two packages, or developing against a local copy of an external dependency — replace the URL-based dependency with a path-based one:
+
+```swift
+dependencies: [
+    .package(path: "../my-sibling-package"),
+    // .package(url: "https://github.com/me/my-sibling-package", from: "1.0.0"),  // shipped form
+]
+```
+
+- **`.package(path: ...)` substitutes for the URL form entirely** — they're mutually exclusive. Comment the URL form back in when you tag a release.
+- **Use relative paths** (`"../my-other-package"`) so the package builds for any contributor with the same monorepo layout. Absolute paths break for everyone but you.
+- **Path-based dependencies don't appear in `Package.resolved`** — your local override has no effect on consumers fetching from Git.
+- **Don't ship a release with a path-based dependency.** Consumers can't fetch a relative path. Either guard with CI (`grep -E '\.package\(path:' Package.swift && exit 1` in the release workflow), or maintain a separate release branch.
+- **For modules in the same package**, just declare a target dependency by name — path overrides are for crossing *package* boundaries, not target boundaries.
+
+Alternative for short-term experimentation: branch dependency (`.package(url: ..., branch: "feature-branch")`). Same release-time caveat — never ship a release that depends on a moving branch reference.
+
 ## Test Targets
 
 ```swift
@@ -233,6 +270,44 @@ dependencies: [
 - **`@testable import Core`** in tests gives access to `internal` symbols. Use it for testing internals; use plain `import Core` to test the public API.
 - **Test targets don't need to declare platforms separately** — they inherit the package's `platforms:`.
 - **Don't use `.testTarget(...)` for UI tests** — UI tests need an app host and live in an `.xctestplan` outside SPM. Keep UI tests in the consumer Xcode project.
+
+## Build Plugins
+
+Build-tool plugins run during compilation (lint / format / codegen); command plugins run on demand via `swift package plugin`. Both attach to individual targets via `plugins:`:
+
+```swift
+.target(
+    name: "Core",
+    dependencies: [
+        .product(name: "Collections", package: "swift-collections")
+    ],
+    path: "Core/Sources",
+    plugins: [
+        .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
+    ]
+)
+```
+
+And the matching package-level dependency:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.63.2")
+]
+```
+
+- **Apply plugins per-target, not blanket-via-helper** — different modules may have legitimate reason to skip linting (legacy modules tolerating warnings the rest of the package treats as errors). The `makeTargets()` helper can take a `plugins:` parameter for cases where uniform application is right.
+- **Pin plugin versions like any other dependency** — `from:` for SemVer-honoring plugins, `exact:` when the plugin tracks a specific toolchain.
+- **Build-tool plugins (`.plugin(...)`) run at build time.** Compile-time failures (lint errors) fail the build. Use this for guardrails you want CI and every developer to hit.
+- **Command plugins run only when invoked** (`swift package my-plugin`). Use for codegen / formatting / fixture regeneration that shouldn't gate the build.
+- **Don't author plugins inside your library package** unless they're tightly scoped to it. Cross-package plugins belong in their own package so consumers can adopt them independently.
+
+Common plugin packages:
+
+- [`SwiftLintPlugins`](https://github.com/SimplyDanny/SwiftLintPlugins) — Realm's SwiftLint as a build-tool plugin (used by KozBon).
+- [`swift-format`](https://github.com/apple/swift-format) — Apple's official formatter; can run as a build-tool or command plugin.
+- [`swift-docc-plugin`](https://github.com/apple/swift-docc-plugin) — generate DocC archives via `swift package generate-documentation`.
+- Custom codegen plugins for projects with schemas (GraphQL, Protobuf, SourceKit-Stencil).
 
 ## Common Pitfalls
 
