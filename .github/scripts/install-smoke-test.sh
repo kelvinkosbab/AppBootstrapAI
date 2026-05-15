@@ -103,10 +103,14 @@ run_combo() {
             esac
             case "$apple_lang" in
                 objc|both)
-                    assert_file_exists "$target/.claude/rules/apple-objc-best-practices.md" "ObjC in scope"
+                    assert_file_exists "$target/.claude/rules/apple-objc-best-practices.md"              "ObjC core rule in scope"
+                    # apple-objc-accessibility-best-practices.md is gated by --features ui,
+                    # which IS in --features all (used by these existing combos).
+                    assert_file_exists "$target/.claude/rules/apple-objc-accessibility-best-practices.md" "ObjC a11y rule in scope with --features all"
                     ;;
                 swift)
-                    assert_file_absent "$target/.claude/rules/apple-objc-best-practices.md" "ObjC NOT in scope under apple-language=swift"
+                    assert_file_absent "$target/.claude/rules/apple-objc-best-practices.md"              "ObjC core rule NOT in scope under apple-language=swift"
+                    assert_file_absent "$target/.claude/rules/apple-objc-accessibility-best-practices.md" "ObjC a11y rule NOT in scope under apple-language=swift"
                     ;;
             esac
             if [[ "$apple_lang" == "objc" ]] && [[ "$platform" == "apple" ]]; then
@@ -222,6 +226,28 @@ assert_dir_exists  "$target_ai/.claude/skills/coredata-swift6-pro"              
 assert_file_absent "$target_ai/.claude/rules/apple-swift6-strict-concurrency.md" "concurrency not selected when only ai+persistence"
 assert_dir_empty_or_missing "$target_ai/.claude/skills/swiftui-pro"              "ui skill not selected"
 rm -rf "$target_ai"
+
+bold "==> Feature filter: --apple-language objc --features core,testing (no ui)"
+target_objc_no_ui="$(mktemp -d)"
+"$INSTALL" "$target_objc_no_ui" --platform apple --apple-language objc --features core,testing >/dev/null
+
+# Core ObjC rule lands regardless of --features (gated only by --apple-language)
+assert_file_exists "$target_objc_no_ui/.claude/rules/apple-objc-best-practices.md"               "ObjC core rule lands even without ui category"
+# ObjC accessibility rule is in 'ui' category, which isn't selected → skipped
+assert_file_absent "$target_objc_no_ui/.claude/rules/apple-objc-accessibility-best-practices.md" "ObjC a11y rule skipped when ui not in --features"
+# Swift-side apple rules are blocked by --apple-language=objc
+assert_file_absent "$target_objc_no_ui/.claude/rules/apple-swift6-strict-concurrency.md"          "Swift rules skipped under apple-language=objc"
+rm -rf "$target_objc_no_ui"
+
+bold "==> Feature filter: --apple-language objc --features ui (a11y lands)"
+target_objc_ui="$(mktemp -d)"
+"$INSTALL" "$target_objc_ui" --platform apple --apple-language objc --features ui >/dev/null
+
+assert_file_exists "$target_objc_ui/.claude/rules/apple-objc-best-practices.md"                  "ObjC core rule lands"
+assert_file_exists "$target_objc_ui/.claude/rules/apple-objc-accessibility-best-practices.md"    "ObjC a11y rule lands when ui in --features"
+# Apple Swift-side a11y rule still blocked by --apple-language=objc, even though ui is in --features
+assert_file_absent "$target_objc_ui/.claude/rules/apple-accessibility-best-practices.md"          "Swift a11y rule blocked by apple-language=objc"
+rm -rf "$target_objc_ui"
 
 bold "==> Feature filter: invalid category should fail"
 if "$INSTALL" /tmp/never --platform apple --features bogus >/dev/null 2>&1; then

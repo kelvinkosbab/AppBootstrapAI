@@ -23,6 +23,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-documentation-strategy.md            # Apple: DocC strategy + deprecation
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
 │   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
+│   ├── apple-objc-accessibility-best-practices.md # Apple: UIKit a11y in Objective-C
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
 │   ├── apple-spm-package-conventions.md           # Apple: Package.swift authoring
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
@@ -211,6 +212,18 @@ Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`. Enc
 - Default to Swift Testing for new tests; keep XCTest only for UI (`XCUITest`) and performance (`measure`).
 - XCUITest: locate by `.accessibilityIdentifier`, never visible localized text.
 - Coverage: track in CI (Slather / Codecov / `xcrun xccov`), set a *policy* gate (commonly 70–80%), exclude generated code, DI, model-only types, and `@main`. Coverage is a hint, not a goal — don't game it.
+
+### Objective-C accessibility (`apple-objc-accessibility-best-practices.md`)
+
+Scoped to `**/*.{h,m,mm}`. UIKit-side mirror of `apple-accessibility-best-practices.md`:
+
+- Required properties: `accessibilityLabel` (localized via `NSLocalizedString`), `accessibilityHint` only when label is ambiguous, `accessibilityValue` for stateful controls, `accessibilityTraits` for semantic role.
+- `accessibilityIdentifier` is for UI tests and **never localized**; `accessibilityLabel` is user-facing and **always localized**. Don't confuse them.
+- Dynamic Type: `[UIFont preferredFontForTextStyle:]` + `adjustsFontForContentSizeCategory = YES`. Never `systemFontOfSize:` for user-visible text.
+- Reduce Motion: `UIAccessibilityIsReduceMotionEnabled()` before animating; observe `UIAccessibilityReduceMotionStatusDidChangeNotification` for runtime toggles.
+- VoiceOver announcements via `UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, ...)`; use sparingly.
+- Modal overlays: `accessibilityViewIsModal = YES` so VoiceOver focus doesn't escape.
+- Custom long-press / swipe actions: expose via `accessibilityCustomActions` so they're reachable from the VoiceOver rotor.
 
 ### Modern Objective-C (`apple-objc-best-practices.md`)
 

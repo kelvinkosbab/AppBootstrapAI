@@ -165,7 +165,7 @@ file_category() {
             echo "core" ;;
         apple-swift6-strict-concurrency.md|swift-concurrency-pro|android-coroutines-best-practices.md)
             echo "concurrency" ;;
-        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|swiftui-pro|android-compose-best-practices.md|android-accessibility-best-practices.md)
+        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|swiftui-pro|android-compose-best-practices.md|android-accessibility-best-practices.md)
             echo "ui" ;;
         apple-testing-strategy.md|swift-testing-pro|android-testing-strategy.md)
             echo "testing" ;;
@@ -213,10 +213,15 @@ is_in_features() {
 should_install_rule() {
     local name="$1"
     case "$name" in
-        apple-objc-*)
-            # ObjC rule: include only if Apple is in scope AND language permits objc.
-            # --features doesn't gate this — only --apple-language.
+        apple-objc-best-practices.md)
+            # The core "modern ObjC" rule — gated *only* by --apple-language,
+            # not --features. If you opted into ObjC at all, you want this.
             [[ "$PLATFORM" != "android" ]] && [[ "$APPLE_LANG" != "swift" ]]
+            ;;
+        apple-objc-*)
+            # Other ObjC-specific rules (e.g., apple-objc-accessibility-best-practices.md)
+            # are categorized — gated by BOTH --apple-language AND --features.
+            [[ "$PLATFORM" != "android" ]] && [[ "$APPLE_LANG" != "swift" ]] && is_in_features "$name"
             ;;
         apple-*)
             # Other apple-* rules are Swift-side: include if Apple in scope and
