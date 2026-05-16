@@ -120,6 +120,20 @@
 - <e.g., A flavor-specific resource override>
 - <e.g., Compose BOM version that conflicts with `lifecycle-runtime-compose`>
 
+## Git workflow expectations
+
+(Inherited from AppBootstrapAI — keep these unless your team has a stronger reason to override.)
+
+- **Never commit without an explicit instruction.** Working-tree edits are fine; promoting them to a commit requires a direct ask (*"commit this"*, *"make a commit"*). If unsure, ask first.
+- **Never push to `origin` without an explicit instruction.** Pushing has visible side effects (CI, teammates, published branches). Always wait for *"push"* / *"push to origin"* / *"open a PR"*.
+- **Never amend** an existing commit unless the user explicitly asks. Default to a new commit.
+- **Never run destructive git commands without confirmation:** `git push --force`, `git reset --hard`, `git checkout .`, `git clean -f`, `git branch -D`, interactive `git rebase`. Name the command and ask before running.
+- **Never skip git hooks** (`--no-verify`, `--no-gpg-sign`) unless explicitly requested.
+- **Never force-push to `main`/`master`** even when asked — warn and offer a safer path.
+- **When commits ARE requested**, follow project commit-message conventions, stage specific files (not `git add -A` which captures `.env`/credentials), prefer new commits over `--amend`.
+
+The principle: commits and pushes are user-driven. Edits are AI-driven.
+
 ## AI Rules and Skills
 
 This repo uses the AppBootstrapAI bundle in `.claude/`:

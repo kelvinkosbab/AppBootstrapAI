@@ -122,6 +122,20 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 
 Each skill produces a file-by-file findings report with before/after code fixes and a prioritized summary.
 
+## Git workflow expectations
+
+These apply to **every** AI session in this repo or in any repo that adopts this bundle. They're behavioral guardrails, not file-pattern rules, so they live in `CLAUDE.md` (always loaded) rather than `.claude/rules/`.
+
+- **Never commit without an explicit instruction.** Edits to the working tree are fine; turning those into commits is a separate action that requires direct user instruction (e.g., *"commit this"*, *"make a commit"*, *"commit the changes"*). If a task naturally produces a commit and you're unsure whether the user wants one yet, **ask first.**
+- **Never push to `origin` without an explicit instruction.** Pushing has user-visible side effects: CI runs, teammates see the changes, branches get published. Always wait for direct instruction (*"push"*, *"push to origin"*, *"open a PR"*).
+- **Never amend an existing commit** unless the user explicitly asks (*"amend the last commit"*). Default to a new commit; amending rewrites history that may already be shared.
+- **Never run destructive git commands without explicit confirmation:** `git push --force`, `git reset --hard`, `git checkout .`, `git restore .`, `git clean -f`, `git branch -D`, interactive `git rebase`. These can lose work irreversibly. If you think one is genuinely needed, name the command and ask before running it.
+- **Never skip git hooks** (`--no-verify`, `--no-gpg-sign`) unless the user explicitly asks. Hooks usually catch real problems; bypassing them silently is exactly the kind of "surprising" behavior these rules exist to prevent.
+- **Never force-push to `main`/`master`** even if the user asks. Warn them; offer a safer path (revert commit, new branch, etc.). The risk to teammates' local clones is too high.
+- **When committing IS requested**, follow the standard project commit-message conventions (review recent `git log` first), stage specific files rather than `git add -A` (which can capture `.env` / credentials / temp files), and prefer creating a new commit over `--amend`.
+
+The principle: **commits and pushes are user-driven actions**. Edits to the working tree are AI-driven; promoting them to history is the user's call.
+
 ## Baseline conventions (steering rules)
 
 The rules in `.claude/rules/` are loaded automatically for every Swift file in the target repo. They encode:
