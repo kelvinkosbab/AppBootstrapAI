@@ -19,7 +19,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 - **`apple-testing-strategy.md`** — what to test (and what not), Given/When/Then naming, determinism (inject clocks/UUIDs/network), Swift Testing vs XCTest split, XCUITest discipline, CI coverage gates with sensible exclusions.
 - **`apple-documentation-strategy.md`** — what to document (and what not), DocC discipline (summary line, `- Parameter`/`- Returns`/`- Throws`, double-backtick symbol linking, `## Topics` organization), deprecation discipline with mandatory migration paths, when to write a DocC Article vs. a doc comment.
 - **`apple-localization-best-practices.md`** — String Catalogs (`.xcstrings`) as the modern format, type-safe `Strings` enum facade pattern, `LocalizedStringResource` over `NSLocalizedString`, plurals, locale-aware `.formatted()` for numbers/dates/currency, RTL via leading/trailing modifiers, translator-context comments.
-- **`apple-spm-package-conventions.md`** — `Package.swift` authoring: `swift-tools-version` discipline, mandatory `platforms:`, per-module folder layout (`{Module}/Sources/{Module}` + `{Module}/Tests/{Module}Tests`), `makeTargets()` helper for many similar modules, resources (`.process` vs `.copy`), modern features (`InternalImportsByDefault`, `.swiftLanguageMode(.v6)`, `public import`), dependency hygiene (`from:` vs `exact:`).
+- **`apple-spm-package-conventions.md`** — `Package.swift` authoring: `swift-tools-version` discipline, mandatory `platforms:`, flat per-module folder layout (`{Module}/Sources/` + `{Module}/Tests/`, matching KozBon and BasicSwiftUtilities), `makeTargets()` helper for many similar modules with `hasTests` / `hasResources` / `plugins` toggles, resources (`.process` vs `.copy`), build plugins (SwiftLintPlugins, swift-docc-plugin), `Package.resolved` discipline (commit for apps, gitignore for libraries), local-path overrides for sibling-package development, modern features (`InternalImportsByDefault`, `.swiftLanguageMode(.v6)`, `public import`), dependency hygiene (`from:` vs `exact:`).
 - **`swift-concurrency-pro` skill** — reviews async/await, actors, structured concurrency.
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
@@ -117,12 +117,16 @@ Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` li
 
 The installer:
 
-- Copies `.claude/skills/` (when `apple` or `both`) and platform-matching `.claude/rules/`.
+- Copies skills matching the platform/language/features intersection (Android skills under `--platform android` or `both`; Apple skills under `--platform apple` or `both` and `--apple-language` permitting Swift).
+- Copies platform-matching `.claude/rules/` filtered by `--features`.
 - Copies `.claude/settings.json` (only if one doesn't already exist).
 - Renders the **platform-appropriate** `CLAUDE.template.*.md` into `CLAUDE.md` (only if missing): `apple` → `CLAUDE.template.apple.md`, `android` → `CLAUDE.template.android.md`, `both` → `CLAUDE.template.md`.
 - Appends platform-specific entries to `.gitignore`, deduped by marker.
+- Writes `.claude/.appbootstrap-manifest.json` recording every installed file (groundwork for future `--upgrade` / `--uninstall`).
 
 It never overwrites an existing `CLAUDE.md` or `settings.json` — it prints what it skipped so you can merge.
+
+`--dry-run` skips every write but still prints what would happen, so you can preview before committing to an upgrade.
 
 After install, edit the new `CLAUDE.md` and fill in the `<PLACEHOLDER>` sections. Keep the `.claude/rules/` and `.claude/skills/` as-is unless you need to extend them.
 
@@ -130,7 +134,7 @@ After install, edit the new `CLAUDE.md` and fill in the `<PLACEHOLDER>` sections
 
 ## How it fires
 
-**Rules** (`.claude/rules/`) load automatically based on each file's `globs:` frontmatter — Apple rules fire on `*.swift` / `*.{h,m,mm}`, Android rules fire on `*.{kt,kts}`. No invocation needed; they steer Claude as soon as a matching file enters context. This is the bulk of what you get on the Android side today.
+**Rules** (`.claude/rules/`) load automatically based on each file's `globs:` frontmatter — Apple rules fire on `*.swift` / `*.{h,m,mm}`, Android rules fire on `*.{kt,kts}` (plus `*.xml` for the localization rule). No invocation needed; they steer Claude as soon as a matching file enters context.
 
 **Skills** (`.claude/skills/`) are deeper review agents that fire on demand. Trigger by description match or invoke explicitly:
 
@@ -154,7 +158,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 
 1. **Hand the agent this repo's URL and your project description.** Most agents need just enough context to pick the right flags. A prompt like *"Bootstrap this iOS+macOS app with AppBootstrapAI — Swift only, include the AI/Foundation Models category"* tells Claude / Cursor / Gemini / Kiro / Copilot what they need to know.
 2. **The agent can introspect the catalog before installing.** `./install.sh --list --features all` prints every rule and skill with its category and one-line description. Agents that read the output can recommend the right `--features` list for your project.
-3. **For Claude Code users who want first-class integration**, this repo ships an [MCP server](mcp-server/README.md) that exposes the installer as structured tools — `preview_install`, `install`, `describe_skill`, etc. Once configured in `.claude/settings.json`, Claude can run the installer through a typed API rather than parsing shell output. See [`mcp-server/`](mcp-server/) for setup.
+3. **For Claude Code users who want first-class integration**, this repo ships an [MCP server](mcp-server/README.md) that exposes the installer as five structured tools: `list_categories`, `list_rules`, `list_skills`, `preview_install`, and `install`. Once configured in `.claude/settings.json`, Claude can run the installer through a typed API rather than parsing shell output. See [`mcp-server/`](mcp-server/) for setup.
 
 **Recommended prompts** (copy-paste-friendly for the agent of your choice):
 
