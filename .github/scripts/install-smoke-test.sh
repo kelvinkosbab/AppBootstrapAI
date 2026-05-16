@@ -257,6 +257,89 @@ else
     PASS=$((PASS + 1))
 fi
 
+# --- Tier 1 install.sh additions ---------------------------------------------
+
+bold "==> Composition: --features recommended,ai,persistence"
+target_compose="$(mktemp -d)"
+"$INSTALL" "$target_compose" --platform apple --features recommended,ai,persistence >/dev/null
+assert_file_exists "$target_compose/.claude/rules/apple-swift6-strict-concurrency.md" "recommended subset still applies"
+assert_file_exists "$target_compose/.claude/rules/apple-foundation-models.md"          "ai opt-in from CSV composition"
+assert_dir_exists  "$target_compose/.claude/skills/coredata-swift6-pro"                "persistence opt-in from CSV composition"
+# migration NOT in recommended,ai,persistence:
+assert_dir_empty_or_missing "$target_compose/.claude/skills/xml-to-compose-migration-pro" "migration not selected"
+rm -rf "$target_compose"
+
+bold "==> --dry-run writes nothing"
+target_dry="$(mktemp -d)"
+"$INSTALL" "$target_dry" --platform both --features all --dry-run >/dev/null
+# No files should land. The mktemp dir might be empty or contain hidden dotfiles; check both.
+file_count=$(find "$target_dry" -type f 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$file_count" -eq 0 ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --dry-run wrote $file_count file(s) into the target — should write zero"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_dry"
+
+bold "==> --list --json produces valid JSON parseable by python3"
+json_payload="$("$INSTALL" --list --json --platform both --features all)"
+# Validate via python3 — fail this assertion if the JSON doesn't parse or lacks expected keys.
+if echo "$json_payload" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+assert 'selection' in data, 'missing selection'
+assert 'rules' in data and isinstance(data['rules'], list), 'missing rules array'
+assert 'skills' in data and isinstance(data['skills'], list), 'missing skills array'
+assert data['selection']['platform'] == 'both'
+assert data['selection']['features_input'] == 'all'
+# Every rule should have filename/category/installed/description
+for r in data['rules']:
+    for k in ('filename', 'category', 'installed', 'description'):
+        assert k in r, f'rule missing {k}: {r}'
+for s in data['skills']:
+    for k in ('name', 'category', 'installed', 'description'):
+        assert k in s, f'skill missing {k}: {s}'
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --list --json output was invalid or schema didn't match"
+    FAIL=$((FAIL + 1))
+fi
+
+bold "==> --json without --list rejected"
+if "$INSTALL" /tmp/never --json --platform apple >/dev/null 2>&1; then
+    red "FAIL: --json without --list should exit non-zero"
+    FAIL=$((FAIL + 1))
+else
+    PASS=$((PASS + 1))
+fi
+
+bold "==> Manifest written on real install"
+target_manifest="$(mktemp -d)"
+"$INSTALL" "$target_manifest" --platform apple --features recommended >/dev/null
+manifest="$target_manifest/.claude/.appbootstrap-manifest.json"
+assert_file_exists "$manifest" "manifest file lands"
+# Schema check via python3.
+if python3 -c "
+import json, sys
+with open('$manifest') as f:
+    m = json.load(f)
+assert m['schema_version'] == 1, f'wrong schema_version: {m}'
+assert 'installed_at' in m
+assert m['selection']['platform'] == 'apple'
+assert m['selection']['features_input'] == 'recommended'
+assert isinstance(m['files'], list) and len(m['files']) > 0
+for entry in m['files']:
+    assert all(k in entry for k in ('path', 'type', 'category')), entry
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: manifest schema mismatch"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_manifest"
+
 # --list and --help should both succeed and produce sentinel output.
 # Note: capture output before grepping. If we piped directly to `grep -q`,
 # grep closes stdin after the first match, install.sh gets SIGPIPE on the

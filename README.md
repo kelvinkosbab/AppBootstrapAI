@@ -56,7 +56,10 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
   - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
   - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps; `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`); custom CSVs like `core,testing,docs` give fine-grained control
   - `--list` previews the catalog with one-line descriptions + category tags
+  - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
+  - `--dry-run` shows what an install would do without writing any files
   - `--help` documents every flag and enumerates all 13 categories
+  - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (groundwork for future `--upgrade` / `--uninstall`)
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 - **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
 
@@ -95,9 +98,20 @@ From the root of a new app repo:
 # Preview what any flag combo will install (no files written, with category tags)
 /path/to/AppBootstrapAI/install.sh --list --platform android --features all
 
+# Same catalog as JSON (for automation / the MCP server)
+/path/to/AppBootstrapAI/install.sh --list --json --platform apple --features all
+
+# Show what an install would do without actually writing files
+/path/to/AppBootstrapAI/install.sh /target --platform apple --features all --dry-run
+
+# Compose recommended + specific opt-ins (instead of writing the CSV by hand)
+/path/to/AppBootstrapAI/install.sh . --platform apple --features recommended,ai,persistence
+
 # Full help — documents --features categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
+
+Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. This will be the foundation for future `--upgrade` / `--uninstall` flows.
 
 **The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization`. Specialized opt-ins not in `recommended`: `persistence` (Core Data), `ai` (Foundation Models, iOS 26+), `migration` (XML → Compose), `shrinking` (R8/ProGuard).
 
