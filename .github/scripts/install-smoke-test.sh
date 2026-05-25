@@ -322,16 +322,26 @@ manifest="$target_manifest/.claude/.appbootstrap-manifest.json"
 assert_file_exists "$manifest" "manifest file lands"
 # Schema check via python3.
 if python3 -c "
-import json, sys
+import json, sys, re
 with open('$manifest') as f:
     m = json.load(f)
-assert m['schema_version'] == 1, f'wrong schema_version: {m}'
+assert m['schema_version'] == 2, f'wrong schema_version: {m}'
 assert 'installed_at' in m
+assert 'bundle_commit' in m, 'v2 manifest must record bundle_commit'
 assert m['selection']['platform'] == 'apple'
 assert m['selection']['features_input'] == 'recommended'
 assert isinstance(m['files'], list) and len(m['files']) > 0
+assert isinstance(m['mcps_installed'], list), 'mcps_installed must be a list'
+sha_re = re.compile(r'^[0-9a-f]{64}$')
 for entry in m['files']:
-    assert all(k in entry for k in ('path', 'type', 'category')), entry
+    assert all(k in entry for k in ('path', 'type', 'category', 'sha256')), entry
+    # sha256 is null only for the gitignore-block synthetic entry; everything else has a hex digest.
+    if entry['type'] == 'gitignore-block':
+        assert entry['sha256'] is None, f'gitignore-block should have null sha256: {entry}'
+    else:
+        assert isinstance(entry['sha256'], str) and sha_re.match(entry['sha256']), entry
+    if entry['type'] == 'skill-file':
+        assert 'skill' in entry and isinstance(entry['skill'], str), f'skill-file missing skill field: {entry}'
 " 2>/dev/null; then
     PASS=$((PASS + 1))
 else
@@ -453,13 +463,23 @@ target_mcp_dry="$(mktemp -d)"
 assert_file_absent "$target_mcp_dry/.claude/settings.local.json" "dry-run must not write settings.local.json"
 rm -rf "$target_mcp_dry"
 
-bold "==> manifest tracks mcps_requested"
+bold "==> manifest tracks mcps_installed with config hashes"
 target_mcp_mani="$(mktemp -d)"
 "$INSTALL" "$target_mcp_mani" --platform apple --with-mcps xcodebuildmcp,sentry >/dev/null
-if grep -q '"mcps_requested": \["xcodebuildmcp", "sentry"\]' "$target_mcp_mani/.claude/.appbootstrap-manifest.json"; then
+if python3 -c "
+import json, re
+m = json.load(open('$target_mcp_mani/.claude/.appbootstrap-manifest.json'))
+sha_re = re.compile(r'^[0-9a-f]{64}\$')
+installed = m['mcps_installed']
+names = [e['name'] for e in installed]
+assert 'xcodebuildmcp' in names, f'xcodebuildmcp missing from mcps_installed: {names}'
+assert 'sentry' in names, f'sentry missing from mcps_installed: {names}'
+for e in installed:
+    assert sha_re.match(e['config_sha256']), f'bad config_sha256 for {e[\"name\"]}: {e[\"config_sha256\"]}'
+" 2>/dev/null; then
     PASS=$((PASS + 1))
 else
-    red "FAIL: manifest missing or wrong mcps_requested array"
+    red "FAIL: manifest missing or malformed mcps_installed array"
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$target_mcp_mani"
@@ -547,6 +567,174 @@ else
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$target_auto_override"
+
+# --- --upgrade plan-only flow (Phase 2) -------------------------------------
+#
+# Drive each classification by either editing files in the target or by mutating
+# the manifest's recorded installed_hash to simulate upstream change.
+
+bold "==> --upgrade: fresh install → everything up to date"
+target_up_clean="$(mktemp -d)"
+"$INSTALL" "$target_up_clean" --platform apple --features recommended > /dev/null
+up_clean_out="$("$INSTALL" "$target_up_clean" --upgrade 2>&1)"
+if grep -q "Plan: 0 safe update" <<<"$up_clean_out" \
+    && grep -q "0 conflict"     <<<"$up_clean_out" \
+    && grep -q "0 orphan"       <<<"$up_clean_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: fresh install should produce a zero-action upgrade plan"
+    echo "$up_clean_out" | tail -5
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_up_clean"
+
+bold "==> --upgrade: local edit → 'Locally edited' classification"
+target_up_local="$(mktemp -d)"
+"$INSTALL" "$target_up_local" --platform apple --features recommended > /dev/null
+echo "# my local override" >> "$target_up_local/.claude/rules/apple-swift6-strict-concurrency.md"
+up_local_out="$("$INSTALL" "$target_up_local" --upgrade 2>&1)"
+if grep -q "Locally edited" <<<"$up_local_out" \
+    && grep -q "apple-swift6-strict-concurrency.md" <<<"$up_local_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: edited rule should appear under 'Locally edited'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_up_local"
+
+bold "==> --upgrade: simulated upstream change → 'Safe to update' classification"
+target_up_safe="$(mktemp -d)"
+"$INSTALL" "$target_up_safe" --platform apple --features recommended > /dev/null
+# Overwrite the disk file with an "old" version, then point installed_hash at
+# that same old hash. Now installed_hash == current_hash != bundle_hash → safe update.
+echo "old version content" > "$target_up_safe/.claude/rules/apple-swiftui-mvvm.md"
+old_hash="$(shasum -a 256 "$target_up_safe/.claude/rules/apple-swiftui-mvvm.md" | awk '{print $1}')"
+python3 -c "
+import json
+m = json.load(open('$target_up_safe/.claude/.appbootstrap-manifest.json'))
+for f in m['files']:
+    if f['path'] == '.claude/rules/apple-swiftui-mvvm.md':
+        f['sha256'] = '$old_hash'
+        break
+json.dump(m, open('$target_up_safe/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+up_safe_out="$("$INSTALL" "$target_up_safe" --upgrade 2>&1)"
+if grep -q "Safe to update" <<<"$up_safe_out" \
+    && grep -q "Plan: 1 safe update" <<<"$up_safe_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: simulated upstream change should appear under 'Safe to update'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_up_safe"
+
+bold "==> --upgrade: local edit + upstream change → 'Conflict' classification"
+target_up_conf="$(mktemp -d)"
+"$INSTALL" "$target_up_conf" --platform apple --features recommended > /dev/null
+echo "# local override" >> "$target_up_conf/.claude/rules/apple-swiftui-mvvm.md"
+python3 -c "
+import json
+m = json.load(open('$target_up_conf/.claude/.appbootstrap-manifest.json'))
+for f in m['files']:
+    if f['path'] == '.claude/rules/apple-swiftui-mvvm.md':
+        f['sha256'] = '0' * 64
+        break
+json.dump(m, open('$target_up_conf/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+up_conf_out="$("$INSTALL" "$target_up_conf" --upgrade 2>&1)"
+if grep -q "Conflict" <<<"$up_conf_out" \
+    && grep -q "Plan: 0 safe update" <<<"$up_conf_out" \
+    && grep -q "1 conflict"          <<<"$up_conf_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: both-changed scenario should appear under 'Conflict'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_up_conf"
+
+bold "==> --upgrade: synthesized orphan → 'Retired upstream' classification"
+target_up_orph="$(mktemp -d)"
+"$INSTALL" "$target_up_orph" --platform apple --features recommended > /dev/null
+python3 -c "
+import json
+m = json.load(open('$target_up_orph/.claude/.appbootstrap-manifest.json'))
+m['files'].append({'path': '.claude/rules/retired-rule.md', 'type': 'rule', 'category': 'core', 'sha256': '0'*64})
+json.dump(m, open('$target_up_orph/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+echo "fake retired" > "$target_up_orph/.claude/rules/retired-rule.md"
+up_orph_out="$("$INSTALL" "$target_up_orph" --upgrade 2>&1)"
+if grep -q "Retired upstream" <<<"$up_orph_out" \
+    && grep -q "retired-rule.md" <<<"$up_orph_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: orphan manifest entry should appear under 'Retired upstream'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_up_orph"
+
+bold "==> --upgrade: feature drop → 'Out of scope' classification"
+target_up_drop="$(mktemp -d)"
+"$INSTALL" "$target_up_drop" --platform apple --features all > /dev/null
+up_drop_out="$("$INSTALL" "$target_up_drop" --upgrade --features recommended 2>&1)"
+if grep -q "Out of scope" <<<"$up_drop_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: opting out of features should surface previously-installed files as 'Out of scope'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_up_drop"
+
+bold "==> --upgrade: v1 manifest → migration notice + clean exit"
+target_up_v1="$(mktemp -d)"
+mkdir -p "$target_up_v1/.claude"
+cat > "$target_up_v1/.claude/.appbootstrap-manifest.json" <<'V1MANIFEST'
+{
+  "schema_version": 1,
+  "installed_at": "2024-01-01T00:00:00Z",
+  "selection": {"platform": "apple", "apple_language": "swift", "features_input": "recommended"},
+  "files": [],
+  "mcps_requested": []
+}
+V1MANIFEST
+up_v1_out="$("$INSTALL" "$target_up_v1" --upgrade 2>&1)"
+if grep -q "schema v1" <<<"$up_v1_out" \
+    && grep -q "Aborting plan" <<<"$up_v1_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: v1 manifest should produce the migration notice"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_up_v1"
+
+bold "==> --upgrade: selection inherited from manifest when no flags passed"
+target_up_inh="$(mktemp -d)"
+"$INSTALL" "$target_up_inh" --platform apple --features recommended > /dev/null
+up_inh_out="$("$INSTALL" "$target_up_inh" --upgrade 2>&1)"
+if grep -q "inherited from manifest" <<<"$up_inh_out" \
+    && grep -q "platform apple"      <<<"$up_inh_out" \
+    && grep -q "features recommended" <<<"$up_inh_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --upgrade should inherit selection from manifest"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_up_inh"
+
+bold "==> --upgrade: no manifest at target → clean error"
+target_up_none="$(mktemp -d)"
+if "$INSTALL" "$target_up_none" --upgrade > /tmp/up_none.out 2>&1; then
+    red "FAIL: --upgrade against a target with no manifest should exit non-zero"
+    FAIL=$((FAIL + 1))
+else
+    if grep -q "no manifest at" /tmp/up_none.out; then
+        PASS=$((PASS + 1))
+    else
+        red "FAIL: --upgrade with no manifest should print 'no manifest at' message"
+        FAIL=$((FAIL + 1))
+    fi
+fi
+rm -rf "$target_up_none"
+rm -f /tmp/up_none.out
 
 # --list and --help should both succeed and produce sentinel output.
 # Note: capture output before grepping. If we piped directly to `grep -q`,

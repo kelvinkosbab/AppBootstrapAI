@@ -88,6 +88,21 @@
 #                        fail cleanly. Requires python3 on PATH (JSON merge is
 #                        done in Python to avoid bash fragility).
 #
+#   --upgrade            Compare an existing install against the current bundle
+#                        and print an upgrade plan (no files written). Reads
+#                        the manifest at .claude/.appbootstrap-manifest.json
+#                        and classifies every tracked file into one of:
+#                          - up to date (installed hash matches bundle)
+#                          - safe update (no local edits, bundle has new content)
+#                          - local edits (file modified after install — left alone)
+#                          - conflict (both local and bundle changed)
+#                          - retired (file removed upstream — orphan)
+#                          - addition (new in bundle, fits --features)
+#                          - renamed (via RENAMES.md)
+#                        Requires schema_version 2 manifest; v1 manifests
+#                        (older installs without hashes) get a migration hint.
+#                        This is plan-only — Phase 3 will add --apply.
+#
 #   -h, --help           Print this help and exit.
 #
 # What it does:
@@ -120,6 +135,11 @@ ACTION="install"
 DRY_RUN="false"
 JSON_OUTPUT="false"
 
+# Track whether the user explicitly passed each flag. Used by --upgrade to
+# inherit selection from the manifest when the user didn't override.
+APPLE_LANG_EXPLICIT="false"
+FEATURES_EXPLICIT="false"
+
 # --- Argument parsing ---------------------------------------------------------
 
 while [[ $# -gt 0 ]]; do
@@ -130,10 +150,12 @@ while [[ $# -gt 0 ]]; do
             ;;
         --apple-language)
             APPLE_LANG="$2"
+            APPLE_LANG_EXPLICIT="true"
             shift 2
             ;;
         --features)
             FEATURES_INPUT="$2"
+            FEATURES_EXPLICIT="true"
             shift 2
             ;;
         --list)
@@ -142,6 +164,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --list-mcps)
             ACTION="list-mcps"
+            shift
+            ;;
+        --upgrade)
+            ACTION="upgrade"
             shift
             ;;
         --with-mcps)
@@ -157,7 +183,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            sed -n '2,99p' "${BASH_SOURCE[0]}"
+            sed -n '2,121p' "${BASH_SOURCE[0]}"
             exit 0
             ;;
         *)
@@ -166,6 +192,44 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# --- Upgrade: inherit selection from manifest --------------------------------
+#
+# For --upgrade, default the selection flags to what was recorded at install
+# time (so re-running `./install.sh /target --upgrade` Just Works without the
+# user having to remember every flag). Explicit flags on this invocation still
+# win — that's how users opt into new feature categories at upgrade time.
+
+UPGRADE_INHERITED_FROM_MANIFEST="false"
+if [[ "$ACTION" == "upgrade" ]]; then
+    upgrade_manifest_path="${TARGET}/.claude/.appbootstrap-manifest.json"
+    if [[ -f "$upgrade_manifest_path" ]]; then
+        # Read selection fields; tolerant of v1 manifests (which still have the
+        # same selection shape, just no per-file hashes).
+        if inherited="$(python3 - "$upgrade_manifest_path" <<'PYTHON' 2>/dev/null
+import json, sys
+m = json.load(open(sys.argv[1]))
+s = m.get("selection", {})
+# Print pipe-separated: platform|apple_language|features_input
+print(f"{s.get('platform','')}|{s.get('apple_language','')}|{s.get('features_input','')}")
+PYTHON
+        )"; then
+            IFS='|' read -r m_platform m_apple m_features <<<"$inherited"
+            if [[ -z "$PLATFORM" && -n "$m_platform" ]]; then
+                PLATFORM="$m_platform"
+                UPGRADE_INHERITED_FROM_MANIFEST="true"
+            fi
+            if [[ "$APPLE_LANG_EXPLICIT" != "true" && -n "$m_apple" ]]; then
+                APPLE_LANG="$m_apple"
+                UPGRADE_INHERITED_FROM_MANIFEST="true"
+            fi
+            if [[ "$FEATURES_EXPLICIT" != "true" && -n "$m_features" ]]; then
+                FEATURES_INPUT="$m_features"
+                UPGRADE_INHERITED_FROM_MANIFEST="true"
+            fi
+        fi
+    fi
+fi
 
 # --- Platform auto-detection --------------------------------------------------
 #
@@ -467,6 +531,22 @@ json_escape() {
     tr -d '\n' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/	/\\t/g'
 }
 
+# Portable SHA-256 of a file. macOS ships `shasum`; many Linux images ship
+# `sha256sum`. Returns just the hex digest with no trailing filename.
+# Returns empty string if the file is missing (caller can record null).
+sha256_file() {
+    local path="$1"
+    [[ -f "$path" ]] || { echo ""; return; }
+    if command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$path" | awk '{print $1}'
+    elif command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$path" | awk '{print $1}'
+    else
+        echo "error: need shasum or sha256sum on PATH for manifest hashing" >&2
+        exit 1
+    fi
+}
+
 # Print a JSON-array of strings from a space-separated list.
 json_string_array() {
     local items="$1"
@@ -603,6 +683,371 @@ if [[ "$ACTION" == "list" ]]; then
     exit 0
 fi
 
+# --- --upgrade mode -----------------------------------------------------------
+#
+# Plan-only — reads the manifest, compares every tracked file against the
+# bundle (3-way: installed hash vs. current disk vs. bundle), and prints what
+# WOULD change. Writes nothing. Phase 3 will add --apply.
+
+if [[ "$ACTION" == "upgrade" ]]; then
+    if [[ ! -d "$TARGET" ]]; then
+        echo "error: target directory does not exist: $TARGET" >&2
+        exit 1
+    fi
+    TARGET="$(cd "$TARGET" && pwd)"
+    manifest_path="$TARGET/.claude/.appbootstrap-manifest.json"
+
+    if [[ ! -f "$manifest_path" ]]; then
+        echo "error: no manifest at $manifest_path" >&2
+        echo "       This target does not appear to be an AppBootstrapAI install." >&2
+        echo "       Run install.sh first to create a manifest, then re-run --upgrade." >&2
+        exit 1
+    fi
+
+    echo "==> Upgrade plan for $TARGET"
+    if [[ "$UPGRADE_INHERITED_FROM_MANIFEST" == "true" ]]; then
+        echo "    selection (inherited from manifest): --platform $PLATFORM --apple-language $APPLE_LANG --features $FEATURES_INPUT"
+        echo "    (override any of these on the command line to opt into new categories)"
+    else
+        echo "    selection: --platform $PLATFORM --apple-language $APPLE_LANG --features $FEATURES_INPUT"
+    fi
+    echo ""
+
+    # ----- Build BUNDLE_ALL and BUNDLE_IN_SCOPE files for Python --------------
+    #
+    # BUNDLE_ALL: every shippable file in the bundle, with rel_path + type +
+    # category + sha256 + skill_name. This is the "could be installed" universe.
+    #
+    # BUNDLE_IN_SCOPE: subset of BUNDLE_ALL that the current --platform /
+    # --apple-language / --features combination would actually install. Computed
+    # by reusing should_install_rule / should_install_skill above.
+    #
+    # Stored in temp files (pipe-separated) so the Python heredoc can mmap them
+    # without us having to escape multi-line strings inline.
+    bundle_all_tmp="$(mktemp)"
+    bundle_in_scope_tmp="$(mktemp)"
+    # shellcheck disable=SC2064
+    trap "rm -f '$bundle_all_tmp' '$bundle_in_scope_tmp'" EXIT
+
+    # Rules.
+    shopt -s nullglob
+    for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
+        name="$(basename "$f")"
+        cat="$(file_category "$name")"; [[ -z "$cat" ]] && cat="-"
+        hash="$(sha256_file "$f")"
+        rel_path=".claude/rules/$name"
+        echo "$rel_path|rule|$cat|$hash|" >> "$bundle_all_tmp"
+        if should_install_rule "$name"; then
+            echo "$rel_path" >> "$bundle_in_scope_tmp"
+        fi
+    done
+
+    # Skill files (one entry per file inside each skill dir).
+    for d in "$SCRIPT_DIR/.claude/skills/"*/; do
+        skill_name="$(basename "$d")"
+        cat="$(file_category "$skill_name")"; [[ -z "$cat" ]] && cat="-"
+        skill_in_scope="false"
+        if should_install_skill "$skill_name"; then skill_in_scope="true"; fi
+        while IFS= read -r -d '' src_file; do
+            rel_path="${src_file#"$SCRIPT_DIR"/}"
+            hash="$(sha256_file "$src_file")"
+            echo "$rel_path|skill-file|$cat|$hash|$skill_name" >> "$bundle_all_tmp"
+            if [[ "$skill_in_scope" == "true" ]]; then
+                echo "$rel_path" >> "$bundle_in_scope_tmp"
+            fi
+        done < <(find "$d" -type f -print0)
+    done
+
+    # settings.json — always considered in scope (install path always tries
+    # to write it, even if it skips because the target already has one).
+    settings_hash="$(sha256_file "$SCRIPT_DIR/.claude/settings.json")"
+    echo ".claude/settings.json|settings|-|$settings_hash|" >> "$bundle_all_tmp"
+    echo ".claude/settings.json" >> "$bundle_in_scope_tmp"
+
+    # CLAUDE.md template — platform-specific. We don't auto-update it, but we
+    # still want to surface "template changed" in the plan output.
+    case "$PLATFORM" in
+        apple)   TEMPLATE_PATH="templates/CLAUDE.template.apple.md"   ;;
+        android) TEMPLATE_PATH="templates/CLAUDE.template.android.md" ;;
+        both)    TEMPLATE_PATH="templates/CLAUDE.template.md"         ;;
+    esac
+    template_hash="$(sha256_file "$SCRIPT_DIR/$TEMPLATE_PATH")"
+    # The user's file on disk is CLAUDE.md; we tag the bundle-side path so the
+    # plan can show "templates/CLAUDE.template.apple.md → CLAUDE.md".
+    echo "CLAUDE.md|template|core|$template_hash|$TEMPLATE_PATH" >> "$bundle_all_tmp"
+    echo "CLAUDE.md" >> "$bundle_in_scope_tmp"
+
+    # RENAMES.md path (may not exist; Python tolerates missing file).
+    renames_path="$SCRIPT_DIR/RENAMES.md"
+
+    python3 - \
+        "$manifest_path" "$TARGET" "$bundle_all_tmp" "$bundle_in_scope_tmp" "$renames_path" \
+        "$PLATFORM" "$APPLE_LANG" "$FEATURES_INPUT" \
+        <<'PYTHON'
+import hashlib, json, os, sys
+
+manifest_path, target_root, bundle_all_path, in_scope_path, renames_path, platform, apple_lang, features = sys.argv[1:9]
+
+# ----- Read manifest --------------------------------------------------------
+with open(manifest_path) as f:
+    manifest = json.load(f)
+
+schema = manifest.get("schema_version", 1)
+
+if schema == 1:
+    print("==> Manifest is schema v1 (no content hashes recorded at install).")
+    print("    The plan-and-apply upgrade flow needs hashes to safely diff your tree.")
+    print("")
+    print("    Two ways forward:")
+    print("    1. Re-run install.sh (without --upgrade) to write a fresh v2 manifest.")
+    print("       Existing files are not overwritten — settings.json, CLAUDE.md, and")
+    print("       any rules you edited are preserved (the installer never overwrites).")
+    print("       This is the lowest-risk path.")
+    print("")
+    print("    2. (Future) --upgrade --apply --migrate-manifest will rewrite the")
+    print("       manifest from current disk contents as a v2 baseline. Not yet implemented.")
+    print("")
+    print("    Aborting plan — no v1 → v2 hash inference at this point.")
+    sys.exit(0)
+
+if schema > 2:
+    print(f"error: manifest schema_version={schema} is newer than this installer understands.", file=sys.stderr)
+    print(f"       Update install.sh from the bundle and retry.", file=sys.stderr)
+    sys.exit(2)
+
+# ----- Load bundle data ------------------------------------------------------
+def load_pipe_file(path, n_fields):
+    rows = []
+    if not os.path.exists(path):
+        return rows
+    with open(path) as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if not line:
+                continue
+            parts = line.split("|", n_fields - 1)
+            # pad to n_fields
+            while len(parts) < n_fields:
+                parts.append("")
+            rows.append(parts)
+    return rows
+
+bundle_all_rows = load_pipe_file(bundle_all_path, 5)
+# Map: rel_path → (type, category, sha256, skill_name_or_template_src)
+bundle_all = {r[0]: (r[1], r[2], r[3], r[4]) for r in bundle_all_rows}
+
+in_scope = set()
+with open(in_scope_path) as f:
+    for line in f:
+        line = line.strip()
+        if line:
+            in_scope.add(line)
+
+# ----- Parse RENAMES.md ------------------------------------------------------
+renames = {}  # old_path → new_path (always tracked at rel_path granularity)
+if os.path.exists(renames_path):
+    with open(renames_path) as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            # Strip backticks if the line is fenced
+            if line.startswith("```") or line == "```":
+                continue
+            # Accept either Unicode arrow or ASCII ->
+            sep = None
+            if "→" in line:
+                sep = "→"
+            elif "->" in line:
+                sep = "->"
+            else:
+                continue
+            old, new = [s.strip() for s in line.split(sep, 1)]
+            # If basename looks like a file (.md) keep as-is; if it's a bare
+            # skill dir name, expand to the skill directory namespace. We
+            # store both forms — rule rename is a single file; skill rename
+            # would need per-file mapping which we don't have without a
+            # listing of the OLD skill's files, so for now we only honor
+            # rule renames (skills can be done in Phase 3).
+            if old.endswith(".md") and new.endswith(".md"):
+                renames[f".claude/rules/{old}"] = f".claude/rules/{new}"
+            # else: skip — skill-dir renames need Phase 3 support
+
+# ----- Read every file's current disk hash from manifest -------------------
+def sha256_path(p):
+    if not os.path.exists(p):
+        return None
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+# ----- Classify each manifest entry ----------------------------------------
+up_to_date = []
+safe_updates = []
+local_edits = []
+conflicts = []
+orphans = []
+out_of_scope = []
+renamed_rows = []  # (old_path, new_path, classification)
+
+manifest_paths = set()
+for entry in manifest.get("files", []):
+    rel = entry["path"]
+    manifest_paths.add(rel)
+    installed_hash = entry.get("sha256")
+    abs_path = os.path.join(target_root, rel)
+    current_hash = sha256_path(abs_path) if installed_hash is not None else None
+
+    # Rename: if this path maps via RENAMES, follow the chain.
+    rename_target = rel
+    while rename_target in renames:
+        rename_target = renames[rename_target]
+    is_renamed = rename_target != rel
+
+    bundle_lookup_path = rename_target
+    bundle_info = bundle_all.get(bundle_lookup_path)
+
+    # Non-content entries (gitignore-block) — skip diff, leave for Phase 3.
+    if installed_hash is None and entry.get("type") == "gitignore-block":
+        continue
+
+    if bundle_info is None:
+        # File doesn't exist in bundle anymore → orphan.
+        orphans.append({
+            "path": rel,
+            "type": entry.get("type"),
+            "current_present": current_hash is not None,
+        })
+        continue
+
+    bundle_hash = bundle_info[2]
+    # Special handling for CLAUDE.md: we never auto-update.
+    if entry.get("type") == "template":
+        if installed_hash == bundle_hash:
+            up_to_date.append({"path": rel, "type": "template"})
+        else:
+            # CLAUDE.md is the user's; just note that the template has advanced.
+            local_edits.append({
+                "path": rel,
+                "type": "template",
+                "note": f"CLAUDE.md is yours — but {bundle_info[3]} has changed upstream. Diff manually if you want the new boilerplate.",
+            })
+        continue
+
+    # Standard 4-case for content files.
+    row = {
+        "path": rel,
+        "type": entry.get("type"),
+        "category": entry.get("category"),
+        "skill": entry.get("skill"),
+        "renamed_to": rename_target if is_renamed else None,
+    }
+
+    # Out-of-scope: bundle still has it but current selection wouldn't install it.
+    if bundle_lookup_path not in in_scope:
+        out_of_scope.append(row)
+        continue
+
+    # Classification — anchor on "is disk already at bundle?" first. This
+    # correctly handles the case where the user upgraded once already (so disk
+    # matches bundle even though installed_hash is stale).
+    if current_hash == bundle_hash:
+        # Disk is at latest — no work needed, manifest may be stale (refresh on apply).
+        up_to_date.append(row)
+    elif current_hash == installed_hash:
+        # No local edits since install. Bundle has new content → safe update.
+        safe_updates.append(row)
+        if is_renamed:
+            renamed_rows.append((rel, rename_target, "safe-update"))
+    elif installed_hash == bundle_hash:
+        # Bundle unchanged from install, but disk differs → local edit only.
+        local_edits.append(row)
+    else:
+        # current, installed, and bundle all differ → true conflict.
+        conflicts.append(row)
+        if is_renamed:
+            renamed_rows.append((rel, rename_target, "conflict"))
+
+# ----- Additions: bundle in-scope, not in manifest --------------------------
+# (Skip rename targets — they're already accounted for as renames of an existing path.)
+rename_targets = set(renames.values())
+additions = []
+for rel in sorted(in_scope):
+    if rel in manifest_paths:
+        continue
+    if rel in rename_targets:
+        continue
+    info = bundle_all.get(rel)
+    if info is None:
+        continue
+    type_, cat, _, skill = info
+    if type_ == "settings" and os.path.exists(os.path.join(target_root, rel)):
+        # settings.json already exists on disk; install path would skip it.
+        # We don't surface this as an addition in Phase 2.
+        continue
+    if type_ == "template" and os.path.exists(os.path.join(target_root, rel)):
+        continue
+    additions.append({"path": rel, "type": type_, "category": cat, "skill": skill})
+
+# ----- Print plan ------------------------------------------------------------
+def header(title, rows):
+    if not rows:
+        return
+    print(f"  {title} ({len(rows)})")
+    for r in rows[:50]:
+        line = f"    {r['path']}"
+        cat = r.get("category")
+        skill = r.get("skill")
+        extras = []
+        if cat and cat != "-":
+            extras.append(cat)
+        if skill:
+            extras.append(f"skill={skill}")
+        if r.get("renamed_to"):
+            extras.append(f"renamed→{r['renamed_to']}")
+        if r.get("note"):
+            extras.append(r["note"])
+        if extras:
+            line += "  (" + ", ".join(extras) + ")"
+        print(line)
+    if len(rows) > 50:
+        print(f"    … and {len(rows) - 50} more")
+    print("")
+
+bundle_commit = manifest.get("bundle_commit", "unknown")
+print(f"  installed bundle commit: {bundle_commit[:12] if bundle_commit != 'unknown' else 'unknown'}")
+print(f"  installed at:            {manifest.get('installed_at', '?')}")
+print("")
+
+header("Up to date (no action needed):", up_to_date)
+header("Safe to update (no local edits, bundle has new content):", safe_updates)
+header("Locally edited (left alone — your changes win):", local_edits)
+header("Conflict (both local AND bundle changed — default SKIP, --force-conflicts to overwrite):", conflicts)
+header("Out of scope (manifest tracks, current --features doesn't include):", out_of_scope)
+header("Retired upstream (bundle no longer ships these files):", [{"path": o["path"], "type": o["type"]} for o in orphans])
+header("Would add (new in bundle, fits current --features):", additions)
+
+if renamed_rows:
+    print(f"  Renames detected ({len(renamed_rows)}):")
+    for old, new, cls in renamed_rows:
+        print(f"    {old} → {new}  ({cls})")
+    print("")
+
+# Summary line
+total_actions = len(safe_updates) + len(conflicts) + len(orphans) + len(additions)
+print(f"==> Plan: {len(safe_updates)} safe update(s), {len(conflicts)} conflict(s),")
+print(f"          {len(orphans)} orphan(s), {len(additions)} addition(s),")
+print(f"          {len(local_edits)} locally-edited (untouched), {len(up_to_date)} up to date.")
+print("")
+print("This is a plan-only preview. No files have been written.")
+print("Phase 3 will add --upgrade --apply to execute it.")
+PYTHON
+
+    exit 0
+fi
+
 # --- Install mode -------------------------------------------------------------
 
 if [[ ! -d "$TARGET" ]]; then
@@ -628,10 +1073,27 @@ if [[ "$DRY_RUN" == "true" ]]; then
     echo "==> [DRY RUN] No files will be written. Re-run without --dry-run to apply."
 fi
 
-# Track installed files for the manifest. Entry format: path|type|category
+# Track installed files for the manifest.
+# Entry format: rel_path|type|category|sha256|skill_name
+#   rel_path    — path relative to TARGET (e.g. ".claude/rules/foo.md")
+#   type        — "rule" | "skill-file" | "settings" | "template" | "gitignore-block"
+#   category    — feature category or "-" for uncategorized
+#   sha256      — content hash, or empty for non-content entries (gitignore-block)
+#   skill_name  — only set for skill-file entries; empty otherwise
+#
+# Use record_install for single files (hash is computed from source path).
+# Use record_install_meta for non-content entries (gitignore block).
 INSTALLED_FILES=()
 record_install() {
-    INSTALLED_FILES+=("$1|$2|$3")
+    local rel_path="$1" type_="$2" category="$3" source_path="$4" skill_name="${5:-}"
+    local hash
+    hash="$(sha256_file "$source_path")"
+    INSTALLED_FILES+=("$rel_path|$type_|$category|$hash|$skill_name")
+}
+record_install_meta() {
+    # Non-content entries: no source file to hash.
+    local rel_path="$1" type_="$2" category="$3"
+    INSTALLED_FILES+=("$rel_path|$type_|$category||")
 }
 
 # Track MCP entries that were added/skipped by --with-mcps. Populated by
@@ -644,6 +1106,8 @@ act "create $TARGET/.claude/rules"  mkdir -p "$TARGET/.claude/rules"
 act "create $TARGET/.claude/skills" mkdir -p "$TARGET/.claude/skills"
 
 # Skills — copy each individually based on platform/language/features filter.
+# Each file inside the skill directory gets its own manifest entry with a hash,
+# so a local edit to one reference doesn't block upstream updates to siblings.
 if should_install_any_skills; then
     echo "--> Copying skills"
     shopt -s nullglob
@@ -653,7 +1117,14 @@ if should_install_any_skills; then
             cat="$(file_category "$name")"
             [[ -z "$cat" ]] && cat="-"
             act "copy skill $name" cp -R "$d" "$TARGET/.claude/skills/$name"
-            record_install ".claude/skills/$name" "skill" "$cat"
+            # Walk every file inside the source skill dir; record_install each
+            # so the manifest has a per-file hash. `find -type f` includes
+            # nested references/, agents/, assets/ — exactly what we copied.
+            while IFS= read -r -d '' src_file; do
+                # Strip the SCRIPT_DIR prefix so rel_path is target-relative.
+                rel_path="${src_file#"$SCRIPT_DIR"/}"
+                record_install "$rel_path" "skill-file" "$cat" "$src_file" "$name"
+            done < <(find "$d" -type f -print0)
         fi
     done
 else
@@ -669,14 +1140,14 @@ for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
         cat="$(file_category "$name")"
         [[ -z "$cat" ]] && cat="-"
         act "copy rule $name" cp "$f" "$TARGET/.claude/rules/$name"
-        record_install ".claude/rules/$name" "rule" "$cat"
+        record_install ".claude/rules/$name" "rule" "$cat" "$f"
     fi
 done
 
 # settings.json — never overwrite.
 if [[ ! -f "$TARGET/.claude/settings.json" ]]; then
     act "copy settings.json" cp "$SCRIPT_DIR/.claude/settings.json" "$TARGET/.claude/settings.json"
-    record_install ".claude/settings.json" "settings" "-"
+    record_install ".claude/settings.json" "settings" "-" "$SCRIPT_DIR/.claude/settings.json"
 else
     echo "--> Skipping settings.json (already exists — merge manually)"
 fi
@@ -694,7 +1165,7 @@ elif [[ ! -f "$TEMPLATE" ]]; then
     echo "--> Skipping CLAUDE.md (template missing: $TEMPLATE)"
 else
     act "create CLAUDE.md from $(basename "$TEMPLATE")" cp "$TEMPLATE" "$TARGET/CLAUDE.md"
-    record_install "CLAUDE.md" "template" "core"
+    record_install "CLAUDE.md" "template" "core" "$TEMPLATE"
 fi
 
 # .gitignore — append platform entries, deduped by marker.
@@ -750,20 +1221,33 @@ ANDROID
         } >> "$GITIGNORE"
         echo "--> Appended recommended .gitignore entries"
     fi
-    record_install ".gitignore" "gitignore-block" "-"
+    record_install_meta ".gitignore" "gitignore-block" "-"
 fi
 
-# Manifest — records every file the installer wrote, so a future
-# --upgrade or --uninstall flow can act on it.
+# Manifest — records every file the installer wrote (with content hashes,
+# under schema v2) so future --upgrade flows can do per-file 3-way diffs:
+# installed hash (here) vs. current disk hash vs. bundle hash.
+#
+# Called at the END of install (after the MCP merge) so mcps_installed reflects
+# what actually got written, not what was requested.
 MANIFEST_PATH="$TARGET/.claude/.appbootstrap-manifest.json"
 TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-if [[ "$DRY_RUN" == "true" ]]; then
-    echo "[dry-run] would write manifest ($MANIFEST_PATH, ${#INSTALLED_FILES[@]} entries)"
+
+# Best-effort: capture the AppBootstrapAI git HEAD. Falls back to "unknown" if
+# the bundle was extracted from a tarball or git isn't on PATH. Purely informational —
+# the upgrade flow uses content hashes, not commit SHAs.
+if command -v git >/dev/null 2>&1; then
+    BUNDLE_COMMIT="$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
 else
+    BUNDLE_COMMIT="unknown"
+fi
+
+write_manifest() {
     {
         printf '{\n'
-        printf '  "schema_version": 1,\n'
+        printf '  "schema_version": 2,\n'
         printf '  "installed_at": "%s",\n' "$TIMESTAMP"
+        printf '  "bundle_commit": "%s",\n' "$BUNDLE_COMMIT"
         printf '  "selection": {\n'
         printf '    "platform": "%s",\n' "$PLATFORM"
         printf '    "apple_language": "%s",\n' "$APPLE_LANG"
@@ -772,22 +1256,53 @@ else
         json_string_array "$SELECTED_FEATURES"
         printf '\n  },\n'
         printf '  "files": [\n'
-        first=1
+        local first=1 entry path type_ cat_ hash skill hash_field
         for entry in "${INSTALLED_FILES[@]}"; do
-            path="${entry%%|*}"
-            rest="${entry#*|}"
-            type_="${rest%%|*}"
-            cat_="${rest#*|}"
+            # rel_path|type|category|sha256|skill_name
+            IFS='|' read -r path type_ cat_ hash skill <<<"$entry"
             if [[ "$first" -eq 1 ]]; then first=0; else printf ',\n'; fi
-            printf '    {"path": "%s", "type": "%s", "category": "%s"}' "$path" "$type_" "$cat_"
+            # Emit sha256 as null when empty (gitignore-block); JSON string otherwise.
+            if [[ -z "$hash" ]]; then
+                hash_field='"sha256": null'
+            else
+                hash_field=$(printf '"sha256": "%s"' "$hash")
+            fi
+            # Emit "skill" field only for skill-file entries.
+            if [[ -n "$skill" ]]; then
+                printf '    {"path": "%s", "type": "%s", "category": "%s", %s, "skill": "%s"}' \
+                    "$path" "$type_" "$cat_" "$hash_field" "$skill"
+            else
+                printf '    {"path": "%s", "type": "%s", "category": "%s", %s}' \
+                    "$path" "$type_" "$cat_" "$hash_field"
+            fi
         done
         printf '\n  ],\n'
-        printf '  "mcps_requested": '
-        json_string_array "$SELECTED_MCPS"
-        printf '\n}\n'
+        # mcps_installed — array of {name, config_sha256}. Records what we
+        # actually wrote into settings.local.json (not what was requested but
+        # skipped because already present).
+        printf '  "mcps_installed": ['
+        first=1
+        # Guard the array expansion — `set -u` + bash 3.x errors on "${arr[@]}"
+        # when the array is unset/empty.
+        if [[ "${#INSTALLED_MCPS_ADDED[@]}" -gt 0 ]]; then
+            local mcp_entry mcp_name mcp_hash
+            for mcp_entry in "${INSTALLED_MCPS_ADDED[@]}"; do
+                mcp_name="${mcp_entry%%|*}"
+                mcp_hash="${mcp_entry#*|}"
+                if [[ "$first" -eq 1 ]]; then first=0; printf '\n'; else printf ',\n'; fi
+                if [[ -z "$mcp_hash" ]]; then
+                    printf '    {"name": "%s", "config_sha256": null}' "$mcp_name"
+                else
+                    printf '    {"name": "%s", "config_sha256": "%s"}' "$mcp_name" "$mcp_hash"
+                fi
+            done
+        fi
+        if [[ "$first" -eq 0 ]]; then printf '\n  '; fi
+        printf ']\n'
+        printf '}\n'
     } > "$MANIFEST_PATH"
     echo "--> Wrote manifest to $MANIFEST_PATH"
-fi
+}
 
 # --- MCP recipes — merge into .claude/settings.local.json -------------------
 #
@@ -801,13 +1316,18 @@ if [[ -n "$SELECTED_MCPS" ]]; then
     if [[ "$DRY_RUN" == "true" ]]; then
         echo "[dry-run] would merge MCP recipes into $SETTINGS_LOCAL: $SELECTED_MCPS"
         for mcp_name in $SELECTED_MCPS; do
-            INSTALLED_MCPS_ADDED+=("$mcp_name")
+            # No actual write happens, so no hash. Record name-only entry; the
+            # manifest will record an empty hash for these dry-run rows (they
+            # won't be in the real manifest because --dry-run skips the write).
+            INSTALLED_MCPS_ADDED+=("$mcp_name|")
         done
     else
         echo "--> Merging MCP recipes into $(basename "$SETTINGS_LOCAL"): $SELECTED_MCPS"
         # Python does the JSON merge — safe escaping, dict union, idempotency.
+        # Also computes a sha256 of each added recipe's config so the manifest
+        # can do 3-way diffs on upgrade (installed config vs. current vs. bundle).
         merge_output="$(python3 - "$SETTINGS_LOCAL" "$MCP_RECIPES_DIR" "$SELECTED_MCPS" <<'PYTHON'
-import json, os, sys
+import hashlib, json, os, sys
 
 settings_path, recipes_dir, mcp_names_str = sys.argv[1], sys.argv[2], sys.argv[3]
 mcp_names = mcp_names_str.split()
@@ -824,9 +1344,15 @@ else:
     data = {}
 
 mcps = data.setdefault("mcpServers", {})
-added = []
+added = []        # list of (name, config_sha256)
 skipped = []
 setup_notes = []  # [(display_name, [step, ...]), ...]
+
+def config_hash(config):
+    # Stable hash of the recipe's config blob — sort_keys + compact separators
+    # so reformatting the recipe file doesn't change the hash.
+    payload = json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
 
 for name in mcp_names:
     recipe_path = os.path.join(recipes_dir, f"{name}.json")
@@ -837,7 +1363,7 @@ for name in mcp_names:
         skipped.append(entry_key)
         continue
     mcps[entry_key] = recipe["config"]
-    added.append(entry_key)
+    added.append((entry_key, config_hash(recipe["config"])))
     if recipe.get("setup"):
         setup_notes.append((recipe.get("display_name", entry_key), recipe["setup"], recipe.get("homepage", "")))
 
@@ -847,7 +1373,8 @@ with open(settings_path, "w") as f:
     f.write("\n")
 
 # Emit machine-parseable result lines for bash to capture.
-print("ADDED:" + ",".join(added))
+# ADDED line carries name=hash pairs separated by commas.
+print("ADDED:" + ",".join(f"{n}={h}" for n, h in added))
 print("SKIPPED:" + ",".join(skipped))
 for display, steps, homepage in setup_notes:
     print("---SETUP---")
@@ -862,12 +1389,14 @@ PYTHON
         while IFS= read -r line; do
             case "$line" in
                 ADDED:*)
+                    # Format: ADDED:name1=hash1,name2=hash2
                     added_csv="${line#ADDED:}"
                     if [[ -n "$added_csv" ]]; then
                         # shellcheck disable=SC2206
                         IFS=',' read -r -a tmp <<<"$added_csv"
                         for entry in "${tmp[@]}"; do
-                            INSTALLED_MCPS_ADDED+=("$entry")
+                            # Convert "name=hash" → "name|hash" for our array form.
+                            INSTALLED_MCPS_ADDED+=("${entry/=/|}")
                         done
                     fi
                     ;;
@@ -884,7 +1413,12 @@ PYTHON
         done <<<"$merge_output"
 
         if [[ "${#INSTALLED_MCPS_ADDED[@]}" -gt 0 ]]; then
-            echo "    added: ${INSTALLED_MCPS_ADDED[*]}"
+            # Entries are "name|hash" — strip hash for human display.
+            added_display=""
+            for entry in "${INSTALLED_MCPS_ADDED[@]}"; do
+                added_display="$added_display ${entry%%|*}"
+            done
+            echo "    added:${added_display}"
         fi
         if [[ "${#INSTALLED_MCPS_SKIPPED[@]}" -gt 0 ]]; then
             echo "    skipped (already present): ${INSTALLED_MCPS_SKIPPED[*]}"
@@ -908,6 +1442,13 @@ PYTHON
             done <<<"$merge_output"
         fi
     fi
+fi
+
+# Manifest write — runs last so mcps_installed reflects the MCP merge result.
+if [[ "$DRY_RUN" == "true" ]]; then
+    echo "[dry-run] would write manifest ($MANIFEST_PATH, ${#INSTALLED_FILES[@]} entries)"
+else
+    write_manifest
 fi
 
 echo ""
