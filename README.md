@@ -2,7 +2,7 @@
 
 A drop-in bundle of **Claude Code skills** and **AI steering rules** for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) and Android in one bundle, so single-platform and mixed-stack teams can share one source of truth.
 
-This repo is not a Swift package — it's a curated `.claude/` directory plus onboarding docs. Copy it into any new app and Claude Code picks up consistent review, testing, and style guidance on day one.
+One `install.sh` bootstraps modern review, testing, style, accessibility, and localization guidance into any new or existing app repo — and keeps it up to date with `--upgrade`. Day-one consistency without writing the rules yourself; day-N reproducibility without drifting from upstream.
 
 **Claude Code is the native target — but the rule content is plain markdown.** Teams on Cursor, Gemini CLI, Kiro, Codex CLI, GitHub Copilot, Cline, Goose, Roo, Windsurf, etc. can fan the same rules out to their agent of choice via [`ruler`](https://github.com/intellectronica/ruler), [`block/ai-rules`](https://github.com/block/ai-rules), or [`ai-rules-sync`](https://github.com/lbb00/ai-rules-sync). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) below.
 
