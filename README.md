@@ -255,11 +255,24 @@ Installs from before manifest schema v2 don't have content hashes recorded, so t
 
 After migration, future `--upgrade` runs can do real 3-way diffs. Note: v1 `mcps_requested` is not carried over; re-add MCPs via `--with-mcps` if needed.
 
+### MCP entries get the same 3-way diff
+
+MCP recipes installed via `--with-mcps` are tracked in the manifest with their `config_sha256`. `--upgrade` runs the same per-entry classification on `.claude/settings.local.json`:
+
+- **Up to date** — recipe config matches what's in `settings.local.json` and the manifest.
+- **Safe to update** — recipe shipped a new config; you haven't touched the entry. `--apply` overwrites `mcpServers.<name>`.
+- **Locally edited** — you customized the entry (changed args, added env vars). Always left alone.
+- **Conflict** — both you AND the recipe diverged from the original. Default skip; `--force-conflicts` overwrites.
+- **Orphan** — recipe no longer ships in the bundle, OR the entry vanished from `settings.local.json`. `--prune` drops the manifest record (and removes the `mcpServers.<name>` entry if it still exists).
+
+The hash is computed over the recipe's `config` object with stable sort + compact separators, so reformatting `mcp-recipes/<name>.json` doesn't drift the hash.
+
 ### Things the upgrade flow won't do
 
 - **`CLAUDE.md`** is never auto-touched. The plan surfaces "template advanced upstream" when relevant; the diff is for you to apply by hand. `CLAUDE.md` fills with project-specific content fast, so auto-merge is dangerous.
 - **`.claude/settings.json`** gets the same treatment for the same reason — you probably added permissions, tweaked allowlists. The plan informs; you merge.
-- **MCP entries in `.claude/settings.local.json`** are not auto-updated yet (Phase 3.1). Re-running `--with-mcps <name>` against an existing entry still leaves it alone (per the original install policy).
+- **Non-`mcpServers` keys in `settings.local.json`** are preserved across upgrade-apply. Only `mcpServers.<name>` entries listed in the manifest's `mcps_installed` get touched.
+- **MCP additions** — `--upgrade` doesn't auto-add new MCP recipes. Adding an MCP is always explicit via `--with-mcps <name>`.
 - **Renamed rules** (e.g., a rule file gets a better name in a future bundle release) are tracked in [`RENAMES.md`](RENAMES.md) at the bundle root. The upgrade plan folds rename pairs into a single row instead of showing "deleted X, added Y."
 
 ## Saving AI tokens

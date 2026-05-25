@@ -952,6 +952,238 @@ else
     PASS=$((PASS + 1))
 fi
 
+# --- MCP-side upgrade diff (Phase 3.1) --------------------------------------
+#
+# The classifier compares three hashes for each manifest mcps_installed entry:
+#   installed_config_sha256 (manifest)
+#   current_config_sha256   (settings.local.json's mcpServers.<name> entry)
+#   bundle_config_sha256    (mcp-recipes/<name>.json's config)
+# Test harness uses python3 to synthesize the configs + matching hashes.
+
+# Helper: compute a recipe-style stable config hash.
+mcp_hash() { python3 -c "
+import json, hashlib, sys
+cfg = json.loads(sys.argv[1])
+print(hashlib.sha256(json.dumps(cfg, sort_keys=True, separators=(',',':')).encode()).hexdigest())
+" "$1"; }
+
+bold "==> --upgrade MCP: fresh install → all MCPs up to date"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp,sentry > /dev/null
+out="$("$INSTALL" "$t" --upgrade 2>&1)"
+if grep -q "MCP entries" <<<"$out" && grep -q "Up to date: (2)" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: fresh MCP install should classify all entries as up to date"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --upgrade MCP: local edit → 'Locally edited' classification"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+python3 -c "
+import json
+sl = json.load(open('$t/.claude/settings.local.json'))
+sl['mcpServers']['xcodebuildmcp']['args'] = ['custom-arg']
+json.dump(sl, open('$t/.claude/settings.local.json','w'), indent=2)
+"
+out="$("$INSTALL" "$t" --upgrade 2>&1)"
+if grep -q "Locally edited" <<<"$out" && grep -q "xcodebuildmcp" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: locally-edited MCP entry should be classified as 'Locally edited'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --upgrade MCP: simulated upstream change → 'Safe to update'"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+# Synthesize: settings.local.json + manifest both reflect "old" config; bundle differs.
+old_cfg='{"command":"npx","args":["-y","old-version"]}'
+old_hash="$(mcp_hash "$old_cfg")"
+python3 -c "
+import json
+sl = json.load(open('$t/.claude/settings.local.json'))
+sl['mcpServers']['xcodebuildmcp'] = json.loads('$old_cfg')
+json.dump(sl, open('$t/.claude/settings.local.json','w'), indent=2)
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+m['mcps_installed'][0]['config_sha256'] = '$old_hash'
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+out="$("$INSTALL" "$t" --upgrade 2>&1)"
+if grep -q "Safe to update" <<<"$out" && grep -q "xcodebuildmcp" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: synthesized old-config + matching manifest hash should classify as 'Safe to update'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply MCP: safe-update overwrites the entry + refreshes manifest"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+old_cfg='{"command":"npx","args":["-y","old-version"]}'
+old_hash="$(mcp_hash "$old_cfg")"
+python3 -c "
+import json
+sl = json.load(open('$t/.claude/settings.local.json'))
+sl['mcpServers']['xcodebuildmcp'] = json.loads('$old_cfg')
+json.dump(sl, open('$t/.claude/settings.local.json','w'), indent=2)
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+m['mcps_installed'][0]['config_sha256'] = '$old_hash'
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+"$INSTALL" "$t" --upgrade --apply > /dev/null
+# After apply: settings.local.json must contain the BUNDLE config + manifest hash must match.
+bundle_cfg="$(python3 -c "import json; print(json.dumps(json.load(open('$REPO_ROOT/mcp-recipes/xcodebuildmcp.json'))['config'], sort_keys=True, separators=(',',':')))")"
+bundle_hash="$(mcp_hash "$bundle_cfg")"
+current_cfg="$(python3 -c "import json; print(json.dumps(json.load(open('$t/.claude/settings.local.json'))['mcpServers']['xcodebuildmcp'], sort_keys=True, separators=(',',':')))")"
+current_hash="$(mcp_hash "$current_cfg")"
+mani_hash="$(python3 -c "import json; m=json.load(open('$t/.claude/.appbootstrap-manifest.json')); print([e['config_sha256'] for e in m['mcps_installed'] if e['name']=='xcodebuildmcp'][0])")"
+if [[ "$current_hash" == "$bundle_hash" && "$mani_hash" == "$bundle_hash" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: MCP safe-update should sync settings.local.json + manifest hash to bundle"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply MCP: conflict SKIPPED by default; local edit preserved"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+# Synthesize a conflict: settings.local.json has CUSTOM-A; manifest hash is RANDOM
+custom_cfg='{"command":"my-tool","args":["--special"]}'
+custom_hash="$(mcp_hash "$custom_cfg")"
+python3 -c "
+import json
+sl = json.load(open('$t/.claude/settings.local.json'))
+sl['mcpServers']['xcodebuildmcp'] = json.loads('$custom_cfg')
+json.dump(sl, open('$t/.claude/settings.local.json','w'), indent=2)
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+m['mcps_installed'][0]['config_sha256'] = '0'*64
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+out="$("$INSTALL" "$t" --upgrade --apply 2>&1)"
+# Entry should be unchanged (compare hashes — canonical JSON of disk vs custom).
+after_cfg="$(python3 -c "import json; print(json.dumps(json.load(open('$t/.claude/settings.local.json'))['mcpServers']['xcodebuildmcp']))")"
+after_hash="$(mcp_hash "$after_cfg")"
+if [[ "$after_hash" == "$custom_hash" ]] && grep -q "MCP conflict" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: MCP conflict should be skipped and local edit preserved"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply --force-conflicts MCP: conflict overwritten"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+python3 -c "
+import json
+sl = json.load(open('$t/.claude/settings.local.json'))
+sl['mcpServers']['xcodebuildmcp'] = {'command': 'my-tool', 'args': ['--special']}
+json.dump(sl, open('$t/.claude/settings.local.json','w'), indent=2)
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+m['mcps_installed'][0]['config_sha256'] = '0'*64
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+"$INSTALL" "$t" --upgrade --apply --force-conflicts > /dev/null
+bundle_cfg="$(python3 -c "import json; print(json.dumps(json.load(open('$REPO_ROOT/mcp-recipes/xcodebuildmcp.json'))['config'], sort_keys=True, separators=(',',':')))")"
+bundle_hash="$(mcp_hash "$bundle_cfg")"
+mani_hash="$(python3 -c "import json; m=json.load(open('$t/.claude/.appbootstrap-manifest.json')); print([e['config_sha256'] for e in m['mcps_installed'] if e['name']=='xcodebuildmcp'][0])")"
+if [[ "$mani_hash" == "$bundle_hash" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --force-conflicts should sync the MCP entry back to bundle"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --upgrade MCP: orphan recipe → 'Orphan' classification"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+# Synthesize a manifest mcp entry whose recipe doesn't exist in the bundle.
+python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+m['mcps_installed'].append({'name': 'imaginary-mcp', 'config_sha256': '0'*64})
+sl = json.load(open('$t/.claude/settings.local.json'))
+sl['mcpServers']['imaginary-mcp'] = {'command': 'fake', 'args': []}
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+json.dump(sl, open('$t/.claude/settings.local.json','w'), indent=2)
+"
+out="$("$INSTALL" "$t" --upgrade 2>&1)"
+if grep -q "Orphan" <<<"$out" && grep -q "imaginary-mcp" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: orphaned MCP recipe should classify as 'Orphan'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply --prune MCP: orphan removed from settings.local.json AND manifest"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+m['mcps_installed'].append({'name': 'imaginary-mcp', 'config_sha256': '0'*64})
+sl = json.load(open('$t/.claude/settings.local.json'))
+sl['mcpServers']['imaginary-mcp'] = {'command': 'fake', 'args': []}
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+json.dump(sl, open('$t/.claude/settings.local.json','w'), indent=2)
+"
+"$INSTALL" "$t" --upgrade --apply --prune > /dev/null
+# Both records should be gone
+in_settings="$(python3 -c "import json; sl=json.load(open('$t/.claude/settings.local.json')); print('imaginary-mcp' in sl['mcpServers'])")"
+in_manifest="$(python3 -c "import json; m=json.load(open('$t/.claude/.appbootstrap-manifest.json')); print(any(e['name']=='imaginary-mcp' for e in m['mcps_installed']))")"
+if [[ "$in_settings" == "False" && "$in_manifest" == "False" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --prune should remove orphan MCP from settings.local.json AND manifest"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply MCP: settings.local.json keys outside mcpServers are preserved"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+# Inject custom top-level key into settings.local.json
+python3 -c "
+import json
+sl = json.load(open('$t/.claude/settings.local.json'))
+sl['customField'] = 'do-not-touch'
+sl['permissions'] = {'allow': ['Bash(echo:*)']}
+json.dump(sl, open('$t/.claude/settings.local.json','w'), indent=2)
+"
+# Trigger a safe-update via faked hashes
+old_cfg='{"command":"npx","args":["-y","old-version"]}'
+old_hash="$(mcp_hash "$old_cfg")"
+python3 -c "
+import json
+sl = json.load(open('$t/.claude/settings.local.json'))
+sl['mcpServers']['xcodebuildmcp'] = json.loads('$old_cfg')
+json.dump(sl, open('$t/.claude/settings.local.json','w'), indent=2)
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+m['mcps_installed'][0]['config_sha256'] = '$old_hash'
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+"$INSTALL" "$t" --upgrade --apply > /dev/null
+if python3 -c "
+import json, sys
+sl = json.load(open('$t/.claude/settings.local.json'))
+assert sl['customField'] == 'do-not-touch'
+assert sl['permissions']['allow'] == ['Bash(echo:*)']
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --apply must preserve non-mcpServers keys in settings.local.json"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
 # --list and --help should both succeed and produce sentinel output.
 # Note: capture output before grepping. If we piped directly to `grep -q`,
 # grep closes stdin after the first match, install.sh gets SIGPIPE on the

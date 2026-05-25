@@ -857,18 +857,22 @@ if [[ "$ACTION" == "upgrade" ]]; then
 
     # RENAMES.md path (may not exist; Python tolerates missing file).
     renames_path="$SCRIPT_DIR/RENAMES.md"
+    # MCP paths — settings.local.json on the target, recipes dir in the bundle.
+    settings_local_path="$TARGET/.claude/settings.local.json"
 
     python3 - \
         "$manifest_path" "$TARGET" "$bundle_all_tmp" "$bundle_in_scope_tmp" "$renames_path" \
         "$PLATFORM" "$APPLE_LANG" "$FEATURES_INPUT" "$SCRIPT_DIR" \
         "$APPLY" "$FORCE_CONFLICTS" "$PRUNE" "$MIGRATE_MANIFEST" "$DRY_RUN" "$BUNDLE_COMMIT" \
+        "$settings_local_path" "$MCP_RECIPES_DIR" \
         <<'PYTHON'
 import hashlib, json, os, shutil, sys, datetime
 
 (manifest_path, target_root, bundle_all_path, in_scope_path, renames_path,
  platform, apple_lang, features, script_dir,
  apply_flag, force_conflicts_flag, prune_flag, migrate_manifest_flag, dry_run_flag,
- bundle_commit) = sys.argv[1:16]
+ bundle_commit,
+ settings_local_path, mcp_recipes_dir) = sys.argv[1:18]
 
 APPLY            = (apply_flag           == "true")
 FORCE_CONFLICTS  = (force_conflicts_flag == "true")
@@ -1171,6 +1175,84 @@ for rel in sorted(in_scope):
         continue
     additions.append({"path": rel, "type": type_, "category": cat, "skill": skill})
 
+# ----- MCP 3-way classification ---------------------------------------------
+# For each MCP entry in mcps_installed, compute the same 3-way diff:
+#   installed_hash  — from the manifest (config we wrote at install)
+#   current_hash    — hash of the entry currently in settings.local.json
+#   bundle_hash     — hash of the recipe's config in mcp-recipes/<name>.json
+# The hash function must match the one in the MCP merge Python (stable sort,
+# compact separators) so a recipe that hasn't actually changed produces the
+# same hash on each install.
+
+def mcp_config_hash(config):
+    payload = json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+# Load settings.local.json (may be absent if the user never ran --with-mcps).
+mcp_servers_current = {}
+if os.path.exists(settings_local_path):
+    try:
+        with open(settings_local_path) as f:
+            sl = json.load(f)
+        mcp_servers_current = sl.get("mcpServers", {}) or {}
+    except json.JSONDecodeError:
+        # Malformed settings.local.json — surface as warning, treat as empty so
+        # the rest of the upgrade can proceed.
+        print(f"  warn: {settings_local_path} is not valid JSON — treating as empty for MCP diff")
+
+# Index bundle recipes for fast lookup.
+bundle_recipes = {}
+if os.path.isdir(mcp_recipes_dir):
+    for fn in os.listdir(mcp_recipes_dir):
+        if not fn.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(mcp_recipes_dir, fn)) as f:
+                recipe = json.load(f)
+            name = recipe.get("name")
+            if name:
+                bundle_recipes[name] = recipe
+        except json.JSONDecodeError:
+            continue
+
+mcp_up_to_date = []
+mcp_safe_updates = []
+mcp_local_edits = []
+mcp_conflicts = []
+mcp_orphans = []
+# We don't auto-add MCPs on upgrade — additions are an explicit --with-mcps op.
+
+for installed in manifest.get("mcps_installed", []):
+    name = installed["name"]
+    installed_hash = installed.get("config_sha256")
+    current_config = mcp_servers_current.get(name)
+    bundle_recipe = bundle_recipes.get(name)
+    current_hash = mcp_config_hash(current_config) if current_config is not None else None
+    bundle_hash = mcp_config_hash(bundle_recipe["config"]) if (bundle_recipe and "config" in bundle_recipe) else None
+
+    row = {"name": name, "installed_hash": installed_hash,
+           "current_hash": current_hash, "bundle_hash": bundle_hash}
+
+    if bundle_hash is None:
+        # Recipe no longer ships in the bundle. The user's entry is still in
+        # settings.local.json — they own it; we just stop tracking.
+        mcp_orphans.append(row)
+        continue
+    if current_config is None:
+        # Manifest says we installed it, but the entry is gone from
+        # settings.local.json (user removed it manually). Drop from tracking.
+        mcp_orphans.append({**row, "missing_from_settings": True})
+        continue
+
+    if current_hash == bundle_hash:
+        mcp_up_to_date.append(row)
+    elif current_hash == installed_hash and current_hash != bundle_hash:
+        mcp_safe_updates.append(row)
+    elif current_hash != installed_hash and installed_hash == bundle_hash:
+        mcp_local_edits.append(row)
+    else:
+        mcp_conflicts.append(row)
+
 # ----- Print plan ------------------------------------------------------------
 def header(title, rows):
     if not rows:
@@ -1215,10 +1297,37 @@ if renamed_rows:
         print(f"    {old} → {new}  ({cls})")
     print("")
 
+# MCP plan section — only emit if there's anything to say (manifest has MCPs).
+mcp_total_tracked = (len(mcp_up_to_date) + len(mcp_safe_updates) +
+                     len(mcp_local_edits) + len(mcp_conflicts) + len(mcp_orphans))
+if mcp_total_tracked > 0:
+    def mcp_header(title, rows):
+        if not rows:
+            return
+        print(f"  {title} ({len(rows)})")
+        for r in rows:
+            note = ""
+            if r.get("missing_from_settings"):
+                note = " — entry was removed from settings.local.json"
+            print(f"    {r['name']}{note}")
+        print("")
+
+    print("MCP entries in .claude/settings.local.json:")
+    print("")
+    mcp_header("Up to date:", mcp_up_to_date)
+    mcp_header("Safe to update (recipe changed upstream, no local edit):", mcp_safe_updates)
+    mcp_header("Locally edited (you customized this entry — left alone):", mcp_local_edits)
+    mcp_header("Conflict (you edited AND recipe changed — default SKIP, --force-conflicts to overwrite):", mcp_conflicts)
+    mcp_header("Orphan (recipe no longer in bundle, or entry removed from settings.local.json):", mcp_orphans)
+
 # Summary line
 print(f"==> Plan: {len(safe_updates)} safe update(s), {len(conflicts)} conflict(s),")
 print(f"          {len(orphans)} orphan(s), {len(additions)} addition(s),")
 print(f"          {len(local_edits)} locally-edited (untouched), {len(up_to_date)} up to date.")
+if mcp_total_tracked > 0:
+    print(f"          MCPs: {len(mcp_safe_updates)} safe update(s), {len(mcp_conflicts)} conflict(s),")
+    print(f"                {len(mcp_orphans)} orphan(s), {len(mcp_local_edits)} locally-edited,")
+    print(f"                {len(mcp_up_to_date)} up to date.")
 print("")
 
 if not APPLY:
@@ -1294,10 +1403,73 @@ for kind, r in actions:
                 except OSError:
                     break
 
+# ----- MCP apply -------------------------------------------------------------
+# Decide which MCP entries to mutate. Same model as files:
+#   - safe_updates: always under APPLY
+#   - conflicts: only under --force-conflicts
+#   - orphans: only under --prune (removes entry from settings.local.json AND manifest)
+mcp_updates = list(mcp_safe_updates)
+if FORCE_CONFLICTS:
+    mcp_updates.extend(mcp_conflicts)
+mcp_skipped_conflicts = 0 if FORCE_CONFLICTS else len(mcp_conflicts)
+mcp_deletions = []
+if PRUNE:
+    mcp_deletions = list(mcp_orphans)
+
+# Tracking: what manifest entries to drop, what new entries to record.
+mcp_dropped_names = set()       # names removed under --prune
+mcp_refreshed = {}              # name → fresh config_sha256 to write into manifest
+mcp_written = 0
+mcp_removed = 0
+
+if mcp_updates or mcp_deletions:
+    # Reload settings.local.json fresh — we may need to mutate it.
+    sl_data = {}
+    if os.path.exists(settings_local_path):
+        try:
+            with open(settings_local_path) as f:
+                sl_data = json.load(f)
+        except json.JSONDecodeError:
+            print(f"  warn: cannot mutate {settings_local_path} — not valid JSON; skipping MCP apply")
+            mcp_updates = []
+            mcp_deletions = []
+    sl_servers = sl_data.setdefault("mcpServers", {}) if sl_data is not None else {}
+
+    for row in mcp_updates:
+        name = row["name"]
+        bundle_recipe = bundle_recipes.get(name)
+        if not bundle_recipe or "config" not in bundle_recipe:
+            continue
+        new_config = bundle_recipe["config"]
+        if DRY_RUN:
+            print(f"  [dry-run] would update MCP: {name}")
+        else:
+            sl_servers[name] = new_config
+            mcp_refreshed[name] = mcp_config_hash(new_config)
+            mcp_written += 1
+
+    for row in mcp_deletions:
+        name = row["name"]
+        if DRY_RUN:
+            print(f"  [dry-run] would prune MCP: {name}")
+        else:
+            sl_servers.pop(name, None)
+            mcp_dropped_names.add(name)
+            mcp_removed += 1
+
+    if not DRY_RUN and (mcp_written or mcp_removed):
+        # Write settings.local.json back. Preserve every other top-level key.
+        os.makedirs(os.path.dirname(settings_local_path), exist_ok=True)
+        with open(settings_local_path, "w") as f:
+            json.dump(sl_data, f, indent=2)
+            f.write("\n")
+
 if DRY_RUN:
-    print(f"==> [DRY RUN] {len(actions)} action(s) would run; 0 written.")
+    print(f"==> [DRY RUN] {len(actions)} file action(s) + {len(mcp_updates) + len(mcp_deletions)} MCP action(s) would run; 0 written.")
     if skipped_conflicts:
-        print(f"    {skipped_conflicts} conflict(s) would be SKIPPED — re-run with --force-conflicts to overwrite.")
+        print(f"    {skipped_conflicts} file conflict(s) would be SKIPPED — re-run with --force-conflicts to overwrite.")
+    if mcp_skipped_conflicts:
+        print(f"    {mcp_skipped_conflicts} MCP conflict(s) would be SKIPPED — re-run with --force-conflicts to overwrite.")
     sys.exit(0)
 
 # ----- Re-build manifest from current disk state -----------------------------
@@ -1371,6 +1543,20 @@ for kind, r in actions:
     new_files.append(e_out)
     seen_paths.add(rel)
 
+# Rebuild mcps_installed from the apply outcome:
+#   - drop entries pruned under --prune
+#   - update config_sha256 for entries we just refreshed (safe-update / force-conflicts)
+#   - carry every other entry forward unchanged
+new_mcps_installed = []
+for installed in manifest.get("mcps_installed", []):
+    name = installed["name"]
+    if name in mcp_dropped_names:
+        continue
+    if name in mcp_refreshed:
+        new_mcps_installed.append({"name": name, "config_sha256": mcp_refreshed[name]})
+    else:
+        new_mcps_installed.append(installed)
+
 new_manifest = {
     "schema_version": 2,
     "installed_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -1382,8 +1568,7 @@ new_manifest = {
         "features_resolved": manifest.get("selection", {}).get("features_resolved", []),
     },
     "files": new_files,
-    # Carry mcps_installed forward verbatim — MCP-side apply lands in Phase 3.1.
-    "mcps_installed": manifest.get("mcps_installed", []),
+    "mcps_installed": new_mcps_installed,
 }
 
 with open(manifest_path, "w") as f:
@@ -1392,6 +1577,10 @@ with open(manifest_path, "w") as f:
 
 # ----- Apply summary ---------------------------------------------------------
 print(f"==> Apply complete: {written} file(s) written, {deleted} deleted.")
+if mcp_written or mcp_removed:
+    print(f"    MCPs: {mcp_written} entry(ies) updated, {mcp_removed} pruned.")
+if mcp_skipped_conflicts:
+    print(f"    {mcp_skipped_conflicts} MCP conflict(s) SKIPPED — re-run with --force-conflicts to overwrite.")
 if skipped_conflicts:
     print(f"    {skipped_conflicts} conflict(s) SKIPPED — re-run with --force-conflicts to overwrite.")
 print(f"==> Manifest refreshed: {manifest_path}")
