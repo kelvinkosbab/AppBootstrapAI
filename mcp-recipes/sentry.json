@@ -1,0 +1,16 @@
+{
+  "name": "sentry",
+  "display_name": "Sentry MCP (official, hosted)",
+  "platform": "cross-platform",
+  "description": "Official MCP server hosted by Sentry at mcp.sentry.dev. Zero install for sentry.io users — connects over Streamable HTTP with OAuth. Exposes issues, errors, projects, and Seer crash-analysis tools.",
+  "config": {
+    "url": "https://mcp.sentry.dev/mcp"
+  },
+  "setup": [
+    "First connection prompts an OAuth flow through Sentry — log in and grant access to your org.",
+    "During auth you select which tool groups to expose; keep the surface focused on what your project actually uses to save context tokens.",
+    "Self-hosted Sentry instances use the stdio transport with a personal access token — see the homepage docs. This recipe targets the cloud (sentry.io) endpoint.",
+    "If your MCP client doesn't yet support hosted/HTTP servers, install the `mcp-remote` shim per the Sentry docs."
+  ],
+  "homepage": "https://docs.sentry.io/product/sentry-mcp/"
+}

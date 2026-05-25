@@ -1,0 +1,16 @@
+{
+  "name": "xcode-native",
+  "display_name": "Xcode 26.3+ native MCP",
+  "platform": "apple",
+  "description": "Apple's first-party MCP server shipped inside Xcode 26.3 and later. Exposes ~20 tools for file ops, build, Simulator, Previews, and the debugger over XPC into the Xcode process — no separate install.",
+  "config": {
+    "command": "xcrun",
+    "args": ["mcpbridge"]
+  },
+  "setup": [
+    "Requires Xcode 26.3 or newer. Verify with `xcodebuild -version`.",
+    "Confirm `xcrun mcpbridge --help` resolves before activating the server in your MCP client.",
+    "Pairs well with XcodeBuildMCP — the native server is preview / build-focused; XcodeBuildMCP adds richer test and simulator tooling."
+  ],
+  "homepage": "https://developer.apple.com/xcode/"
+}

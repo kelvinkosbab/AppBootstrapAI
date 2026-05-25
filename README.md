@@ -57,6 +57,8 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
   - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps; `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`); custom CSVs like `core,testing,docs` give fine-grained control
   - `--list` previews the catalog with one-line descriptions + category tags
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
+  - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
+  - `--with-mcps <csv>` writes one `mcpServers.<name>` entry per recipe into `.claude/settings.local.json`. Existing entries are never overwritten. Setup notes (auth, env vars) print after install. See [`mcp-recipes/`](mcp-recipes/) for the available recipes.
   - `--dry-run` shows what an install would do without writing any files
   - `--help` documents every flag and enumerates all 13 categories
   - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (groundwork for future `--upgrade` / `--uninstall`)
@@ -65,7 +67,32 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
 
 ### Recommended companion tooling (optional)
 
+#### MCP servers for the Apple side
+
 - **[XcodeBuildMCP](https://github.com/cameroncooke/XcodeBuildMCP)** — community MCP server that lets Claude drive Xcode: build schemes, run simulators, capture logs. Useful when you want the agent to verify changes against real builds and tests instead of guessing at outcomes. Especially valuable for legacy / mixed-language Apple codebases.
+- **Xcode 26.3+ native MCP** (`xcrun mcpbridge`) — Apple ships an MCP server inside Xcode 26.3 exposing ~20 tools for file ops, build, Simulator, Previews, and the debugger over XPC. First-party, no separate install. Pairs well with XcodeBuildMCP — Apple's set is preview / build-focused; XcodeBuildMCP adds richer test and simulator tooling.
+
+#### MCP servers for the Android side
+
+- **[Android Studio's built-in MCP support](https://developer.android.com/studio/gemini/add-mcp-server)** — Google ships first-party MCP integration in Android Studio. Hook any MCP server (including this repo's, see below) directly into Studio's agent.
+- **[`android-mcp-server`](https://github.com/minhalvp/android-mcp-server)** — community MCP server that gives agents control over Android devices and emulators via ADB. The Android-side parallel to XcodeBuildMCP's simulator work.
+
+#### Cross-platform / shared
+
+- **[Firebase MCP](https://github.com/firebase/firebase-tools/tree/main/src/mcp)** — **first-party from Google.** Lives in `firebase-tools`. Covers Crashlytics, Remote Config, App Hosting, Realtime DB, and Cloud Functions logs. Crashlytics surface is marked experimental.
+- **[Sentry MCP](https://docs.sentry.io/product/sentry-mcp/)** — **first-party, hosted by Sentry** at `mcp.sentry.dev/mcp`. Streamable HTTP with OAuth — zero install for sentry.io users. Exposes issues, errors, projects, and Seer analysis.
+
+**See also** (specialized; add when the use case fits):
+
+- **[`ios-simulator-mcp`](https://github.com/joshuayoes/ios-simulator-mcp)** — npm-installable, iOS-Simulator-only (screenshots, UI hierarchy, tap/swipe). Lighter than XcodeBuildMCP if Simulator control is all you need.
+- **[Mobile MCP (`mobile-next/mobile-mcp`)](https://mcpservers.org/servers/mobile-next/mobile-mcp)** — cross-platform iOS + Android automation via accessibility snapshots + coordinate taps. QA-style workflows that span both platforms.
+- **[`kotlin-mcp-server`](https://github.com/normaltusker/kotlin-mcp-server)** — heavier-touch Android dev workflow MCP: Gradle, ktlint, Lint, Room / Retrofit / Compose scaffolding via AI prompts.
+- **[Figma MCP](https://help.figma.com/hc/en-us/articles/32132100833559-Guide-to-the-Figma-MCP-server)** — first-party Figma server for design → code workflow. Mobile-relevant when your design source is Figma; not mobile-specific.
+- **App Store Connect** and **Google Play Console** MCPs exist but the ecosystem is still consolidating around a winner — multiple competing community implementations. Worth watching but no recommendation yet.
+- **Linear / Jira / Atlassian** MCPs (Atlassian's is GA Feb 2026, Linear's is first-party) are excellent but cover generic project-management concerns, not mobile-app-specific work — they belong in your generic MCP setup, not this list.
+
+#### Cross-tool rule sync
+
 - **Cross-tool rule sync** — for teams running Cursor, Gemini CLI, Kiro, Copilot, Codex, or other agents alongside Claude Code. See the dedicated [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) section for the workflow, tool comparison, and caveats.
 
 ## Quick start
@@ -107,7 +134,14 @@ From the root of a new app repo:
 # Compose recommended + specific opt-ins (instead of writing the CSV by hand)
 /path/to/AppBootstrapAI/install.sh . --platform apple --features recommended,ai,persistence
 
-# Full help — documents --features categories
+# Bootstrap + wire in MCP servers at the same time
+# (writes one mcpServers entry per recipe into .claude/settings.local.json)
+/path/to/AppBootstrapAI/install.sh . --platform apple --with-mcps xcodebuildmcp,sentry
+
+# Browse available MCP recipes (see what --with-mcps can install)
+/path/to/AppBootstrapAI/install.sh --list-mcps
+
+# Full help — documents --features categories AND --with-mcps recipes
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
@@ -250,6 +284,12 @@ ruler apply                                            # ruler reads its config 
 │   ├── CLAUDE.template.android.md     # Starter for Android-only projects
 │   ├── CLAUDE.template.md             # Starter for cross-platform projects
 │   └── Package.template.swift         # Starter Package.swift with makeTargets() helper
+├── mcp-recipes/                       # Recipes for --with-mcps (one JSON per supported MCP)
+│   ├── xcodebuildmcp.json             # Apple
+│   ├── xcode-native.json              # Apple (Xcode 26.3+ first-party)
+│   ├── android-mcp-server.json        # Android
+│   ├── firebase.json                  # Cross-platform (official Google MCP)
+│   └── sentry.json                    # Cross-platform (official hosted Sentry MCP)
 ├── mcp-server/                        # MCP server wrapping install.sh as typed tools
 │   ├── src/index.ts                   # 5 tools: list_categories/rules/skills, preview_install, install
 │   ├── package.json

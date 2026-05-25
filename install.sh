@@ -5,8 +5,10 @@
 #   ./install.sh [TARGET_DIR] [--platform apple|android|both]
 #                             [--apple-language swift|objc|both]
 #                             [--features all|recommended|<csv>]
+#                             [--with-mcps <csv>]
 #                             [--dry-run]
 #   ./install.sh --list [--json] [--features ...] [--platform ...]
+#   ./install.sh --list-mcps
 #   ./install.sh --help
 #
 # Defaults: TARGET_DIR=.  --platform both  --apple-language swift
@@ -64,6 +66,21 @@
 #                        catalog (stable schema for the MCP server and any
 #                        other automation that wants to consume the catalog).
 #
+#   --list-mcps          List available MCP-server recipes (name, platform,
+#                        description, homepage) that --with-mcps can install.
+#                        Exits after printing.
+#
+#   --with-mcps <csv>    Comma-separated list of MCP recipes to add to the
+#                        target's .claude/settings.local.json. Each recipe
+#                        contributes one entry under "mcpServers". Existing
+#                        entries with the same name are NEVER overwritten —
+#                        skipped entries are listed in the install output.
+#                        Setup steps for each newly-added MCP (auth, env vars,
+#                        prerequisite binaries) print at the end of install.
+#                        Recipe names come from --list-mcps; unknown names
+#                        fail cleanly. Requires python3 on PATH (JSON merge is
+#                        done in Python to avoid bash fragility).
+#
 #   -h, --help           Print this help and exit.
 #
 # What it does:
@@ -84,10 +101,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MCP_RECIPES_DIR="$SCRIPT_DIR/mcp-recipes"
 TARGET="${1:-.}"
 PLATFORM="both"
 APPLE_LANG="swift"
 FEATURES_INPUT="recommended"
+WITH_MCPS=""
 ACTION="install"
 DRY_RUN="false"
 JSON_OUTPUT="false"
@@ -112,6 +131,14 @@ while [[ $# -gt 0 ]]; do
             ACTION="list"
             shift
             ;;
+        --list-mcps)
+            ACTION="list-mcps"
+            shift
+            ;;
+        --with-mcps)
+            WITH_MCPS="$2"
+            shift 2
+            ;;
         --dry-run)
             DRY_RUN="true"
             shift
@@ -121,7 +148,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            sed -n '2,82p' "${BASH_SOURCE[0]}"
+            sed -n '2,99p' "${BASH_SOURCE[0]}"
             exit 0
             ;;
         *)
@@ -200,6 +227,24 @@ for f in $SELECTED_FEATURES; do
         exit 1
     fi
 done
+
+# Validate --with-mcps recipe names early (before any writes). Each name must
+# match an mcp-recipes/<name>.json file. Empty input is fine (no MCPs requested).
+SELECTED_MCPS=""
+if [[ -n "$WITH_MCPS" ]]; then
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "error: --with-mcps requires python3 on PATH (JSON merge is done in Python)." >&2
+        exit 1
+    fi
+    SELECTED_MCPS="$(echo "$WITH_MCPS" | tr ',' ' ')"
+    for mcp_name in $SELECTED_MCPS; do
+        if [[ ! -f "$MCP_RECIPES_DIR/$mcp_name.json" ]]; then
+            echo "error: unknown MCP recipe: $mcp_name" >&2
+            echo "       run --list-mcps to see available recipes" >&2
+            exit 1
+        fi
+    done
+fi
 
 # Map a rule/skill basename to its category. Returns empty string if uncategorized
 # (uncategorized files install unconditionally — used for things not yet
@@ -356,6 +401,41 @@ act() {
     fi
 }
 
+# --- --list-mcps mode ---------------------------------------------------------
+
+if [[ "$ACTION" == "list-mcps" ]]; then
+    echo "AppBootstrapAI MCP recipes"
+    echo "  Add one or more to your repo with: --with-mcps <name1>,<name2>"
+    echo "  Each recipe writes one entry under .claude/settings.local.json's"
+    echo "  \"mcpServers\" key. Existing entries are never overwritten."
+    echo ""
+    if [[ ! -d "$MCP_RECIPES_DIR" ]]; then
+        echo "  (no recipes directory at $MCP_RECIPES_DIR)"
+        exit 0
+    fi
+    shopt -s nullglob
+    for recipe in "$MCP_RECIPES_DIR"/*.json; do
+        python3 - "$recipe" <<'PYTHON'
+import json, sys, textwrap
+with open(sys.argv[1]) as f:
+    r = json.load(f)
+plat = r.get("platform", "-")
+name = r.get("name", "?")
+display = r.get("display_name", name)
+desc = r.get("description", "")
+homepage = r.get("homepage", "")
+print(f"  [{plat:14s}] {name}")
+print(f"      {display}")
+for line in textwrap.wrap(desc, width=76, initial_indent="      ", subsequent_indent="      "):
+    print(line)
+if homepage:
+    print(f"      {homepage}")
+print()
+PYTHON
+    done
+    exit 0
+fi
+
 # --- --list mode --------------------------------------------------------------
 
 if [[ "$ACTION" == "list" ]]; then
@@ -452,6 +532,12 @@ INSTALLED_FILES=()
 record_install() {
     INSTALLED_FILES+=("$1|$2|$3")
 }
+
+# Track MCP entries that were added/skipped by --with-mcps. Populated by
+# install_mcps_now() (called late in the install flow). Used to print setup
+# notes and to extend the manifest.
+INSTALLED_MCPS_ADDED=()
+INSTALLED_MCPS_SKIPPED=()
 
 act "create $TARGET/.claude/rules"  mkdir -p "$TARGET/.claude/rules"
 act "create $TARGET/.claude/skills" mkdir -p "$TARGET/.claude/skills"
@@ -594,10 +680,133 @@ else
             if [[ "$first" -eq 1 ]]; then first=0; else printf ',\n'; fi
             printf '    {"path": "%s", "type": "%s", "category": "%s"}' "$path" "$type_" "$cat_"
         done
-        printf '\n  ]\n'
-        printf '}\n'
+        printf '\n  ],\n'
+        printf '  "mcps_requested": '
+        json_string_array "$SELECTED_MCPS"
+        printf '\n}\n'
     } > "$MANIFEST_PATH"
     echo "--> Wrote manifest to $MANIFEST_PATH"
+fi
+
+# --- MCP recipes — merge into .claude/settings.local.json -------------------
+#
+# Each named recipe contributes one entry under "mcpServers". Existing entries
+# with the same name are preserved (never overwritten). settings.local.json is
+# the right target because MCP configs often carry machine-specific paths /
+# tokens and shouldn't be committed; the file is gitignored by the bundle.
+
+if [[ -n "$SELECTED_MCPS" ]]; then
+    SETTINGS_LOCAL="$TARGET/.claude/settings.local.json"
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo "[dry-run] would merge MCP recipes into $SETTINGS_LOCAL: $SELECTED_MCPS"
+        for mcp_name in $SELECTED_MCPS; do
+            INSTALLED_MCPS_ADDED+=("$mcp_name")
+        done
+    else
+        echo "--> Merging MCP recipes into $(basename "$SETTINGS_LOCAL"): $SELECTED_MCPS"
+        # Python does the JSON merge — safe escaping, dict union, idempotency.
+        merge_output="$(python3 - "$SETTINGS_LOCAL" "$MCP_RECIPES_DIR" "$SELECTED_MCPS" <<'PYTHON'
+import json, os, sys
+
+settings_path, recipes_dir, mcp_names_str = sys.argv[1], sys.argv[2], sys.argv[3]
+mcp_names = mcp_names_str.split()
+
+# Load existing settings.local.json or start fresh.
+if os.path.exists(settings_path):
+    with open(settings_path, "r") as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError as e:
+            print(f"ERROR:{settings_path} is not valid JSON: {e}", file=sys.stderr)
+            sys.exit(2)
+else:
+    data = {}
+
+mcps = data.setdefault("mcpServers", {})
+added = []
+skipped = []
+setup_notes = []  # [(display_name, [step, ...]), ...]
+
+for name in mcp_names:
+    recipe_path = os.path.join(recipes_dir, f"{name}.json")
+    with open(recipe_path, "r") as f:
+        recipe = json.load(f)
+    entry_key = recipe["name"]
+    if entry_key in mcps:
+        skipped.append(entry_key)
+        continue
+    mcps[entry_key] = recipe["config"]
+    added.append(entry_key)
+    if recipe.get("setup"):
+        setup_notes.append((recipe.get("display_name", entry_key), recipe["setup"], recipe.get("homepage", "")))
+
+os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+with open(settings_path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+
+# Emit machine-parseable result lines for bash to capture.
+print("ADDED:" + ",".join(added))
+print("SKIPPED:" + ",".join(skipped))
+for display, steps, homepage in setup_notes:
+    print("---SETUP---")
+    print(f"NAME:{display}")
+    if homepage:
+        print(f"HOMEPAGE:{homepage}")
+    for step in steps:
+        print(f"STEP:{step}")
+PYTHON
+)"
+        # Parse the python output back into bash arrays.
+        while IFS= read -r line; do
+            case "$line" in
+                ADDED:*)
+                    added_csv="${line#ADDED:}"
+                    if [[ -n "$added_csv" ]]; then
+                        # shellcheck disable=SC2206
+                        IFS=',' read -r -a tmp <<<"$added_csv"
+                        for entry in "${tmp[@]}"; do
+                            INSTALLED_MCPS_ADDED+=("$entry")
+                        done
+                    fi
+                    ;;
+                SKIPPED:*)
+                    skipped_csv="${line#SKIPPED:}"
+                    if [[ -n "$skipped_csv" ]]; then
+                        IFS=',' read -r -a tmp <<<"$skipped_csv"
+                        for entry in "${tmp[@]}"; do
+                            INSTALLED_MCPS_SKIPPED+=("$entry")
+                        done
+                    fi
+                    ;;
+            esac
+        done <<<"$merge_output"
+
+        if [[ "${#INSTALLED_MCPS_ADDED[@]}" -gt 0 ]]; then
+            echo "    added: ${INSTALLED_MCPS_ADDED[*]}"
+        fi
+        if [[ "${#INSTALLED_MCPS_SKIPPED[@]}" -gt 0 ]]; then
+            echo "    skipped (already present): ${INSTALLED_MCPS_SKIPPED[*]}"
+        fi
+
+        # Re-print the setup notes verbatim from the python output.
+        if echo "$merge_output" | grep -q "^---SETUP---"; then
+            echo ""
+            echo "==> Setup steps for newly-installed MCPs:"
+            current=""
+            while IFS= read -r line; do
+                case "$line" in
+                    ---SETUP---) echo "" ;;
+                    NAME:*)
+                        current="${line#NAME:}"
+                        echo "    $current"
+                        ;;
+                    HOMEPAGE:*) echo "      (see $(echo "$line" | sed 's|^HOMEPAGE:||'))" ;;
+                    STEP:*) echo "      - $(echo "$line" | sed 's|^STEP:||')" ;;
+                esac
+            done <<<"$merge_output"
+        fi
+    fi
 fi
 
 echo ""

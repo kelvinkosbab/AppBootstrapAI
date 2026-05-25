@@ -1,0 +1,18 @@
+{
+  "name": "firebase",
+  "display_name": "Firebase MCP",
+  "platform": "cross-platform",
+  "description": "Official MCP server from Google, lives in firebase-tools. Covers Crashlytics (experimental), Remote Config, App Hosting, Realtime Database, and Cloud Functions logs. Useful for iOS, Android, and web apps that use Firebase.",
+  "config": {
+    "command": "npx",
+    "args": ["-y", "firebase-tools@latest", "experimental:mcp"]
+  },
+  "setup": [
+    "Requires a recent firebase-tools (v14+ added the MCP surface). `npx -y firebase-tools@latest` always fetches the latest.",
+    "Authenticate with `firebase login` before MCP calls hit your project.",
+    "If you maintain a long-lived setup, consider `npm i -g firebase-tools` so the MCP server starts faster than `npx` cold-fetch.",
+    "Verify the exact subcommand (`experimental:mcp` vs `mcp`) against the homepage — Firebase has been iterating on the surface.",
+    "Crashlytics MCP surface is marked experimental by Firebase — expect changes."
+  ],
+  "homepage": "https://github.com/firebase/firebase-tools/tree/main/src/mcp"
+}

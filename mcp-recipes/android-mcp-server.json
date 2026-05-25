@@ -1,0 +1,17 @@
+{
+  "name": "android-mcp-server",
+  "display_name": "android-mcp-server (minhalvp)",
+  "platform": "android",
+  "description": "Community MCP server that gives agents control over Android devices and emulators via ADB. The Android-side parallel to XcodeBuildMCP's simulator work — install apps, capture screenshots, drive UI interactions, read logcat.",
+  "config": {
+    "command": "uvx",
+    "args": ["--from", "git+https://github.com/minhalvp/android-mcp-server", "android-mcp-server"]
+  },
+  "setup": [
+    "Requires `uvx` (from astral.sh/uv) — install via `brew install uv` on macOS or per the uv docs.",
+    "Requires `adb` on PATH — install Android SDK platform-tools (`brew install android-platform-tools` on macOS).",
+    "Connect a device via USB with developer mode enabled, or start an emulator before invoking MCP tools.",
+    "Verify the exact install command against the homepage README — the project may have moved to a published PyPI package or alternate install method."
+  ],
+  "homepage": "https://github.com/minhalvp/android-mcp-server"
+}

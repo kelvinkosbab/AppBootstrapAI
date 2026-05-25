@@ -340,6 +340,130 @@ else
 fi
 rm -rf "$target_manifest"
 
+# --- MCP recipes (--list-mcps, --with-mcps) ----------------------------------
+
+bold "==> --list-mcps prints the 5 recipes"
+list_mcps_out="$("$INSTALL" --list-mcps)"
+for name in xcodebuildmcp xcode-native android-mcp-server firebase sentry; do
+    if grep -qE "(^|[^a-zA-Z-])$name([^a-zA-Z-]|$)" <<<"$list_mcps_out"; then
+        PASS=$((PASS + 1))
+    else
+        red "FAIL: --list-mcps output missing recipe: $name"
+        FAIL=$((FAIL + 1))
+    fi
+done
+
+bold "==> --with-mcps xcodebuildmcp writes settings.local.json with the entry"
+target_mcp="$(mktemp -d)"
+"$INSTALL" "$target_mcp" --platform apple --with-mcps xcodebuildmcp >/dev/null
+assert_file_exists "$target_mcp/.claude/settings.local.json" "settings.local.json created by --with-mcps"
+if python3 -c "
+import json, sys
+with open('$target_mcp/.claude/settings.local.json') as f:
+    d = json.load(f)
+assert 'mcpServers' in d, 'missing mcpServers key'
+assert 'xcodebuildmcp' in d['mcpServers'], 'missing xcodebuildmcp entry'
+assert d['mcpServers']['xcodebuildmcp']['command'] == 'npx', 'wrong command'
+print('OK')
+" >/dev/null 2>&1; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: settings.local.json missing expected xcodebuildmcp entry"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_mcp"
+
+bold "==> --with-mcps with multiple recipes (stdio + hosted) lands both"
+target_mcp_multi="$(mktemp -d)"
+"$INSTALL" "$target_mcp_multi" --platform apple --with-mcps xcodebuildmcp,sentry >/dev/null
+if python3 -c "
+import json
+with open('$target_mcp_multi/.claude/settings.local.json') as f:
+    d = json.load(f)
+mcps = d['mcpServers']
+assert 'xcodebuildmcp' in mcps and 'command' in mcps['xcodebuildmcp']
+assert 'sentry' in mcps and 'url' in mcps['sentry']
+" >/dev/null 2>&1; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --with-mcps xcodebuildmcp,sentry did not land both correctly"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_mcp_multi"
+
+bold "==> --with-mcps is idempotent — re-run preserves existing entries"
+target_mcp_idem="$(mktemp -d)"
+"$INSTALL" "$target_mcp_idem" --platform apple --with-mcps xcodebuildmcp >/dev/null
+# Inject a custom command into the existing entry to detect overwrite.
+python3 -c "
+import json
+p = '$target_mcp_idem/.claude/settings.local.json'
+d = json.load(open(p))
+d['mcpServers']['xcodebuildmcp']['args'] = ['custom-marker']
+json.dump(d, open(p, 'w'), indent=2)
+"
+"$INSTALL" "$target_mcp_idem" --platform apple --with-mcps xcodebuildmcp >/dev/null
+if python3 -c "
+import json
+d = json.load(open('$target_mcp_idem/.claude/settings.local.json'))
+assert d['mcpServers']['xcodebuildmcp']['args'] == ['custom-marker']
+" >/dev/null 2>&1; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --with-mcps overwrote an existing custom-modified entry"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_mcp_idem"
+
+bold "==> --with-mcps preserves unrelated keys in settings.local.json"
+target_mcp_pres="$(mktemp -d)"
+mkdir -p "$target_mcp_pres/.claude"
+cat >"$target_mcp_pres/.claude/settings.local.json" <<'JSON'
+{
+  "permissions": { "allow": ["Bash(echo:*)"] },
+  "customField": "preserve me"
+}
+JSON
+"$INSTALL" "$target_mcp_pres" --platform apple --with-mcps firebase >/dev/null
+if python3 -c "
+import json
+d = json.load(open('$target_mcp_pres/.claude/settings.local.json'))
+assert d['customField'] == 'preserve me', 'custom field lost'
+assert 'Bash(echo:*)' in d['permissions']['allow'], 'permissions lost'
+assert 'firebase' in d['mcpServers'], 'firebase not added'
+" >/dev/null 2>&1; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --with-mcps did not preserve unrelated settings.local.json keys"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_mcp_pres"
+
+bold "==> --with-mcps with unknown recipe name fails cleanly"
+if "$INSTALL" /tmp/never-write --platform apple --with-mcps not-a-real-mcp >/dev/null 2>&1; then
+    red "FAIL: --with-mcps with bogus name should exit non-zero"
+    FAIL=$((FAIL + 1))
+else
+    PASS=$((PASS + 1))
+fi
+
+bold "==> --with-mcps under --dry-run writes nothing"
+target_mcp_dry="$(mktemp -d)"
+"$INSTALL" "$target_mcp_dry" --platform apple --with-mcps xcodebuildmcp --dry-run >/dev/null
+assert_file_absent "$target_mcp_dry/.claude/settings.local.json" "dry-run must not write settings.local.json"
+rm -rf "$target_mcp_dry"
+
+bold "==> manifest tracks mcps_requested"
+target_mcp_mani="$(mktemp -d)"
+"$INSTALL" "$target_mcp_mani" --platform apple --with-mcps xcodebuildmcp,sentry >/dev/null
+if grep -q '"mcps_requested": \["xcodebuildmcp", "sentry"\]' "$target_mcp_mani/.claude/.appbootstrap-manifest.json"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: manifest missing or wrong mcps_requested array"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_mcp_mani"
+
 # --list and --help should both succeed and produce sentinel output.
 # Note: capture output before grepping. If we piped directly to `grep -q`,
 # grep closes stdin after the first match, install.sh gets SIGPIPE on the

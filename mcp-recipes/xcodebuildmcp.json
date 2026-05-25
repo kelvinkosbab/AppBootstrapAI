@@ -1,0 +1,15 @@
+{
+  "name": "xcodebuildmcp",
+  "display_name": "XcodeBuildMCP",
+  "platform": "apple",
+  "description": "Drives Xcode from any MCP client — build schemes, run simulators, capture device logs. Great for letting the agent verify changes against real builds and tests instead of guessing.",
+  "config": {
+    "command": "npx",
+    "args": ["-y", "xcodebuildmcp@latest"]
+  },
+  "setup": [
+    "npx fetches the package on first use; first run is ~30 seconds.",
+    "Verify the exact npm package name and current version against the homepage README before locking it down."
+  ],
+  "homepage": "https://github.com/cameroncooke/XcodeBuildMCP"
+}
