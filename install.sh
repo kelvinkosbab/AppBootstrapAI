@@ -89,19 +89,47 @@
 #                        done in Python to avoid bash fragility).
 #
 #   --upgrade            Compare an existing install against the current bundle
-#                        and print an upgrade plan (no files written). Reads
-#                        the manifest at .claude/.appbootstrap-manifest.json
-#                        and classifies every tracked file into one of:
+#                        and print an upgrade plan. By default writes nothing —
+#                        pair with --apply to execute. Reads the manifest at
+#                        .claude/.appbootstrap-manifest.json and classifies
+#                        every tracked file into one of:
 #                          - up to date (installed hash matches bundle)
 #                          - safe update (no local edits, bundle has new content)
 #                          - local edits (file modified after install — left alone)
 #                          - conflict (both local and bundle changed)
 #                          - retired (file removed upstream — orphan)
 #                          - addition (new in bundle, fits --features)
+#                          - out-of-scope (manifest tracks, current --features doesn't include)
 #                          - renamed (via RENAMES.md)
 #                        Requires schema_version 2 manifest; v1 manifests
-#                        (older installs without hashes) get a migration hint.
-#                        This is plan-only — Phase 3 will add --apply.
+#                        (older installs without hashes) get a migration hint
+#                        unless --migrate-manifest is also passed.
+#
+#   --apply              Execute the upgrade plan. Only valid with --upgrade.
+#                        Writes safe updates, copies in additions, refreshes
+#                        the manifest with fresh hashes + bundle_commit. By
+#                        default, conflicts are SKIPPED with a warning and
+#                        orphans/out-of-scope files are LEFT ALONE — opt into
+#                        more aggressive behavior with --force-conflicts /
+#                        --prune. Combine with --dry-run to preview without
+#                        writing.
+#
+#   --force-conflicts    Only valid with --upgrade --apply. Overwrite files
+#                        that were locally edited AND changed upstream. Your
+#                        local changes are lost — do this only when you've
+#                        already preserved what you wanted (diff against
+#                        git history, save a copy, etc.).
+#
+#   --prune              Only valid with --upgrade --apply. Delete files
+#                        that are listed as orphans (retired upstream) or
+#                        out-of-scope (under the current --features). The
+#                        manifest entries are also dropped.
+#
+#   --migrate-manifest   Only valid with --upgrade --apply. Rewrites a v1
+#                        manifest (older install, no hashes recorded) as a v2
+#                        manifest using current disk contents as the installed
+#                        baseline. No file content is touched. After migration,
+#                        future --upgrade runs can do real 3-way diffs.
 #
 #   -h, --help           Print this help and exit.
 #
@@ -134,6 +162,11 @@ WITH_MCPS=""
 ACTION="install"
 DRY_RUN="false"
 JSON_OUTPUT="false"
+# Phase 3 upgrade-apply flags. Each requires --upgrade + --apply (validated below).
+APPLY="false"
+FORCE_CONFLICTS="false"
+PRUNE="false"
+MIGRATE_MANIFEST="false"
 
 # Track whether the user explicitly passed each flag. Used by --upgrade to
 # inherit selection from the manifest when the user didn't override.
@@ -170,6 +203,22 @@ while [[ $# -gt 0 ]]; do
             ACTION="upgrade"
             shift
             ;;
+        --apply)
+            APPLY="true"
+            shift
+            ;;
+        --force-conflicts)
+            FORCE_CONFLICTS="true"
+            shift
+            ;;
+        --prune)
+            PRUNE="true"
+            shift
+            ;;
+        --migrate-manifest)
+            MIGRATE_MANIFEST="true"
+            shift
+            ;;
         --with-mcps)
             WITH_MCPS="$2"
             shift 2
@@ -183,7 +232,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            sed -n '2,121p' "${BASH_SOURCE[0]}"
+            sed -n '2,149p' "${BASH_SOURCE[0]}"
             exit 0
             ;;
         *)
@@ -192,6 +241,25 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# --- Phase 3 flag validation --------------------------------------------------
+# --apply / --force-conflicts / --prune / --migrate-manifest only combine with --upgrade.
+if [[ "$APPLY" == "true" && "$ACTION" != "upgrade" ]]; then
+    echo "error: --apply requires --upgrade" >&2
+    exit 1
+fi
+if [[ "$FORCE_CONFLICTS" == "true" && "$APPLY" != "true" ]]; then
+    echo "error: --force-conflicts requires --upgrade --apply" >&2
+    exit 1
+fi
+if [[ "$PRUNE" == "true" && "$APPLY" != "true" ]]; then
+    echo "error: --prune requires --upgrade --apply" >&2
+    exit 1
+fi
+if [[ "$MIGRATE_MANIFEST" == "true" && "$APPLY" != "true" ]]; then
+    echo "error: --migrate-manifest requires --upgrade --apply" >&2
+    exit 1
+fi
 
 # --- Upgrade: inherit selection from manifest --------------------------------
 #
@@ -572,6 +640,16 @@ act() {
     fi
 }
 
+# Best-effort: capture the AppBootstrapAI git HEAD. Falls back to "unknown" if
+# the bundle was extracted from a tarball or git isn't on PATH. Purely informational —
+# the upgrade flow uses content hashes, not commit SHAs.
+# Defined here so both install AND upgrade flows can stamp it into the manifest.
+if command -v git >/dev/null 2>&1; then
+    BUNDLE_COMMIT="$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
+else
+    BUNDLE_COMMIT="unknown"
+fi
+
 # --- --list-mcps mode ---------------------------------------------------------
 
 if [[ "$ACTION" == "list-mcps" ]]; then
@@ -782,11 +860,21 @@ if [[ "$ACTION" == "upgrade" ]]; then
 
     python3 - \
         "$manifest_path" "$TARGET" "$bundle_all_tmp" "$bundle_in_scope_tmp" "$renames_path" \
-        "$PLATFORM" "$APPLE_LANG" "$FEATURES_INPUT" \
+        "$PLATFORM" "$APPLE_LANG" "$FEATURES_INPUT" "$SCRIPT_DIR" \
+        "$APPLY" "$FORCE_CONFLICTS" "$PRUNE" "$MIGRATE_MANIFEST" "$DRY_RUN" "$BUNDLE_COMMIT" \
         <<'PYTHON'
-import hashlib, json, os, sys
+import hashlib, json, os, shutil, sys, datetime
 
-manifest_path, target_root, bundle_all_path, in_scope_path, renames_path, platform, apple_lang, features = sys.argv[1:9]
+(manifest_path, target_root, bundle_all_path, in_scope_path, renames_path,
+ platform, apple_lang, features, script_dir,
+ apply_flag, force_conflicts_flag, prune_flag, migrate_manifest_flag, dry_run_flag,
+ bundle_commit) = sys.argv[1:16]
+
+APPLY            = (apply_flag           == "true")
+FORCE_CONFLICTS  = (force_conflicts_flag == "true")
+PRUNE            = (prune_flag           == "true")
+MIGRATE_MANIFEST = (migrate_manifest_flag == "true")
+DRY_RUN          = (dry_run_flag         == "true")
 
 # ----- Read manifest --------------------------------------------------------
 with open(manifest_path) as f:
@@ -795,19 +883,109 @@ with open(manifest_path) as f:
 schema = manifest.get("schema_version", 1)
 
 if schema == 1:
-    print("==> Manifest is schema v1 (no content hashes recorded at install).")
-    print("    The plan-and-apply upgrade flow needs hashes to safely diff your tree.")
-    print("")
-    print("    Two ways forward:")
-    print("    1. Re-run install.sh (without --upgrade) to write a fresh v2 manifest.")
-    print("       Existing files are not overwritten — settings.json, CLAUDE.md, and")
-    print("       any rules you edited are preserved (the installer never overwrites).")
-    print("       This is the lowest-risk path.")
-    print("")
-    print("    2. (Future) --upgrade --apply --migrate-manifest will rewrite the")
-    print("       manifest from current disk contents as a v2 baseline. Not yet implemented.")
-    print("")
-    print("    Aborting plan — no v1 → v2 hash inference at this point.")
+    if not MIGRATE_MANIFEST:
+        print("==> Manifest is schema v1 (no content hashes recorded at install).")
+        print("    The plan-and-apply upgrade flow needs hashes to safely diff your tree.")
+        print("")
+        print("    Two ways forward:")
+        print("    1. Re-run install.sh (without --upgrade) to write a fresh v2 manifest.")
+        print("       Existing files are not overwritten — settings.json, CLAUDE.md, and")
+        print("       any rules you edited are preserved (the installer never overwrites).")
+        print("       This is the lowest-risk path.")
+        print("")
+        print("    2. Re-run as `--upgrade --apply --migrate-manifest` to rewrite the")
+        print("       manifest from current disk contents as a v2 baseline. No file is")
+        print("       touched; only the manifest changes. After that, future --upgrade")
+        print("       runs can do real 3-way diffs.")
+        print("")
+        print("    Aborting plan — no v1 → v2 hash inference without --migrate-manifest.")
+        sys.exit(0)
+    # MIGRATE_MANIFEST + v1: rebuild manifest from disk and exit.
+    def sha256_path(p):
+        if not os.path.exists(p):
+            return None
+        h = hashlib.sha256()
+        with open(p, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    new_files = []
+    dropped = []
+    for entry in manifest.get("files", []):
+        rel = entry["path"]
+        abs_p = os.path.join(target_root, rel)
+        type_ = entry.get("type", "rule")
+        # v1 sometimes had a single "skill" entry per directory; expand to one
+        # per file by walking the on-disk skill dir.
+        if type_ == "skill":
+            skill_name = rel.rstrip("/").split("/")[-1]
+            if os.path.isdir(abs_p):
+                for root, _, fnames in os.walk(abs_p):
+                    for fn in fnames:
+                        ap = os.path.join(root, fn)
+                        rp = os.path.relpath(ap, target_root).replace(os.sep, "/")
+                        new_files.append({
+                            "path": rp,
+                            "type": "skill-file",
+                            "category": entry.get("category", "-"),
+                            "sha256": sha256_path(ap),
+                            "skill": skill_name,
+                        })
+            else:
+                dropped.append(rel)
+            continue
+        # Non-content entries (gitignore-block) → carry forward with null hash.
+        if type_ == "gitignore-block":
+            new_files.append({
+                "path": rel,
+                "type": "gitignore-block",
+                "category": entry.get("category", "-"),
+                "sha256": None,
+            })
+            continue
+        if not os.path.exists(abs_p):
+            dropped.append(rel)
+            continue
+        new_files.append({
+            "path": rel,
+            "type": type_,
+            "category": entry.get("category", "-"),
+            "sha256": sha256_path(abs_p),
+        })
+
+    sel = manifest.get("selection", {})
+    new_manifest = {
+        "schema_version": 2,
+        "installed_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "bundle_commit": bundle_commit if bundle_commit else "unknown",
+        "selection": {
+            "platform": sel.get("platform", platform),
+            "apple_language": sel.get("apple_language", apple_lang),
+            "features_input": sel.get("features_input", features),
+            "features_resolved": sel.get("features_resolved", []),
+        },
+        "files": new_files,
+        "mcps_installed": [],   # v1 had string-array mcps_requested; not migrated automatically
+    }
+    if DRY_RUN:
+        print(f"==> [dry-run] Would migrate v1 → v2 manifest at {manifest_path}.")
+        print(f"               {len(new_files)} file entries; {len(dropped)} dropped (file missing on disk).")
+        print("               (v1 mcps_requested not carried over — re-add MCPs via --with-mcps.)")
+    else:
+        with open(manifest_path, "w") as f:
+            json.dump(new_manifest, f, indent=2)
+            f.write("\n")
+        print(f"==> Migrated manifest from v1 → v2: {manifest_path}")
+        print(f"    Recorded {len(new_files)} file entries with sha256 baselines from current disk.")
+        if dropped:
+            print(f"    Dropped {len(dropped)} entries whose files are missing on disk:")
+            for d in dropped[:10]:
+                print(f"      {d}")
+            if len(dropped) > 10:
+                print(f"      … and {len(dropped) - 10} more")
+        print("    Note: v1 mcps_requested was not migrated — re-add MCPs via --with-mcps if needed.")
+        print("    Future --upgrade runs can now do real 3-way diffs.")
     sys.exit(0)
 
 if schema > 2:
@@ -923,16 +1101,18 @@ for entry in manifest.get("files", []):
         continue
 
     bundle_hash = bundle_info[2]
-    # Special handling for CLAUDE.md: we never auto-update.
-    if entry.get("type") == "template":
+    # Never auto-update CLAUDE.md (template) or settings.json — they're the
+    # user's files even though we seeded them at install. Surface upstream
+    # changes as informational notes; the user diffs manually.
+    if entry.get("type") in ("template", "settings"):
         if installed_hash == bundle_hash:
-            up_to_date.append({"path": rel, "type": "template"})
+            up_to_date.append({"path": rel, "type": entry.get("type")})
         else:
-            # CLAUDE.md is the user's; just note that the template has advanced.
+            note_target = bundle_info[3] if entry.get("type") == "template" else rel
             local_edits.append({
                 "path": rel,
-                "type": "template",
-                "note": f"CLAUDE.md is yours — but {bundle_info[3]} has changed upstream. Diff manually if you want the new boilerplate.",
+                "type": entry.get("type"),
+                "note": f"yours — but {note_target} has advanced upstream. Diff manually if you want the new content.",
             })
         continue
 
@@ -1036,13 +1216,185 @@ if renamed_rows:
     print("")
 
 # Summary line
-total_actions = len(safe_updates) + len(conflicts) + len(orphans) + len(additions)
 print(f"==> Plan: {len(safe_updates)} safe update(s), {len(conflicts)} conflict(s),")
 print(f"          {len(orphans)} orphan(s), {len(additions)} addition(s),")
 print(f"          {len(local_edits)} locally-edited (untouched), {len(up_to_date)} up to date.")
 print("")
-print("This is a plan-only preview. No files have been written.")
-print("Phase 3 will add --upgrade --apply to execute it.")
+
+if not APPLY:
+    print("This is a plan-only preview. No files have been written.")
+    print("Re-run with --apply to execute (add --force-conflicts / --prune to opt into the riskier rows).")
+    sys.exit(0)
+
+# ----- Apply phase -----------------------------------------------------------
+# Skip safe_updates that target never-auto-update types (template / settings) —
+# the classifier already routes them to local_edits, but be defensive.
+def is_never_auto(row):
+    return row.get("type") in ("template", "settings")
+
+actions = []  # list of (kind, row) where kind ∈ {"update","add","delete"}
+for r in safe_updates:
+    if is_never_auto(r):
+        continue
+    actions.append(("update", r))
+if FORCE_CONFLICTS:
+    for r in conflicts:
+        if is_never_auto(r):
+            continue
+        actions.append(("update", r))
+skipped_conflicts = 0 if FORCE_CONFLICTS else len([c for c in conflicts if not is_never_auto(c)])
+if PRUNE:
+    for r in orphans:
+        actions.append(("delete", r))
+    for r in out_of_scope:
+        actions.append(("delete", r))
+deleted_count_plan = sum(1 for kind, _ in actions if kind == "delete")
+for r in additions:
+    actions.append(("add", r))
+
+print(f"==> Applying {len(actions)} action(s)" + (" [DRY RUN]" if DRY_RUN else "") + "...")
+
+written = 0
+deleted = 0
+for kind, r in actions:
+    rel = r["path"]
+    dst = os.path.join(target_root, rel)
+    if kind in ("update", "add"):
+        src = os.path.join(script_dir, rel)
+        if not os.path.exists(src):
+            # Shouldn't happen — bundle path should exist for in-scope items.
+            print(f"  warn: bundle source missing, skipping: {src}")
+            continue
+        if DRY_RUN:
+            print(f"  [dry-run] would {kind}: {rel}")
+        else:
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copy2(src, dst)
+            written += 1
+    elif kind == "delete":
+        if not os.path.exists(dst):
+            # Already gone (user may have deleted manually). Manifest will still drop it.
+            print(f"  note: already absent on disk: {rel}")
+        elif DRY_RUN:
+            print(f"  [dry-run] would delete: {rel}")
+        else:
+            os.remove(dst)
+            deleted += 1
+            # Clean up now-empty parent dirs we own (under .claude). Don't
+            # touch the user's project root.
+            parent = os.path.dirname(dst)
+            owned_root = os.path.join(target_root, ".claude")
+            while parent.startswith(owned_root) and parent != owned_root:
+                try:
+                    if not os.listdir(parent):
+                        os.rmdir(parent)
+                        parent = os.path.dirname(parent)
+                    else:
+                        break
+                except OSError:
+                    break
+
+if DRY_RUN:
+    print(f"==> [DRY RUN] {len(actions)} action(s) would run; 0 written.")
+    if skipped_conflicts:
+        print(f"    {skipped_conflicts} conflict(s) would be SKIPPED — re-run with --force-conflicts to overwrite.")
+    sys.exit(0)
+
+# ----- Re-build manifest from current disk state -----------------------------
+def sha256_path(p):
+    if not os.path.exists(p):
+        return None
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+# Set of rel_paths we just deleted (under --prune) — exclude from new manifest.
+deleted_paths = set()
+for kind, r in actions:
+    if kind == "delete":
+        deleted_paths.add(r["path"])
+
+# Start by carrying every manifest entry forward UNLESS we deleted it.
+# Then layer additions on top. For each carried entry, recompute hash from disk.
+new_files = []
+seen_paths = set()
+for entry in manifest.get("files", []):
+    rel = entry["path"]
+    if rel in deleted_paths:
+        continue
+    abs_p = os.path.join(target_root, rel)
+    type_ = entry.get("type", "rule")
+    if type_ == "gitignore-block":
+        # Carry forward unchanged — bash install path manages this block separately.
+        new_files.append({
+            "path": rel,
+            "type": "gitignore-block",
+            "category": entry.get("category", "-"),
+            "sha256": None,
+        })
+        seen_paths.add(rel)
+        continue
+    if not os.path.exists(abs_p):
+        # File vanished between plan and apply (or was deleted manually). Drop it.
+        continue
+    e_out = {
+        "path": rel,
+        "type": type_,
+        "category": entry.get("category", "-"),
+        "sha256": sha256_path(abs_p),
+    }
+    if "skill" in entry:
+        e_out["skill"] = entry["skill"]
+    new_files.append(e_out)
+    seen_paths.add(rel)
+
+# Additions that just landed → record them.
+for kind, r in actions:
+    if kind != "add":
+        continue
+    rel = r["path"]
+    if rel in seen_paths:
+        continue   # already carried forward (shouldn't happen for additions)
+    abs_p = os.path.join(target_root, rel)
+    if not os.path.exists(abs_p):
+        continue
+    e_out = {
+        "path": rel,
+        "type": r.get("type", "rule"),
+        "category": r.get("category", "-"),
+        "sha256": sha256_path(abs_p),
+    }
+    if r.get("skill"):
+        e_out["skill"] = r["skill"]
+    new_files.append(e_out)
+    seen_paths.add(rel)
+
+new_manifest = {
+    "schema_version": 2,
+    "installed_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "bundle_commit": bundle_commit if bundle_commit else "unknown",
+    "selection": {
+        "platform": platform,
+        "apple_language": apple_lang,
+        "features_input": features,
+        "features_resolved": manifest.get("selection", {}).get("features_resolved", []),
+    },
+    "files": new_files,
+    # Carry mcps_installed forward verbatim — MCP-side apply lands in Phase 3.1.
+    "mcps_installed": manifest.get("mcps_installed", []),
+}
+
+with open(manifest_path, "w") as f:
+    json.dump(new_manifest, f, indent=2)
+    f.write("\n")
+
+# ----- Apply summary ---------------------------------------------------------
+print(f"==> Apply complete: {written} file(s) written, {deleted} deleted.")
+if skipped_conflicts:
+    print(f"    {skipped_conflicts} conflict(s) SKIPPED — re-run with --force-conflicts to overwrite.")
+print(f"==> Manifest refreshed: {manifest_path}")
 PYTHON
 
     exit 0
@@ -1232,15 +1584,6 @@ fi
 # what actually got written, not what was requested.
 MANIFEST_PATH="$TARGET/.claude/.appbootstrap-manifest.json"
 TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
-# Best-effort: capture the AppBootstrapAI git HEAD. Falls back to "unknown" if
-# the bundle was extracted from a tarball or git isn't on PATH. Purely informational —
-# the upgrade flow uses content hashes, not commit SHAs.
-if command -v git >/dev/null 2>&1; then
-    BUNDLE_COMMIT="$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
-else
-    BUNDLE_COMMIT="unknown"
-fi
 
 write_manifest() {
     {

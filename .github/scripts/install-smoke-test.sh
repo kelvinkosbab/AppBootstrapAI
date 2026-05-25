@@ -736,6 +736,222 @@ fi
 rm -rf "$target_up_none"
 rm -f /tmp/up_none.out
 
+# --- --upgrade --apply (Phase 3) --------------------------------------------
+#
+# Same scenarios as Phase 2 plan-only, but driving them to the actual write.
+# We verify: file content changed (or didn't), manifest hash refreshed,
+# and the right files were created/removed.
+
+# Helpers for these tests.
+file_hash() { shasum -a 256 "$1" | awk '{print $1}'; }
+manifest_hash_for() {
+    python3 -c "import json; m=json.load(open('$1')); print([f.get('sha256','') for f in m['files'] if f['path']=='$2'][0])" 2>/dev/null
+}
+manifest_has_path() {
+    python3 -c "import json,sys; m=json.load(open('$1')); sys.exit(0 if '$2' in [f['path'] for f in m['files']] else 1)" 2>/dev/null
+}
+
+bold "==> --apply: safe update overwrites file and refreshes manifest"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+echo "old content" > "$t/.claude/rules/apple-swiftui-mvvm.md"
+old_hash="$(file_hash "$t/.claude/rules/apple-swiftui-mvvm.md")"
+python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+for f in m['files']:
+    if f['path'] == '.claude/rules/apple-swiftui-mvvm.md':
+        f['sha256'] = '$old_hash'; break
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+"$INSTALL" "$t" --upgrade --apply > /dev/null
+bundle_hash="$(file_hash "$REPO_ROOT/.claude/rules/apple-swiftui-mvvm.md")"
+disk_hash="$(file_hash "$t/.claude/rules/apple-swiftui-mvvm.md")"
+m_hash="$(manifest_hash_for "$t/.claude/.appbootstrap-manifest.json" ".claude/rules/apple-swiftui-mvvm.md")"
+if [[ "$disk_hash" == "$bundle_hash" && "$m_hash" == "$bundle_hash" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: safe-update apply didn't fully sync disk + manifest to bundle"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply: conflict SKIPPED by default, local edit preserved"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+echo "# local edit" >> "$t/.claude/rules/apple-swiftui-mvvm.md"
+local_hash="$(file_hash "$t/.claude/rules/apple-swiftui-mvvm.md")"
+python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+for f in m['files']:
+    if f['path'] == '.claude/rules/apple-swiftui-mvvm.md':
+        f['sha256'] = '0'*64; break
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+out="$("$INSTALL" "$t" --upgrade --apply 2>&1)"
+disk_hash="$(file_hash "$t/.claude/rules/apple-swiftui-mvvm.md")"
+if [[ "$disk_hash" == "$local_hash" ]] && grep -q "conflict.*SKIPPED" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: conflict should be skipped + local edit preserved"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply --force-conflicts: conflict overwritten"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+echo "# local edit" >> "$t/.claude/rules/apple-swiftui-mvvm.md"
+python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+for f in m['files']:
+    if f['path'] == '.claude/rules/apple-swiftui-mvvm.md':
+        f['sha256'] = '0'*64; break
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+"$INSTALL" "$t" --upgrade --apply --force-conflicts > /dev/null
+disk_hash="$(file_hash "$t/.claude/rules/apple-swiftui-mvvm.md")"
+bundle_hash="$(file_hash "$REPO_ROOT/.claude/rules/apple-swiftui-mvvm.md")"
+if [[ "$disk_hash" == "$bundle_hash" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --force-conflicts should overwrite the conflicted file"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply --prune: orphan file deleted, manifest entry dropped"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+echo "retired" > "$t/.claude/rules/retired-rule.md"
+ret_hash="$(file_hash "$t/.claude/rules/retired-rule.md")"
+python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+m['files'].append({'path': '.claude/rules/retired-rule.md', 'type': 'rule', 'category': 'core', 'sha256': '$ret_hash'})
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+"$INSTALL" "$t" --upgrade --apply --prune > /dev/null
+if [[ ! -f "$t/.claude/rules/retired-rule.md" ]] \
+    && ! manifest_has_path "$t/.claude/.appbootstrap-manifest.json" ".claude/rules/retired-rule.md"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --prune should delete orphan AND drop its manifest entry"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply --prune: out-of-scope file deleted on feature drop"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features all > /dev/null
+"$INSTALL" "$t" --upgrade --features recommended --apply --prune > /dev/null
+if [[ ! -f "$t/.claude/rules/apple-foundation-models.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: out-of-scope file should be removed under --prune"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply: addition (new feature opt-in) lands + tracks in manifest"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+[[ -f "$t/.claude/rules/apple-foundation-models.md" ]] && { red "test setup wrong: ai rule already present"; FAIL=$((FAIL + 1)); }
+"$INSTALL" "$t" --upgrade --features all --apply > /dev/null
+if [[ -f "$t/.claude/rules/apple-foundation-models.md" ]] \
+    && manifest_has_path "$t/.claude/.appbootstrap-manifest.json" ".claude/rules/apple-foundation-models.md"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: addition should write the file AND extend the manifest"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply --dry-run: nothing written, manifest untouched"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+echo "old" > "$t/.claude/rules/apple-swiftui-mvvm.md"
+old_hash="$(file_hash "$t/.claude/rules/apple-swiftui-mvvm.md")"
+python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+for f in m['files']:
+    if f['path'] == '.claude/rules/apple-swiftui-mvvm.md':
+        f['sha256'] = '$old_hash'; break
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+out="$("$INSTALL" "$t" --upgrade --apply --dry-run 2>&1)"
+disk_hash="$(file_hash "$t/.claude/rules/apple-swiftui-mvvm.md")"
+m_hash="$(manifest_hash_for "$t/.claude/.appbootstrap-manifest.json" ".claude/rules/apple-swiftui-mvvm.md")"
+if [[ "$disk_hash" == "$old_hash" && "$m_hash" == "$old_hash" ]] && grep -q "DRY RUN" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --apply --dry-run must not write any files OR touch the manifest"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --migrate-manifest: v1 → v2 with disk hashes"
+t="$(mktemp -d)"
+mkdir -p "$t/.claude/rules" "$t/.claude/skills/test-skill"
+echo "rule content" > "$t/.claude/rules/test-rule.md"
+echo "skill content" > "$t/.claude/skills/test-skill/SKILL.md"
+cat > "$t/.claude/.appbootstrap-manifest.json" <<'V1MIG'
+{
+  "schema_version": 1,
+  "installed_at": "2024-01-01T00:00:00Z",
+  "selection": {"platform": "apple", "apple_language": "swift", "features_input": "recommended", "features_resolved": ["core"]},
+  "files": [
+    {"path": ".claude/rules/test-rule.md", "type": "rule", "category": "core"},
+    {"path": ".claude/skills/test-skill", "type": "skill", "category": "concurrency"}
+  ],
+  "mcps_requested": []
+}
+V1MIG
+"$INSTALL" "$t" --upgrade --apply --migrate-manifest > /dev/null
+if python3 -c "
+import json, re, sys
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+assert m['schema_version'] == 2, m
+assert 'bundle_commit' in m
+assert isinstance(m['mcps_installed'], list)
+paths = [f['path'] for f in m['files']]
+assert '.claude/rules/test-rule.md' in paths
+# v1 skill entry should have expanded to a skill-file entry
+skill_files = [f for f in m['files'] if f.get('type')=='skill-file']
+assert len(skill_files) >= 1
+assert all(re.match(r'^[0-9a-f]{64}\$', f['sha256']) for f in m['files'] if f['type'] != 'gitignore-block')
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --migrate-manifest didn't produce a valid v2 manifest"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apply: validation — --apply requires --upgrade"
+if "$INSTALL" /tmp/never --apply > /dev/null 2>&1; then
+    red "FAIL: --apply without --upgrade should fail"; FAIL=$((FAIL + 1))
+else
+    PASS=$((PASS + 1))
+fi
+
+bold "==> --apply: validation — --force-conflicts requires --apply"
+if "$INSTALL" /tmp/never --upgrade --force-conflicts > /dev/null 2>&1; then
+    red "FAIL: --force-conflicts without --apply should fail"; FAIL=$((FAIL + 1))
+else
+    PASS=$((PASS + 1))
+fi
+
+bold "==> --apply: validation — --prune requires --apply"
+if "$INSTALL" /tmp/never --upgrade --prune > /dev/null 2>&1; then
+    red "FAIL: --prune without --apply should fail"; FAIL=$((FAIL + 1))
+else
+    PASS=$((PASS + 1))
+fi
+
 # --list and --help should both succeed and produce sentinel output.
 # Note: capture output before grepping. If we piped directly to `grep -q`,
 # grep closes stdin after the first match, install.sh gets SIGPIPE on the

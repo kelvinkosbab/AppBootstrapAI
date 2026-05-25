@@ -60,7 +60,7 @@ This repo is not a Swift package — it's a curated `.claude/` directory plus on
   - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
   - `--with-mcps <csv>` writes one `mcpServers.<name>` entry per recipe into `.claude/settings.local.json`. Existing entries are never overwritten. Setup notes (auth, env vars) print after install. See [`mcp-recipes/`](mcp-recipes/) for the available recipes.
   - `--dry-run` shows what an install would do without writing any files
-  - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope. Writes nothing in the plan-only phase; see [Upgrading an existing install](#upgrading-an-existing-install).
+  - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. See [Upgrading an existing install](#upgrading-an-existing-install).
   - `--help` documents every flag and enumerates all 13 categories
   - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (schema v2 — records per-file SHA-256 hashes so `--upgrade` can diff 3-way: installed vs. current disk vs. bundle)
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
@@ -211,34 +211,56 @@ Agents that run in a terminal context (Claude Code, Cursor's agent mode, Gemini 
 
 ## Upgrading an existing install
 
-Once a repo has run `install.sh`, the bundle keeps evolving — new rules ship, existing rules get tightened, skills gain references. The `--upgrade` flag prints a per-file plan showing what would change, without touching anything:
+Once a repo has run `install.sh`, the bundle keeps evolving — new rules ship, existing rules get tightened, skills gain references. The `--upgrade` flow lets you see what would change and apply it surgically, without ever touching files you've customized.
 
 ```bash
-# Plan only — writes nothing. Inherits --platform / --apple-language / --features from the manifest.
+# 1. Plan — read-only preview. Inherits --platform / --apple-language / --features from the manifest.
 /path/to/AppBootstrapAI/install.sh /your/repo --upgrade
 
-# Opt into a new category that didn't exist at original install time.
-/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --features recommended,ai
+# 2. Apply — execute the safe rows. Conflicts default to SKIP; orphans stay.
+/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --apply
+
+# 3. Apply + opt into a new feature category (e.g., adopt Foundation Models support post-iOS-26).
+/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --features recommended,ai --apply
+
+# 4. Preview apply without writing — combines --apply with --dry-run.
+/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --apply --dry-run
+
+# 5. Aggressive: overwrite locally-edited files where the bundle also changed (loses local edits).
+/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --apply --force-conflicts
+
+# 6. Aggressive: delete files retired upstream or no longer in --features.
+/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --apply --prune
 ```
 
 The plan classifies every tracked file:
 
 - **Up to date** — installed hash matches the bundle. No action.
-- **Safe to update** — bundle has new content; you haven't touched the file locally. Phase 3 (`--apply`) will overwrite.
-- **Locally edited** — you modified the file after install; bundle unchanged. The upgrade leaves it alone.
-- **Conflict** — both local edits and upstream changes since install. Default is skip-with-warning; `--force-conflicts` (Phase 3) will overwrite.
-- **Out of scope** — file was installed under one `--features` set but isn't part of the current selection. Manifest tracks it; no action unless you `--prune` (Phase 3).
-- **Retired upstream** — bundle no longer ships this file. Listed but not auto-deleted; `--prune` (Phase 3) will clean up.
-- **Would add** — new files in the bundle that fit your current `--features` and aren't in the manifest yet.
+- **Safe to update** — bundle has new content; you haven't touched the file locally. `--apply` overwrites.
+- **Locally edited** — you modified the file after install; bundle unchanged. The upgrade always leaves these alone.
+- **Conflict** — both local edits and upstream changes since install. Default is skip-with-warning; `--force-conflicts` overwrites.
+- **Out of scope** — file was installed under one `--features` set but isn't part of the current selection. Manifest tracks it; `--prune` removes it.
+- **Retired upstream** — bundle no longer ships this file. Listed but not auto-deleted; `--prune` removes it.
+- **Would add** — new files in the bundle that fit your current `--features` and aren't in the manifest yet. `--apply` writes them.
 
 The diff is **3-way per file**: installed hash (what we wrote at install), current disk hash (what's there now), and bundle hash (what the bundle ships today). That's how the plan can tell *"you've edited this"* apart from *"someone re-ran an installer."*
 
-**Limits today:**
+### Migrating from older manifests
 
-- This is **plan-only** in Phase 2. Re-running with `--apply` to actually execute the plan is Phase 3 (next).
-- Manifests from older installs (`schema_version: 1`, no hashes) print a migration notice. The lowest-risk migration is to re-run `install.sh` once — it never overwrites files you customized, and the re-install produces a v2 manifest that future `--upgrade` runs can diff against.
-- `CLAUDE.md` is never auto-touched. The plan surfaces "template advanced upstream" when relevant; the diff is for you to apply by hand.
-- Renamed rules (e.g., a rule file gets a better name in a future bundle release) are tracked in [`RENAMES.md`](RENAMES.md) at the bundle root. The upgrade plan folds rename pairs into a single row instead of showing "deleted X, added Y."
+Installs from before manifest schema v2 don't have content hashes recorded, so the diff has no baseline. The migration is a single command — no files are touched, only the manifest is rewritten:
+
+```bash
+/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --apply --migrate-manifest
+```
+
+After migration, future `--upgrade` runs can do real 3-way diffs. Note: v1 `mcps_requested` is not carried over; re-add MCPs via `--with-mcps` if needed.
+
+### Things the upgrade flow won't do
+
+- **`CLAUDE.md`** is never auto-touched. The plan surfaces "template advanced upstream" when relevant; the diff is for you to apply by hand. `CLAUDE.md` fills with project-specific content fast, so auto-merge is dangerous.
+- **`.claude/settings.json`** gets the same treatment for the same reason — you probably added permissions, tweaked allowlists. The plan informs; you merge.
+- **MCP entries in `.claude/settings.local.json`** are not auto-updated yet (Phase 3.1). Re-running `--with-mcps <name>` against an existing entry still leaves it alone (per the original install policy).
+- **Renamed rules** (e.g., a rule file gets a better name in a future bundle release) are tracked in [`RENAMES.md`](RENAMES.md) at the bundle root. The upgrade plan folds rename pairs into a single row instead of showing "deleted X, added Y."
 
 ## Saving AI tokens
 
