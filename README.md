@@ -1,6 +1,6 @@
 # AppBootstrapAI
 
-A drop-in bundle of **Claude Code skills** and **AI steering rules** for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) and Android in one bundle, so single-platform and mixed-stack teams can share one source of truth.
+A drop-in bundle of **AI agent steering** — rules, skills (Claude), and MCP recipes — for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) and Android in one bundle, so single-platform and mixed-stack teams can share one source of truth. Works with **Claude Code, GitHub Copilot, Cursor, Gemini CLI, and Codex CLI** out of the box (`./install.sh --agents <name>` writes the right files per agent).
 
 One `install.sh` bootstraps modern review, testing, style, accessibility, and localization guidance into any new or existing app repo — and keeps it up to date with `--upgrade`. Day-one consistency without writing the rules yourself; day-N reproducibility without drifting from upstream.
 
@@ -145,28 +145,47 @@ From the root of a new app repo:
 # Browse available MCP recipes (see what --with-mcps can install)
 /path/to/AppBootstrapAI/install.sh --list-mcps
 
-# Full help — documents --features categories AND --with-mcps recipes
+# Install for a non-Claude agent — writes that agent's native file shape
+/path/to/AppBootstrapAI/install.sh . --agents copilot   # → .github/copilot-instructions.md
+/path/to/AppBootstrapAI/install.sh . --agents cursor    # → .cursor/rules/*.mdc
+/path/to/AppBootstrapAI/install.sh . --agents gemini    # → GEMINI.md
+/path/to/AppBootstrapAI/install.sh . --agents codex     # → AGENTS.md
+
+# Mixed team — install for several agents in one run
+/path/to/AppBootstrapAI/install.sh . --agents claude,copilot,cursor
+
+# Everything (claude + copilot + cursor + gemini + codex)
+/path/to/AppBootstrapAI/install.sh . --agents all
+
+# Existing install? Diff and apply updates without losing local edits
+/path/to/AppBootstrapAI/install.sh . --upgrade           # plan-only preview
+/path/to/AppBootstrapAI/install.sh . --upgrade --apply   # execute the plan
+
+# Full help — documents --features categories, --with-mcps recipes, --agents tokens
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. This will be the foundation for future `--upgrade` / `--uninstall` flows.
+Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. The manifest is what powers `--upgrade`'s 3-way diff against future bundle versions.
 
 **The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization`. Specialized opt-ins not in `recommended`: `persistence` (Core Data), `ai` (Foundation Models, iOS 26+), `migration` (XML → Compose), `shrinking` (R8/ProGuard).
 
+**The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|all` (additive CSV) and the installer also drops the matching file shape for those agents (one concat file for Copilot/Gemini/Codex; per-rule `.mdc` files for Cursor). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
+
 The installer:
 
-- Copies skills matching the platform/language/features intersection (Android skills under `--platform android` or `both`; Apple skills under `--platform apple` or `both` and `--apple-language` permitting Swift).
-- Copies platform-matching `.claude/rules/` filtered by `--features`.
-- Copies `.claude/settings.json` (only if one doesn't already exist).
-- Renders the **platform-appropriate** `CLAUDE.template.*.md` into `CLAUDE.md` (only if missing): `apple` → `CLAUDE.template.apple.md`, `android` → `CLAUDE.template.android.md`, `both` → `CLAUDE.template.md`.
-- Appends platform-specific entries to `.gitignore`, deduped by marker.
-- Writes `.claude/.appbootstrap-manifest.json` recording every installed file (groundwork for future `--upgrade` / `--uninstall`).
+- Copies skills matching the platform/language/features intersection (Apple skills when `--agents claude` and Apple/Swift in scope; Android skills similarly). Skills are Claude-only — non-Claude agents get rules only.
+- Copies platform-matching `.claude/rules/` filtered by `--features` (when `--agents claude` is selected).
+- Generates per-agent files for each agent in `--agents` (e.g., `.github/copilot-instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`).
+- Copies `.claude/settings.json` (only if `--agents claude` and one doesn't already exist).
+- Renders the **platform-appropriate** `CLAUDE.template.*.md` into `CLAUDE.md` (only if `--agents claude` and missing): `apple` → `CLAUDE.template.apple.md`, `android` → `CLAUDE.template.android.md`, `both` → `CLAUDE.template.md`.
+- Appends platform-specific entries to `.gitignore`, deduped by marker. Adds `.cursor/state*` / `.cursor/.cache/` entries when `--agents cursor` is selected.
+- Writes `.claude/.appbootstrap-manifest.json` recording every installed file (with per-file SHA-256) plus the full selection (`--platform`, `--apple-language`, `--features`, `--agents`).
 
-It never overwrites an existing `CLAUDE.md` or `settings.json` — it prints what it skipped so you can merge.
+It never overwrites an existing `CLAUDE.md`, `settings.json`, or any agent file (`copilot-instructions.md`, `GEMINI.md`, etc.) — it prints what it skipped so you can merge.
 
 `--dry-run` skips every write but still prints what would happen, so you can preview before committing to an upgrade.
 
-After install, edit the new `CLAUDE.md` and fill in the `<PLACEHOLDER>` sections. Keep the `.claude/rules/` and `.claude/skills/` as-is unless you need to extend them.
+After install, edit the new `CLAUDE.md` (or your agent's equivalent) and fill in the `<PLACEHOLDER>` sections. Keep the bundled rules and skills as-is unless you need to extend them.
 
 > **Using a different agent?** `install.sh --agents copilot|cursor|gemini|codex|all` writes the right files natively. See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent file layout. For agents not in that built-in set, point a sync tool like [`ruler`](https://github.com/intellectronica/ruler) at `.claude/`.
 
@@ -196,7 +215,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 
 1. **Hand the agent this repo's URL and your project description.** Most agents need just enough context to pick the right flags. A prompt like *"Bootstrap this iOS+macOS app with AppBootstrapAI — Swift only, include the AI/Foundation Models category"* tells Claude / Cursor / Gemini / Kiro / Copilot what they need to know.
 2. **The agent can introspect the catalog before installing.** `./install.sh --list --features all` prints every rule and skill with its category and one-line description. Agents that read the output can recommend the right `--features` list for your project.
-3. **For Claude Code users who want first-class integration**, this repo ships an [MCP server](mcp-server/README.md) that exposes the installer as five structured tools: `list_categories`, `list_rules`, `list_skills`, `preview_install`, and `install`. Once configured in `.claude/settings.json`, Claude can run the installer through a typed API rather than parsing shell output. See [`mcp-server/`](mcp-server/) for setup.
+3. **For agents that speak MCP** (Claude Code, Cursor, others with MCP client support), this repo ships an [MCP server](mcp-server/README.md) that exposes the installer as five structured tools: `list_categories`, `list_rules`, `list_skills`, `preview_install`, and `install`. Wire it into your agent's MCP config and the agent runs the installer through a typed API rather than parsing shell output. See [`mcp-server/`](mcp-server/) for setup.
 
 **Recommended prompts** (copy-paste-friendly for the agent of your choice):
 
