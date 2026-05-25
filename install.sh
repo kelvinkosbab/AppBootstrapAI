@@ -77,6 +77,21 @@
 #                        description, homepage) that --with-mcps can install.
 #                        Exits after printing.
 #
+#   --agents <csv>       Comma-separated list of AI agents to install for.
+#                        Default: claude. Additive — pass multiple to cover a
+#                        mixed team in one install. Accepted tokens:
+#                          claude   → .claude/rules/, .claude/skills/, CLAUDE.md  (today's default)
+#                          copilot  → .github/copilot-instructions.md  (concat of in-scope rules)
+#                          cursor   → .cursor/rules/<name>.mdc          (per-rule files)
+#                          gemini   → GEMINI.md                          (concat of in-scope rules)
+#                          codex    → AGENTS.md                          (concat of in-scope rules)
+#                          all      → every agent above
+#                        Skills are Claude-only — non-Claude agents get rules
+#                        only. Existing agent files are NEVER overwritten by
+#                        install; --upgrade does 3-way diff like any other
+#                        tracked file. Concat files are deterministic for
+#                        the same --platform / --apple-language / --features.
+#
 #   --with-mcps <csv>    Comma-separated list of MCP recipes to add to the
 #                        target's .claude/settings.local.json. Each recipe
 #                        contributes one entry under "mcpServers". Existing
@@ -159,6 +174,7 @@ PLATFORM=""
 APPLE_LANG="swift"
 FEATURES_INPUT="recommended"
 WITH_MCPS=""
+AGENTS_INPUT="claude"
 ACTION="install"
 DRY_RUN="false"
 JSON_OUTPUT="false"
@@ -172,6 +188,7 @@ MIGRATE_MANIFEST="false"
 # inherit selection from the manifest when the user didn't override.
 APPLE_LANG_EXPLICIT="false"
 FEATURES_EXPLICIT="false"
+AGENTS_EXPLICIT="false"
 
 # --- Argument parsing ---------------------------------------------------------
 
@@ -223,6 +240,11 @@ while [[ $# -gt 0 ]]; do
             WITH_MCPS="$2"
             shift 2
             ;;
+        --agents|--agent)
+            AGENTS_INPUT="$2"
+            AGENTS_EXPLICIT="true"
+            shift 2
+            ;;
         --dry-run)
             DRY_RUN="true"
             shift
@@ -232,7 +254,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            sed -n '2,149p' "${BASH_SOURCE[0]}"
+            sed -n '2,164p' "${BASH_SOURCE[0]}"
             exit 0
             ;;
         *)
@@ -261,6 +283,31 @@ if [[ "$MIGRATE_MANIFEST" == "true" && "$APPLY" != "true" ]]; then
     exit 1
 fi
 
+# --- Agents catalog + resolver -----------------------------------------------
+# Defined here (before upgrade-inherit) because upgrade-inherit needs to call
+# resolve_agents() on the manifest-recorded agents_input. The SELECTED_AGENTS
+# value and validation happen later in the script alongside --features.
+ALL_AGENTS="claude copilot cursor gemini codex"
+
+resolve_agents() {
+    local input="$1"
+    local out="" token expanded a
+    for token in $(echo "$input" | tr ',' ' '); do
+        case "$token" in
+            all)    expanded="$ALL_AGENTS" ;;
+            *)      expanded="$token" ;;
+        esac
+        for a in $expanded; do
+            # De-dupe.
+            case " $out " in
+                *" $a "*) ;;
+                *) out="$out $a" ;;
+            esac
+        done
+    done
+    echo "${out# }"
+}
+
 # --- Upgrade: inherit selection from manifest --------------------------------
 #
 # For --upgrade, default the selection flags to what was recorded at install
@@ -278,11 +325,11 @@ if [[ "$ACTION" == "upgrade" ]]; then
 import json, sys
 m = json.load(open(sys.argv[1]))
 s = m.get("selection", {})
-# Print pipe-separated: platform|apple_language|features_input
-print(f"{s.get('platform','')}|{s.get('apple_language','')}|{s.get('features_input','')}")
+# Print pipe-separated: platform|apple_language|features_input|agents_input
+print(f"{s.get('platform','')}|{s.get('apple_language','')}|{s.get('features_input','')}|{s.get('agents_input','')}")
 PYTHON
         )"; then
-            IFS='|' read -r m_platform m_apple m_features <<<"$inherited"
+            IFS='|' read -r m_platform m_apple m_features m_agents <<<"$inherited"
             if [[ -z "$PLATFORM" && -n "$m_platform" ]]; then
                 PLATFORM="$m_platform"
                 UPGRADE_INHERITED_FROM_MANIFEST="true"
@@ -293,6 +340,12 @@ PYTHON
             fi
             if [[ "$FEATURES_EXPLICIT" != "true" && -n "$m_features" ]]; then
                 FEATURES_INPUT="$m_features"
+                UPGRADE_INHERITED_FROM_MANIFEST="true"
+            fi
+            if [[ "$AGENTS_EXPLICIT" != "true" && -n "$m_agents" ]]; then
+                AGENTS_INPUT="$m_agents"
+                # Re-resolve SELECTED_AGENTS from the inherited value.
+                SELECTED_AGENTS="$(resolve_agents "$AGENTS_INPUT")"
                 UPGRADE_INHERITED_FROM_MANIFEST="true"
             fi
         fi
@@ -450,6 +503,34 @@ for f in $SELECTED_FEATURES; do
         exit 1
     fi
 done
+
+# --- --agents resolution ------------------------------------------------------
+#
+# AGENTS_INPUT is CSV of: claude (default), copilot, cursor, gemini, codex, all.
+# Resolve into SELECTED_AGENTS as a space-separated set, validate, de-dupe.
+# (Function defined earlier near arg-parse so upgrade-inherit can call it.)
+
+SELECTED_AGENTS="$(resolve_agents "$AGENTS_INPUT")"
+for a in $SELECTED_AGENTS; do
+    valid=0
+    for known in $ALL_AGENTS; do
+        if [[ "$a" == "$known" ]]; then valid=1; break; fi
+    done
+    if [[ "$valid" != "1" ]]; then
+        echo "error: unknown agent: $a" >&2
+        echo "       valid agents: $ALL_AGENTS" >&2
+        echo "       presets: all" >&2
+        exit 1
+    fi
+done
+
+# Convenience helper used throughout the install + upgrade paths.
+agents_has() {
+    case " $SELECTED_AGENTS " in
+        *" $1 "*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
 
 # Validate --with-mcps recipe names early (before any writes). Each name must
 # match an mcp-recipes/<name>.json file. Empty input is fine (no MCPs requested).
@@ -615,6 +696,43 @@ sha256_file() {
     fi
 }
 
+# Emit a deterministic concatenation of every in-scope rule. Used for the
+# single-file non-Claude agents (Copilot, Gemini, Codex). Output is identical
+# given the same SCRIPT_DIR contents + --platform / --apple-language / --features,
+# so hashing the output gives a stable bundle hash across install/upgrade.
+#
+# The first line of the output is a generated-banner identifying the source
+# and disclaiming hand-edits. Each rule is delimited by an HR + the basename
+# as a heading, so a human reading the concat can navigate.
+#
+# Usage: concat_in_scope_rules <banner_purpose>   →  prints to stdout
+#   banner_purpose is a short label like "GitHub Copilot" / "Gemini CLI" /
+#   "Codex (AGENTS.md)" that gets baked into the header so the generated
+#   file's first line tells you what tool it's for.
+concat_in_scope_rules() {
+    local banner_purpose="$1"
+    echo "<!-- Generated by AppBootstrapAI install.sh for ${banner_purpose}. -->"
+    echo "<!-- Do not edit this file directly. Edit .claude/rules/ in the bundle and re-run install.sh / --upgrade --apply. -->"
+    echo "<!-- Source of truth: https://github.com/kelvinkosbab/AppBootstrapAI -->"
+    echo ""
+    # Iterate alphabetically — that's what shell glob already does, but be explicit so
+    # the contract "deterministic output" doesn't depend on filesystem ordering.
+    shopt -s nullglob
+    local f name
+    for f in $(printf '%s\n' "$SCRIPT_DIR/.claude/rules/"*.md | LC_ALL=C sort); do
+        name="$(basename "$f")"
+        if should_install_rule "$name"; then
+            echo "## $name"
+            echo ""
+            cat "$f"
+            echo ""
+            echo ""
+            echo "---"
+            echo ""
+        fi
+    done
+}
+
 # Print a JSON-array of strings from a space-separated list.
 json_string_array() {
     local items="$1"
@@ -697,6 +815,10 @@ if [[ "$ACTION" == "list" ]]; then
         printf '    "features_input": "%s",\n' "$FEATURES_INPUT"
         printf '    "features_resolved": '
         json_string_array "$SELECTED_FEATURES"
+        printf ',\n'
+        printf '    "agents_input": "%s",\n' "$AGENTS_INPUT"
+        printf '    "agents_resolved": '
+        json_string_array "$SELECTED_AGENTS"
         printf '\n  },\n'
 
         printf '  "rules": [\n'
@@ -784,10 +906,10 @@ if [[ "$ACTION" == "upgrade" ]]; then
 
     echo "==> Upgrade plan for $TARGET"
     if [[ "$UPGRADE_INHERITED_FROM_MANIFEST" == "true" ]]; then
-        echo "    selection (inherited from manifest): --platform $PLATFORM --apple-language $APPLE_LANG --features $FEATURES_INPUT"
-        echo "    (override any of these on the command line to opt into new categories)"
+        echo "    selection (inherited from manifest): --platform $PLATFORM --apple-language $APPLE_LANG --features $FEATURES_INPUT --agents $AGENTS_INPUT"
+        echo "    (override any of these on the command line to opt into new categories or agents)"
     else
-        echo "    selection: --platform $PLATFORM --apple-language $APPLE_LANG --features $FEATURES_INPUT"
+        echo "    selection: --platform $PLATFORM --apple-language $APPLE_LANG --features $FEATURES_INPUT --agents $AGENTS_INPUT"
     fi
     echo ""
 
@@ -804,10 +926,13 @@ if [[ "$ACTION" == "upgrade" ]]; then
     # without us having to escape multi-line strings inline.
     bundle_all_tmp="$(mktemp)"
     bundle_in_scope_tmp="$(mktemp)"
+    # Overlay dir for agent-derived files (Cursor .mdc, Copilot/Gemini/Codex concat).
+    # Python uses it as a source-of-truth when the rel_path isn't in $SCRIPT_DIR.
+    bundle_overlay_dir="$(mktemp -d)"
     # shellcheck disable=SC2064
-    trap "rm -f '$bundle_all_tmp' '$bundle_in_scope_tmp'" EXIT
+    trap "rm -rf '$bundle_overlay_dir' '$bundle_all_tmp' '$bundle_in_scope_tmp'" EXIT
 
-    # Rules.
+    # Rules. Always in BUNDLE_ALL; in_scope gated by agents_has claude.
     shopt -s nullglob
     for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
         name="$(basename "$f")"
@@ -815,17 +940,18 @@ if [[ "$ACTION" == "upgrade" ]]; then
         hash="$(sha256_file "$f")"
         rel_path=".claude/rules/$name"
         echo "$rel_path|rule|$cat|$hash|" >> "$bundle_all_tmp"
-        if should_install_rule "$name"; then
+        if agents_has claude && should_install_rule "$name"; then
             echo "$rel_path" >> "$bundle_in_scope_tmp"
         fi
     done
 
     # Skill files (one entry per file inside each skill dir).
+    # Skills are Claude-only; gate in_scope on agents_has claude.
     for d in "$SCRIPT_DIR/.claude/skills/"*/; do
         skill_name="$(basename "$d")"
         cat="$(file_category "$skill_name")"; [[ -z "$cat" ]] && cat="-"
         skill_in_scope="false"
-        if should_install_skill "$skill_name"; then skill_in_scope="true"; fi
+        if agents_has claude && should_install_skill "$skill_name"; then skill_in_scope="true"; fi
         while IFS= read -r -d '' src_file; do
             rel_path="${src_file#"$SCRIPT_DIR"/}"
             hash="$(sha256_file "$src_file")"
@@ -836,14 +962,16 @@ if [[ "$ACTION" == "upgrade" ]]; then
         done < <(find "$d" -type f -print0)
     done
 
-    # settings.json — always considered in scope (install path always tries
-    # to write it, even if it skips because the target already has one).
+    # settings.json — Claude-only. In BUNDLE_ALL always so the manifest can
+    # surface "you've stopped tracking this" diffs; in_scope only when claude
+    # is selected.
     settings_hash="$(sha256_file "$SCRIPT_DIR/.claude/settings.json")"
     echo ".claude/settings.json|settings|-|$settings_hash|" >> "$bundle_all_tmp"
-    echo ".claude/settings.json" >> "$bundle_in_scope_tmp"
+    if agents_has claude; then
+        echo ".claude/settings.json" >> "$bundle_in_scope_tmp"
+    fi
 
-    # CLAUDE.md template — platform-specific. We don't auto-update it, but we
-    # still want to surface "template changed" in the plan output.
+    # CLAUDE.md template — Claude-only too.
     case "$PLATFORM" in
         apple)   TEMPLATE_PATH="templates/CLAUDE.template.apple.md"   ;;
         android) TEMPLATE_PATH="templates/CLAUDE.template.android.md" ;;
@@ -853,7 +981,51 @@ if [[ "$ACTION" == "upgrade" ]]; then
     # The user's file on disk is CLAUDE.md; we tag the bundle-side path so the
     # plan can show "templates/CLAUDE.template.apple.md → CLAUDE.md".
     echo "CLAUDE.md|template|core|$template_hash|$TEMPLATE_PATH" >> "$bundle_all_tmp"
-    echo "CLAUDE.md" >> "$bundle_in_scope_tmp"
+    if agents_has claude; then
+        echo "CLAUDE.md" >> "$bundle_in_scope_tmp"
+    fi
+
+    # --- Agent-derived files (Phase 4) ---------------------------------------
+    # For Cursor: each .claude/rules/<name>.md → .cursor/rules/<name>.mdc with
+    # identical content (cp -p). For Copilot/Gemini/Codex: deterministic concat
+    # of in-scope rules. Materialize all of these in the overlay dir so the
+    # apply step has a real source path to copy from.
+
+    if agents_has cursor; then
+        mkdir -p "$bundle_overlay_dir/.cursor/rules"
+        for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
+            name="$(basename "$f")"
+            cat="$(file_category "$name")"; [[ -z "$cat" ]] && cat="-"
+            mdc_name="${name%.md}.mdc"
+            cp "$f" "$bundle_overlay_dir/.cursor/rules/$mdc_name"
+            hash="$(sha256_file "$bundle_overlay_dir/.cursor/rules/$mdc_name")"
+            rel_path=".cursor/rules/$mdc_name"
+            echo "$rel_path|agent-file-cursor|$cat|$hash|" >> "$bundle_all_tmp"
+            if should_install_rule "$name"; then
+                echo "$rel_path" >> "$bundle_in_scope_tmp"
+            fi
+        done
+    fi
+
+    # Helper for the three concat agents.
+    _materialize_concat() {
+        local rel_path="$1" tag="$2" banner="$3"
+        local dst="$bundle_overlay_dir/$rel_path"
+        mkdir -p "$(dirname "$dst")"
+        concat_in_scope_rules "$banner" > "$dst"
+        local hash; hash="$(sha256_file "$dst")"
+        echo "$rel_path|$tag|-|$hash|" >> "$bundle_all_tmp"
+        echo "$rel_path" >> "$bundle_in_scope_tmp"
+    }
+    if agents_has copilot; then
+        _materialize_concat ".github/copilot-instructions.md" "agent-file-copilot" "GitHub Copilot"
+    fi
+    if agents_has gemini; then
+        _materialize_concat "GEMINI.md" "agent-file-gemini" "Gemini CLI"
+    fi
+    if agents_has codex; then
+        _materialize_concat "AGENTS.md" "agent-file-codex" "Codex CLI and other AGENTS.md-aware tools"
+    fi
 
     # RENAMES.md path (may not exist; Python tolerates missing file).
     renames_path="$SCRIPT_DIR/RENAMES.md"
@@ -864,7 +1036,8 @@ if [[ "$ACTION" == "upgrade" ]]; then
         "$manifest_path" "$TARGET" "$bundle_all_tmp" "$bundle_in_scope_tmp" "$renames_path" \
         "$PLATFORM" "$APPLE_LANG" "$FEATURES_INPUT" "$SCRIPT_DIR" \
         "$APPLY" "$FORCE_CONFLICTS" "$PRUNE" "$MIGRATE_MANIFEST" "$DRY_RUN" "$BUNDLE_COMMIT" \
-        "$settings_local_path" "$MCP_RECIPES_DIR" \
+        "$settings_local_path" "$MCP_RECIPES_DIR" "$bundle_overlay_dir" \
+        "$AGENTS_INPUT" "$SELECTED_AGENTS" \
         <<'PYTHON'
 import hashlib, json, os, shutil, sys, datetime
 
@@ -872,7 +1045,25 @@ import hashlib, json, os, shutil, sys, datetime
  platform, apple_lang, features, script_dir,
  apply_flag, force_conflicts_flag, prune_flag, migrate_manifest_flag, dry_run_flag,
  bundle_commit,
- settings_local_path, mcp_recipes_dir) = sys.argv[1:18]
+ settings_local_path, mcp_recipes_dir, bundle_overlay_dir,
+ agents_input, agents_resolved_str) = sys.argv[1:21]
+agents_resolved = agents_resolved_str.split() if agents_resolved_str else []
+
+def bundle_source_for(rel_path):
+    """Resolve the source for a given target-relative path.
+
+    Agent-derived files (Cursor .mdc, Copilot/Gemini/Codex concat) live in the
+    overlay dir — they're not directly on disk in the bundle. Everything else
+    (rules, skills, settings.json, CLAUDE.md template) maps to script_dir.
+
+    For CLAUDE.md specifically, the source is the platform-specific template
+    under templates/, but we don't auto-apply CLAUDE.md anyway, so this never
+    gets used for it.
+    """
+    overlay = os.path.join(bundle_overlay_dir, rel_path)
+    if os.path.exists(overlay):
+        return overlay
+    return os.path.join(script_dir, rel_path)
 
 APPLY            = (apply_flag           == "true")
 FORCE_CONFLICTS  = (force_conflicts_flag == "true")
@@ -968,6 +1159,9 @@ if schema == 1:
             "apple_language": sel.get("apple_language", apple_lang),
             "features_input": sel.get("features_input", features),
             "features_resolved": sel.get("features_resolved", []),
+            # v1 didn't have agents — default to claude (the only agent v1 supported).
+            "agents_input": "claude",
+            "agents_resolved": ["claude"],
         },
         "files": new_files,
         "mcps_installed": [],   # v1 had string-array mcps_requested; not migrated automatically
@@ -1369,7 +1563,7 @@ for kind, r in actions:
     rel = r["path"]
     dst = os.path.join(target_root, rel)
     if kind in ("update", "add"):
-        src = os.path.join(script_dir, rel)
+        src = bundle_source_for(rel)
         if not os.path.exists(src):
             # Shouldn't happen — bundle path should exist for in-scope items.
             print(f"  warn: bundle source missing, skipping: {src}")
@@ -1566,6 +1760,8 @@ new_manifest = {
         "apple_language": apple_lang,
         "features_input": features,
         "features_resolved": manifest.get("selection", {}).get("features_resolved", []),
+        "agents_input": agents_input,
+        "agents_resolved": agents_resolved,
     },
     "files": new_files,
     "mcps_installed": new_mcps_installed,
@@ -1610,6 +1806,7 @@ else
     echo "    platform: $PLATFORM   apple-language: $APPLE_LANG"
 fi
 echo "    features: $FEATURES_INPUT  ($SELECTED_FEATURES)"
+echo "    agents:   $SELECTED_AGENTS"
 if [[ "$DRY_RUN" == "true" ]]; then
     echo "==> [DRY RUN] No files will be written. Re-run without --dry-run to apply."
 fi
@@ -1643,70 +1840,150 @@ record_install_meta() {
 INSTALLED_MCPS_ADDED=()
 INSTALLED_MCPS_SKIPPED=()
 
-act "create $TARGET/.claude/rules"  mkdir -p "$TARGET/.claude/rules"
-act "create $TARGET/.claude/skills" mkdir -p "$TARGET/.claude/skills"
+# The manifest lives at .claude/.appbootstrap-manifest.json regardless of which
+# agents are selected. Ensure the dir exists so the late-stage manifest write
+# can land even on a non-Claude-only install (e.g., --agents copilot).
+act "create $TARGET/.claude (for manifest)" mkdir -p "$TARGET/.claude"
 
-# Skills — copy each individually based on platform/language/features filter.
-# Each file inside the skill directory gets its own manifest entry with a hash,
-# so a local edit to one reference doesn't block upstream updates to siblings.
-if should_install_any_skills; then
-    echo "--> Copying skills"
+# ----- Claude agent install (default) ----------------------------------------
+if agents_has claude; then
+    act "create $TARGET/.claude/rules"  mkdir -p "$TARGET/.claude/rules"
+    act "create $TARGET/.claude/skills" mkdir -p "$TARGET/.claude/skills"
+
+    # Skills — copy each individually based on platform/language/features filter.
+    # Each file inside the skill directory gets its own manifest entry with a hash,
+    # so a local edit to one reference doesn't block upstream updates to siblings.
+    if should_install_any_skills; then
+        echo "--> Copying skills (.claude/skills/)"
+        shopt -s nullglob
+        for d in "$SCRIPT_DIR/.claude/skills/"*/; do
+            name="$(basename "$d")"
+            if should_install_skill "$name"; then
+                cat="$(file_category "$name")"
+                [[ -z "$cat" ]] && cat="-"
+                act "copy skill $name" cp -R "$d" "$TARGET/.claude/skills/$name"
+                # Walk every file inside the source skill dir; record_install each
+                # so the manifest has a per-file hash. `find -type f` includes
+                # nested references/, agents/, assets/ — exactly what we copied.
+                while IFS= read -r -d '' src_file; do
+                    # Strip the SCRIPT_DIR prefix so rel_path is target-relative.
+                    rel_path="${src_file#"$SCRIPT_DIR"/}"
+                    record_install "$rel_path" "skill-file" "$cat" "$src_file" "$name"
+                done < <(find "$d" -type f -print0)
+            fi
+        done
+    else
+        echo "--> Skipping skills (not in scope for current selection)"
+    fi
+
+    # Rules → .claude/rules/.
+    echo "--> Copying rules (.claude/rules/)"
     shopt -s nullglob
-    for d in "$SCRIPT_DIR/.claude/skills/"*/; do
-        name="$(basename "$d")"
-        if should_install_skill "$name"; then
+    for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
+        name="$(basename "$f")"
+        if should_install_rule "$name"; then
             cat="$(file_category "$name")"
             [[ -z "$cat" ]] && cat="-"
-            act "copy skill $name" cp -R "$d" "$TARGET/.claude/skills/$name"
-            # Walk every file inside the source skill dir; record_install each
-            # so the manifest has a per-file hash. `find -type f` includes
-            # nested references/, agents/, assets/ — exactly what we copied.
-            while IFS= read -r -d '' src_file; do
-                # Strip the SCRIPT_DIR prefix so rel_path is target-relative.
-                rel_path="${src_file#"$SCRIPT_DIR"/}"
-                record_install "$rel_path" "skill-file" "$cat" "$src_file" "$name"
-            done < <(find "$d" -type f -print0)
+            act "copy rule $name" cp "$f" "$TARGET/.claude/rules/$name"
+            record_install ".claude/rules/$name" "rule" "$cat" "$f"
         fi
     done
-else
-    echo "--> Skipping skills (not in scope for current selection)"
-fi
 
-# Rules.
-echo "--> Copying rules"
-shopt -s nullglob
-for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
-    name="$(basename "$f")"
-    if should_install_rule "$name"; then
-        cat="$(file_category "$name")"
-        [[ -z "$cat" ]] && cat="-"
-        act "copy rule $name" cp "$f" "$TARGET/.claude/rules/$name"
-        record_install ".claude/rules/$name" "rule" "$cat" "$f"
+    # settings.json — never overwrite.
+    if [[ ! -f "$TARGET/.claude/settings.json" ]]; then
+        act "copy settings.json" cp "$SCRIPT_DIR/.claude/settings.json" "$TARGET/.claude/settings.json"
+        record_install ".claude/settings.json" "settings" "-" "$SCRIPT_DIR/.claude/settings.json"
+    else
+        echo "--> Skipping settings.json (already exists — merge manually)"
     fi
-done
 
-# settings.json — never overwrite.
-if [[ ! -f "$TARGET/.claude/settings.json" ]]; then
-    act "copy settings.json" cp "$SCRIPT_DIR/.claude/settings.json" "$TARGET/.claude/settings.json"
-    record_install ".claude/settings.json" "settings" "-" "$SCRIPT_DIR/.claude/settings.json"
-else
-    echo "--> Skipping settings.json (already exists — merge manually)"
+    # CLAUDE.md — render from the platform-appropriate template, never overwrite.
+    case "$PLATFORM" in
+        apple)   TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.template.apple.md"   ;;
+        android) TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.template.android.md" ;;
+        both)    TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.template.md"         ;;
+    esac
+
+    if [[ -f "$TARGET/CLAUDE.md" ]]; then
+        echo "--> Skipping CLAUDE.md (already exists — merge manually)"
+    elif [[ ! -f "$TEMPLATE" ]]; then
+        echo "--> Skipping CLAUDE.md (template missing: $TEMPLATE)"
+    else
+        act "create CLAUDE.md from $(basename "$TEMPLATE")" cp "$TEMPLATE" "$TARGET/CLAUDE.md"
+        record_install "CLAUDE.md" "template" "core" "$TEMPLATE"
+    fi
 fi
 
-# CLAUDE.md — render from the platform-appropriate template, never overwrite.
-case "$PLATFORM" in
-    apple)   TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.template.apple.md"   ;;
-    android) TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.template.android.md" ;;
-    both)    TEMPLATE="$SCRIPT_DIR/templates/CLAUDE.template.md"         ;;
-esac
+# ----- Non-Claude agents ------------------------------------------------------
+#
+# Each non-Claude agent gets its own set of files derived from the in-scope
+# rules. Skills are skipped (Claude-only). Existing files are NEVER
+# overwritten — same policy as CLAUDE.md / settings.json.
+#
+# install_agent_concat <agent_tag> <rel_path> <banner_purpose>
+# Writes a deterministic concat to <TARGET>/<rel_path> via concat_in_scope_rules.
+install_agent_concat() {
+    local agent_tag="$1" rel_path="$2" banner_purpose="$3"
+    local dst="$TARGET/$rel_path"
+    if [[ -f "$dst" ]]; then
+        echo "--> Skipping $rel_path (already exists — merge manually)"
+        return
+    fi
+    # Stage the concat in a temp file so we can:
+    #   - hash it
+    #   - record it in the manifest with that hash
+    #   - move it into place (or skip under dry-run)
+    local tmp; tmp="$(mktemp)"
+    concat_in_scope_rules "$banner_purpose" > "$tmp"
+    act "create $rel_path (concat of in-scope rules)" mkdir -p "$(dirname "$dst")"
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo "[dry-run] would write $rel_path ($(wc -l < "$tmp" | tr -d ' ') lines)"
+        # Still record under dry-run so the count is accurate.
+        record_install "$rel_path" "agent-file-$agent_tag" "-" "$tmp"
+    else
+        mv "$tmp" "$dst"
+        record_install "$rel_path" "agent-file-$agent_tag" "-" "$dst"
+    fi
+    rm -f "$tmp"
+}
 
-if [[ -f "$TARGET/CLAUDE.md" ]]; then
-    echo "--> Skipping CLAUDE.md (already exists — merge manually)"
-elif [[ ! -f "$TEMPLATE" ]]; then
-    echo "--> Skipping CLAUDE.md (template missing: $TEMPLATE)"
-else
-    act "create CLAUDE.md from $(basename "$TEMPLATE")" cp "$TEMPLATE" "$TARGET/CLAUDE.md"
-    record_install "CLAUDE.md" "template" "core" "$TEMPLATE"
+if agents_has copilot; then
+    echo "--> Installing for GitHub Copilot (.github/copilot-instructions.md)"
+    install_agent_concat "copilot" ".github/copilot-instructions.md" "GitHub Copilot"
+fi
+
+if agents_has gemini; then
+    echo "--> Installing for Gemini CLI (GEMINI.md)"
+    install_agent_concat "gemini" "GEMINI.md" "Gemini CLI"
+fi
+
+if agents_has codex; then
+    echo "--> Installing for Codex / generic agents (AGENTS.md)"
+    install_agent_concat "codex" "AGENTS.md" "Codex CLI and other AGENTS.md-aware tools"
+fi
+
+if agents_has cursor; then
+    # Cursor uses per-rule .mdc files under .cursor/rules/. Direct 1:1 with
+    # .claude/rules/, just renamed. Each file gets its own manifest entry
+    # so upgrade can diff per-rule (like skill-file does for Claude skills).
+    echo "--> Installing for Cursor (.cursor/rules/*.mdc)"
+    act "create $TARGET/.cursor/rules" mkdir -p "$TARGET/.cursor/rules"
+    shopt -s nullglob
+    for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
+        name="$(basename "$f")"
+        if should_install_rule "$name"; then
+            mdc_name="${name%.md}.mdc"
+            dst="$TARGET/.cursor/rules/$mdc_name"
+            if [[ -f "$dst" ]]; then
+                echo "    skipping $mdc_name (already exists)"
+                continue
+            fi
+            cat="$(file_category "$name")"
+            [[ -z "$cat" ]] && cat="-"
+            act "copy cursor rule $mdc_name" cp "$f" "$dst"
+            record_install ".cursor/rules/$mdc_name" "agent-file-cursor" "$cat" "$f"
+        fi
+    done
 fi
 
 # .gitignore — append platform entries, deduped by marker.
@@ -1755,9 +2032,16 @@ keystore.properties
 *.iml
 ANDROID
             fi
-            echo "# Claude Code local settings"
-            echo ".claude/settings.local.json"
-            echo ".claude/plans/"
+            if agents_has claude; then
+                echo "# Claude Code local settings"
+                echo ".claude/settings.local.json"
+                echo ".claude/plans/"
+            fi
+            if agents_has cursor; then
+                echo "# Cursor runtime caches (per-developer; not committed)"
+                echo ".cursor/state*"
+                echo ".cursor/.cache/"
+            fi
             echo "# --- end AppBootstrapAI ---"
         } >> "$GITIGNORE"
         echo "--> Appended recommended .gitignore entries"
@@ -1786,6 +2070,10 @@ write_manifest() {
         printf '    "features_input": "%s",\n' "$FEATURES_INPUT"
         printf '    "features_resolved": '
         json_string_array "$SELECTED_FEATURES"
+        printf ',\n'
+        printf '    "agents_input": "%s",\n' "$AGENTS_INPUT"
+        printf '    "agents_resolved": '
+        json_string_array "$SELECTED_AGENTS"
         printf '\n  },\n'
         printf '  "files": [\n'
         local first=1 entry path type_ cat_ hash skill hash_field
@@ -1988,9 +2276,26 @@ if [[ "$DRY_RUN" == "true" ]]; then
     echo "==> [DRY RUN] Complete. ${#INSTALLED_FILES[@]} file(s) would be installed. Re-run without --dry-run to apply."
 else
     echo "==> Done. Next steps:"
-    echo "    1. Edit $TARGET/CLAUDE.md — fill in the <PLACEHOLDER> sections."
-    echo "    2. Review $TARGET/.gitignore for merge conflicts."
-    echo "    3. Commit the new files."
+    step=1
+    if agents_has claude; then
+        echo "    $step. Edit $TARGET/CLAUDE.md — fill in the <PLACEHOLDER> sections."
+        step=$((step + 1))
+    fi
+    if agents_has copilot && [[ -f "$TARGET/.github/copilot-instructions.md" ]]; then
+        echo "    $step. Review $TARGET/.github/copilot-instructions.md (generated; commit alongside your rules)."
+        step=$((step + 1))
+    fi
+    if agents_has gemini && [[ -f "$TARGET/GEMINI.md" ]]; then
+        echo "    $step. Review $TARGET/GEMINI.md (generated; commit alongside your rules)."
+        step=$((step + 1))
+    fi
+    if agents_has codex && [[ -f "$TARGET/AGENTS.md" ]]; then
+        echo "    $step. Review $TARGET/AGENTS.md (generated; commit alongside your rules)."
+        step=$((step + 1))
+    fi
+    echo "    $step. Review $TARGET/.gitignore for merge conflicts."
+    step=$((step + 1))
+    echo "    $step. Commit the new files."
 fi
 echo ""
 echo "Tip: \`./install.sh --list\`  (with the same flags) — preview catalog as text."
