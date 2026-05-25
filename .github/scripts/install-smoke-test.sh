@@ -464,6 +464,90 @@ else
 fi
 rm -rf "$target_mcp_mani"
 
+# --- Platform auto-detection (no --platform flag passed) ---------------------
+#
+# When --platform is omitted, install.sh sniffs the target directory for
+# canonical project files and picks apple / android / both / fallback-both.
+
+bold "==> auto-detect: empty target → falls back to 'both'"
+target_auto_empty="$(mktemp -d)"
+auto_empty_out="$("$INSTALL" "$target_auto_empty" --dry-run 2>&1)"
+if grep -q "auto-detect found no project files → fallback" <<<"$auto_empty_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: empty target should print the fallback notice"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_auto_empty"
+
+bold "==> auto-detect: Package.swift → apple, signal printed"
+target_auto_spm="$(mktemp -d)"
+touch "$target_auto_spm/Package.swift"
+auto_spm_out="$("$INSTALL" "$target_auto_spm" --dry-run 2>&1)"
+if grep -q "platform: apple (auto-detected)" <<<"$auto_spm_out" \
+    && grep -q "apple signals:.*Package.swift"  <<<"$auto_spm_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: Package.swift should auto-detect to apple and print the signal"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_auto_spm"
+
+bold "==> auto-detect: *.xcodeproj → apple"
+target_auto_xcode="$(mktemp -d)"
+mkdir -p "$target_auto_xcode/MyApp.xcodeproj"
+auto_xcode_out="$("$INSTALL" "$target_auto_xcode" --dry-run 2>&1)"
+if grep -q "platform: apple (auto-detected)" <<<"$auto_xcode_out" \
+    && grep -q "apple signals:.*MyApp.xcodeproj"  <<<"$auto_xcode_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: *.xcodeproj should auto-detect to apple"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_auto_xcode"
+
+bold "==> auto-detect: build.gradle.kts + gradlew → android"
+target_auto_android="$(mktemp -d)"
+touch "$target_auto_android/build.gradle.kts" "$target_auto_android/gradlew"
+auto_android_out="$("$INSTALL" "$target_auto_android" --dry-run 2>&1)"
+if grep -q "platform: android (auto-detected)" <<<"$auto_android_out" \
+    && grep -q "android signals:.*build.gradle.kts"  <<<"$auto_android_out" \
+    && grep -q "android signals:.*gradlew"           <<<"$auto_android_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: gradle signals should auto-detect to android"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_auto_android"
+
+bold "==> auto-detect: Package.swift + settings.gradle.kts → both"
+target_auto_both="$(mktemp -d)"
+touch "$target_auto_both/Package.swift" "$target_auto_both/settings.gradle.kts"
+auto_both_out="$("$INSTALL" "$target_auto_both" --dry-run 2>&1)"
+if grep -q "platform: both (auto-detected)" <<<"$auto_both_out" \
+    && grep -q "apple signals:.*Package.swift"        <<<"$auto_both_out" \
+    && grep -q "android signals:.*settings.gradle.kts" <<<"$auto_both_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: mixed signals should auto-detect to both, printing both lines"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_auto_both"
+
+bold "==> auto-detect: explicit --platform overrides detection"
+target_auto_override="$(mktemp -d)"
+touch "$target_auto_override/Package.swift"  # would auto-detect apple
+auto_override_out="$("$INSTALL" "$target_auto_override" --platform android --dry-run 2>&1)"
+# Should NOT carry the auto-detect tag, and should produce only android-side rules.
+if grep -q "platform: android   apple-language" <<<"$auto_override_out" \
+    && ! grep -q "auto-detected"                 <<<"$auto_override_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: explicit --platform should override detection and suppress the auto-detect line"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$target_auto_override"
+
 # --list and --help should both succeed and produce sentinel output.
 # Note: capture output before grepping. If we piped directly to `grep -q`,
 # grep closes stdin after the first match, install.sh gets SIGPIPE on the

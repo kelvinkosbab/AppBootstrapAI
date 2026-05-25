@@ -11,7 +11,7 @@
 #   ./install.sh --list-mcps
 #   ./install.sh --help
 #
-# Defaults: TARGET_DIR=.  --platform both  --apple-language swift
+# Defaults: TARGET_DIR=.  --platform <auto-detected>  --apple-language swift
 #           --features recommended
 #
 # Flags:
@@ -19,6 +19,13 @@
 #                        - apple   → install apple-* rules + Apple skills
 #                        - android → install android-* rules + Android skills
 #                        - both    → install everything (intersected with --features)
+#                        If unset, the installer auto-detects from the TARGET_DIR:
+#                          - Package.swift / *.xcodeproj / *.xcworkspace → apple
+#                          - build.gradle* / settings.gradle* / gradlew  → android
+#                          - both present                                → both
+#                          - neither (fresh / empty dir)                 → both (fallback)
+#                        The detection result + which signals matched are
+#                        printed in the install header so you can verify.
 #
 #   --apple-language     When --platform is apple or both, narrows the Apple
 #                        side to a specific language:
@@ -103,7 +110,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MCP_RECIPES_DIR="$SCRIPT_DIR/mcp-recipes"
 TARGET="${1:-.}"
-PLATFORM="both"
+# Empty PLATFORM = auto-detect from TARGET dir after arg parsing.
+# Explicit --platform <value> sets it and bypasses detection.
+PLATFORM=""
 APPLE_LANG="swift"
 FEATURES_INPUT="recommended"
 WITH_MCPS=""
@@ -157,6 +166,88 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# --- Platform auto-detection --------------------------------------------------
+#
+# When --platform isn't explicitly set, look at the TARGET directory for
+# canonical project files and pick the dominant platform. Falls back to "both"
+# if nothing matches (fresh / empty repo). An explicit --platform always wins.
+#
+# Signals checked:
+#   Apple:   Package.swift, *.xcodeproj/, *.xcworkspace/
+#   Android: build.gradle{,.kts}, settings.gradle{,.kts}, gradlew
+
+# Globals populated by detect_platform. Set as side effects of calling the
+# function (not via command substitution, because subshell assignments don't
+# propagate). Read these after the call.
+#   DETECTED_PLATFORM         — "apple" | "android" | "both" | "" (no signals)
+#   DETECTED_APPLE_SIGNALS    — space-separated filenames that matched
+#   DETECTED_ANDROID_SIGNALS  — same, for Android
+DETECTED_PLATFORM=""
+DETECTED_APPLE_SIGNALS=""
+DETECTED_ANDROID_SIGNALS=""
+
+detect_platform() {
+    local target="$1"
+    local apple=""
+    local android=""
+
+    # Apple signals.
+    [[ -f "$target/Package.swift" ]] && apple="$apple Package.swift"
+
+    # Glob expansion for *.xcodeproj / *.xcworkspace. nullglob makes the loop
+    # skip cleanly when nothing matches; basename trims the path back to the
+    # bare filename for printing.
+    shopt -s nullglob
+    local match
+    for match in "$target"/*.xcodeproj "$target"/*.xcworkspace; do
+        apple="$apple $(basename "$match")"
+    done
+
+    # Android signals.
+    [[ -f "$target/build.gradle"      ]] && android="$android build.gradle"
+    [[ -f "$target/build.gradle.kts"  ]] && android="$android build.gradle.kts"
+    [[ -f "$target/settings.gradle"   ]] && android="$android settings.gradle"
+    [[ -f "$target/settings.gradle.kts" ]] && android="$android settings.gradle.kts"
+    [[ -f "$target/gradlew"           ]] && android="$android gradlew"
+
+    DETECTED_APPLE_SIGNALS="${apple# }"
+    DETECTED_ANDROID_SIGNALS="${android# }"
+
+    if [[ -n "$DETECTED_APPLE_SIGNALS" && -n "$DETECTED_ANDROID_SIGNALS" ]]; then
+        DETECTED_PLATFORM="both"
+    elif [[ -n "$DETECTED_APPLE_SIGNALS" ]]; then
+        DETECTED_PLATFORM="apple"
+    elif [[ -n "$DETECTED_ANDROID_SIGNALS" ]]; then
+        DETECTED_PLATFORM="android"
+    else
+        DETECTED_PLATFORM=""
+    fi
+}
+
+# Auto-detect if PLATFORM wasn't set explicitly on the command line. Two
+# outcomes:
+#   - detection finds signals → use them, flag PLATFORM_AUTODETECTED for the header
+#   - detection finds nothing → fall back to "both", flag PLATFORM_AUTODETECT_FALLBACK
+PLATFORM_AUTODETECTED="false"
+PLATFORM_AUTODETECT_FALLBACK="false"
+if [[ -z "$PLATFORM" ]]; then
+    # Resolve target to an absolute path for detection. Don't error here on a
+    # missing dir — the install path below produces a better error message.
+    if [[ -d "$TARGET" ]]; then
+        detect_target="$(cd "$TARGET" && pwd)"
+    else
+        detect_target="$TARGET"
+    fi
+    detect_platform "$detect_target"
+    if [[ -n "$DETECTED_PLATFORM" ]]; then
+        PLATFORM="$DETECTED_PLATFORM"
+        PLATFORM_AUTODETECTED="true"
+    else
+        PLATFORM="both"
+        PLATFORM_AUTODETECT_FALLBACK="true"
+    fi
+fi
 
 case "$PLATFORM" in
     apple|android|both) ;;
@@ -521,7 +612,17 @@ fi
 
 TARGET="$(cd "$TARGET" && pwd)"
 echo "==> Installing AppBootstrapAI into $TARGET"
-echo "    platform: $PLATFORM   apple-language: $APPLE_LANG"
+if [[ "$PLATFORM_AUTODETECTED" == "true" ]]; then
+    echo "    platform: $PLATFORM (auto-detected)   apple-language: $APPLE_LANG"
+    [[ -n "$DETECTED_APPLE_SIGNALS"   ]] && echo "      apple signals:   $DETECTED_APPLE_SIGNALS"
+    [[ -n "$DETECTED_ANDROID_SIGNALS" ]] && echo "      android signals: $DETECTED_ANDROID_SIGNALS"
+    echo "      (override with --platform apple|android|both)"
+elif [[ "$PLATFORM_AUTODETECT_FALLBACK" == "true" ]]; then
+    echo "    platform: $PLATFORM (auto-detect found no project files → fallback)   apple-language: $APPLE_LANG"
+    echo "      (override with --platform apple|android|both)"
+else
+    echo "    platform: $PLATFORM   apple-language: $APPLE_LANG"
+fi
 echo "    features: $FEATURES_INPUT  ($SELECTED_FEATURES)"
 if [[ "$DRY_RUN" == "true" ]]; then
     echo "==> [DRY RUN] No files will be written. Re-run without --dry-run to apply."
@@ -823,3 +924,27 @@ echo "Tip: \`./install.sh --list\`  (with the same flags) — preview catalog as
 echo "     \`./install.sh --list --json\`  — same catalog as JSON for automation."
 echo "     \`./install.sh --dry-run ...\`  — show what would install without writing."
 echo "     Opt into more with \`--features all\` or e.g. \`--features recommended,persistence,ai\`."
+
+# --- Token-saving tips (only fires when there's actually room to optimize) ---
+#
+# AI agents pay for every token of installed context. Suggest narrower flags
+# when the chosen ones bring in rules the project probably doesn't need.
+TOKEN_TIPS=()
+if [[ "$PLATFORM" == "both" ]]; then
+    TOKEN_TIPS+=("Targeting only one platform? Re-run with --platform apple (or android) to skip the other side's rules entirely. Example: an iOS-only app doesn't need Android rules — even though they wouldn't fire on .swift files, omitting them keeps the installed catalog leaner.")
+fi
+if [[ "$FEATURES_INPUT" == "all" ]]; then
+    TOKEN_TIPS+=("--features all installs every category, including specialized opt-ins (persistence/Core Data, ai/Foundation Models, migration/XML→Compose, shrinking/R8) you may not use. --features recommended (default) is leaner; opt into specifics explicitly: --features recommended,ai.")
+fi
+if [[ "$APPLE_LANG" == "both" ]] && [[ "$PLATFORM" != "android" ]]; then
+    TOKEN_TIPS+=("Pure-Swift project? --apple-language swift (default) skips the two apple-objc-* rules. Only use 'both' if you actually have .h/.m/.mm sources.")
+fi
+
+if [[ "${#TOKEN_TIPS[@]}" -gt 0 ]]; then
+    echo ""
+    echo "Token-saving tips (you're paying for AI context — narrow scope = leaner bill):"
+    for tip in "${TOKEN_TIPS[@]}"; do
+        echo "  - $tip"
+    done
+    echo "  See the README 'Saving AI tokens' section for prompt-discipline tips."
+fi
