@@ -1,0 +1,179 @@
+# AppBootstrapAI installer — copies the Claude Code bundle into a target repo.
+#
+# Usage:
+#   ./install.sh [TARGET_DIR] [--platform apple|android|both]
+#                             [--apple-language swift|objc|both]
+#                             [--features all|recommended|<csv>]
+#                             [--with-mcps <csv>]
+#                             [--dry-run]
+#   ./install.sh --list [--json] [--features ...] [--platform ...]
+#   ./install.sh --list-mcps
+#   ./install.sh --help
+#
+# Defaults: TARGET_DIR=.  --platform <auto-detected>  --apple-language swift
+#           --features recommended
+#
+# Flags:
+#   --platform           Which platform's rules and skills to install.
+#                        - apple   → install apple-* rules + Apple skills
+#                        - android → install android-* rules + Android skills
+#                        - both    → install everything (intersected with --features)
+#                        If unset, the installer auto-detects from the TARGET_DIR:
+#                          - Package.swift / *.xcodeproj / *.xcworkspace → apple
+#                          - build.gradle* / settings.gradle* / gradlew  → android
+#                          - both present                                → both
+#                          - neither (fresh / empty dir)                 → both (fallback)
+#                        The detection result + which signals matched are
+#                        printed in the install header so you can verify.
+#
+#   --apple-language     When --platform is apple or both, narrows the Apple
+#                        side to a specific language:
+#                        - swift (default) → all apple- rules except apple-objc-*
+#                                            + Apple skills (skills are Swift-tied)
+#                        - objc            → apple-objc-* only, no Apple skills
+#                        - both            → all apple- rules + Apple skills
+#
+#   --features           Comma-separated list of feature categories, or one of:
+#                        - recommended (default) → curated subset for most apps:
+#                            core, concurrency, ui, testing, docs,
+#                            error-handling, packaging, logging, localization
+#                        - all                   → every category
+#                        - custom CSV, e.g. --features core,testing,docs
+#                        - composable, e.g. --features recommended,ai,persistence
+#                          (each token expands independently; preset + extras OK)
+#
+#                        Available categories (each spans Apple + Android where applicable):
+#                          core             project-level README/CHANGELOG/ADR patterns
+#                          concurrency      Swift concurrency / Kotlin coroutines
+#                          ui               SwiftUI/MVVM / Jetpack Compose + accessibility
+#                          testing          test strategy + coverage gates
+#                          docs             DocC / KDoc documentation strategy
+#                          error-handling   Swift typed throws / Result / LocalizedError
+#                          packaging        Package.swift / Gradle / SPM authoring
+#                          logging          os.Logger discipline
+#                          localization     String Catalogs / strings.xml / RTL
+#                          persistence      Core Data under Swift 6
+#                          ai               Apple Foundation Models (iOS 26+)
+#                          migration        XML/Fragment → Compose migration
+#                          shrinking        R8 / ProGuard
+#
+#                        Note: apple-objc-best-practices.md is gated solely by
+#                        --apple-language, not --features.
+#
+#   --dry-run            Show what would be installed without writing any files.
+#                        Useful for previewing an upgrade or auditing a re-run on
+#                        an existing adopter site.
+#
+#   --list               Print the catalog of available rules and skills with
+#                        one-line descriptions and category tags, and exit.
+#                        Use this to preview what a given flag combo would install.
+#
+#   --json               Only valid with --list. Produce a machine-readable
+#                        catalog (stable schema for the MCP server and any
+#                        other automation that wants to consume the catalog).
+#
+#   --list-mcps          List available MCP-server recipes (name, platform,
+#                        description, homepage) that --with-mcps can install.
+#                        Exits after printing.
+#
+#   --agents <csv>       Comma-separated list of AI agents to install for.
+#                        Default: claude. Additive — pass multiple to cover a
+#                        mixed team in one install. Accepted tokens:
+#                          claude   → .claude/rules/, .claude/skills/, CLAUDE.md  (today's default)
+#                          copilot  → .github/copilot-instructions.md  (concat of in-scope rules)
+#                          cursor   → .cursor/rules/<name>.mdc          (per-rule files)
+#                          gemini   → GEMINI.md                          (concat of in-scope rules)
+#                          codex    → AGENTS.md                          (concat of in-scope rules)
+#                          all      → every agent above
+#                        Skills are Claude-only — non-Claude agents get rules
+#                        only. Existing agent files are NEVER overwritten by
+#                        install; --upgrade does 3-way diff like any other
+#                        tracked file. Concat files are deterministic for
+#                        the same --platform / --apple-language / --features.
+#
+#   --with-mcps <csv>    Comma-separated list of MCP recipes to add to the
+#                        target's .claude/settings.local.json. Each recipe
+#                        contributes one entry under "mcpServers". Existing
+#                        entries with the same name are NEVER overwritten —
+#                        skipped entries are listed in the install output.
+#                        Setup steps for each newly-added MCP (auth, env vars,
+#                        prerequisite binaries) print at the end of install.
+#                        Recipe names come from --list-mcps; unknown names
+#                        fail cleanly. Requires python3 on PATH (JSON merge is
+#                        done in Python to avoid bash fragility).
+#
+#   --upgrade            Compare an existing install against the current bundle
+#                        and print an upgrade plan. By default writes nothing —
+#                        pair with --apply to execute. Reads the manifest at
+#                        .claude/.appbootstrap-manifest.json and classifies
+#                        every tracked file into one of:
+#                          - up to date (installed hash matches bundle)
+#                          - safe update (no local edits, bundle has new content)
+#                          - local edits (file modified after install — left alone)
+#                          - conflict (both local and bundle changed)
+#                          - retired (file removed upstream — orphan)
+#                          - addition (new in bundle, fits --features)
+#                          - out-of-scope (manifest tracks, current --features doesn't include)
+#                          - renamed (via RENAMES.md)
+#                        Requires schema_version 2 manifest; v1 manifests
+#                        (older installs without hashes) get a migration hint
+#                        unless --migrate-manifest is also passed.
+#
+#   --apply              Execute the upgrade plan. Only valid with --upgrade.
+#                        Writes safe updates, copies in additions, refreshes
+#                        the manifest with fresh hashes + bundle_commit. By
+#                        default, conflicts are SKIPPED with a warning and
+#                        orphans/out-of-scope files are LEFT ALONE — opt into
+#                        more aggressive behavior with --force-conflicts /
+#                        --prune. Combine with --dry-run to preview without
+#                        writing.
+#
+#   --force-conflicts    Only valid with --upgrade --apply. Overwrite files
+#                        that were locally edited AND changed upstream. Your
+#                        local changes are lost — do this only when you've
+#                        already preserved what you wanted (diff against
+#                        git history, save a copy, etc.).
+#
+#   --prune              Only valid with --upgrade --apply. Delete files
+#                        that are listed as orphans (retired upstream) or
+#                        out-of-scope (under the current --features). The
+#                        manifest entries are also dropped.
+#
+#   --migrate-manifest   Only valid with --upgrade --apply. Rewrites a v1
+#                        manifest (older install, no hashes recorded) as a v2
+#                        manifest using current disk contents as the installed
+#                        baseline. No file content is touched. After migration,
+#                        future --upgrade runs can do real 3-way diffs.
+#
+#   --uninstall          Reverse of install — removes everything AppBootstrapAI
+#                        wrote into the target, based on the manifest. By default:
+#                          - Tracked files whose current hash matches what we
+#                            wrote are DELETED.
+#                          - Tracked files the user edited (current hash differs)
+#                            are SKIPPED with a warning. Pass --force to delete
+#                            them anyway.
+#                          - CLAUDE.md and settings.json are SKIPPED unconditionally
+#                            (user-owned by then). Pass --purge to delete them too.
+#                          - MCP entries in settings.local.json that match what
+#                            we installed are removed; modified ones are skipped
+#                            unless --force. Pass --keep-mcps to leave them all.
+#                        Combine with --dry-run to preview without writing.
+#                        Final step removes the .gitignore block and the
+#                        manifest itself.
+#
+#   -h, --help           Print this help and exit.
+#
+# What it does:
+#   - Copies skills matching the platform/language/features intersection.
+#   - Copies rules matching the same intersection.
+#   - Copies .claude/settings.json if none exists in TARGET_DIR.
+#   - Renders the platform-appropriate CLAUDE template into TARGET_DIR/CLAUDE.md
+#     (apple → CLAUDE.template.apple.md, android → CLAUDE.template.android.md,
+#      both → CLAUDE.template.md). Only if CLAUDE.md does not already exist —
+#      it never overwrites.
+#   - Appends recommended .gitignore entries for the chosen platform(s).
+#   - Writes a manifest at .claude/.appbootstrap-manifest.json listing every
+#     file that was installed (used by future --upgrade / --uninstall flows).
+#
+# It never overwrites an existing CLAUDE.md or settings.json; it prints what
+# it skipped so you can merge manually.
