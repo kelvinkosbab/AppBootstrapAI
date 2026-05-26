@@ -118,6 +118,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --json)
+            # shellcheck disable=SC2034   # read by lib/list_modes.sh (--list --json branch)
             JSON_OUTPUT="true"
             shift
             ;;
@@ -351,10 +352,11 @@ act() {
 # the bundle was extracted from a tarball or git isn't on PATH. Purely informational —
 # the upgrade flow uses content hashes, not commit SHAs.
 # Defined here so both install AND upgrade flows can stamp it into the manifest.
-# shellcheck disable=SC2034   # read by lib/install_mode.sh (write_manifest) and lib/upgrade_mode.sh
 if command -v git >/dev/null 2>&1; then
+    # shellcheck disable=SC2034   # read by lib/install_mode.sh (write_manifest) and lib/upgrade_mode.sh
     BUNDLE_COMMIT="$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
 else
+    # shellcheck disable=SC2034
     BUNDLE_COMMIT="unknown"
 fi
 
