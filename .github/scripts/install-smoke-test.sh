@@ -1658,6 +1658,69 @@ else
 fi
 rm -rf "$t"
 
+# --- spatial / visionOS category (Phase 8) ----------------------------------
+
+bold "==> --features recommended (default) → visionOS rule NOT installed"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+if [[ ! -f "$t/.claude/rules/apple-visionos-best-practices.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: visionOS rule should be excluded from default --features recommended"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --features recommended,spatial → visionOS rule installed"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended,spatial > /dev/null
+if [[ -f "$t/.claude/rules/apple-visionos-best-practices.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --features recommended,spatial should install the visionOS rule"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --features all → visionOS rule installed"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features all > /dev/null
+if [[ -f "$t/.claude/rules/apple-visionos-best-practices.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --features all should install the visionOS rule"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --platform android --features spatial → visionOS rule NOT installed (apple-only)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features spatial > /dev/null
+if [[ ! -f "$t/.claude/rules/apple-visionos-best-practices.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: Android-only install should never get apple-visionos-best-practices.md"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> manifest records visionOS rule's category as 'spatial'"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features all > /dev/null
+if python3 -c "
+import json, sys
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+matches = [f for f in m['files'] if f['path'] == '.claude/rules/apple-visionos-best-practices.md']
+assert matches, 'visionOS rule not in manifest'
+assert matches[0]['category'] == 'spatial', f'wrong category: {matches[0]}'
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: manifest should categorize visionOS rule as 'spatial'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
 # --list and --help should both succeed and produce sentinel output.
 # Note: capture output before grepping. If we piped directly to `grep -q`,
 # grep closes stdin after the first match, install.sh gets SIGPIPE on the

@@ -51,6 +51,8 @@ file_category() {
             echo "migration" ;;
         r8-shrink-pro)
             echo "shrinking" ;;
+        apple-visionos-best-practices.md)
+            echo "spatial" ;;
         apple-objc-best-practices.md)
             echo "objc-gated" ;;
         *)

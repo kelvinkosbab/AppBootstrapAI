@@ -56,6 +56,8 @@
 #                          ai               Apple Foundation Models (iOS 26+)
 #                          migration        XML/Fragment → Compose migration
 #                          shrinking        R8 / ProGuard
+#                          spatial          visionOS: scene types, immersion styles,
+#                                           spatial gestures, RealityKit / ECS, USDZ
 #
 #                        Note: apple-objc-best-practices.md is gated solely by
 #                        --apple-language, not --features.

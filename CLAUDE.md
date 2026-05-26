@@ -29,6 +29,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
 │   ├── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
 │   ├── apple-testing-strategy.md                  # Apple: test strategy + coverage
+│   ├── apple-visionos-best-practices.md           # Apple: visionOS / RealityKit / spatial UX
 │   └── project-documentation.md                   # Cross-platform: README/CHANGELOG/ADR
 ├── skills/                        # On-demand Claude Code skills
 │   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
@@ -94,11 +95,11 @@ Use the installer from the target repo:
 # Preview catalog with category tags
 /path/to/AppBootstrapAI/install.sh --list --platform apple --features all
 
-# Full help — enumerates all 13 feature categories
+# Full help — enumerates all 14 feature categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial` for vision projects.
 
 The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
@@ -166,6 +167,18 @@ The rules in `.claude/rules/` are loaded automatically for every Swift file in t
 - Streaming pattern: append placeholder → mutate in place → remove on error. Check `Task.isCancelled` inside the loop; `defer { isGenerating = false }` at function top.
 - Catch errors broadly and surface `error.localizedDescription`; do not pattern-match specific cases (the enum changes across OS releases).
 - Testability: protocol wrapper + Real/Mock/Simulator implementations, injected via `@Environment` with lazy fallback. Real impl is the only file that touches `import FoundationModels`.
+
+### visionOS (`apple-visionos-best-practices.md`)
+
+Specialized opt-in (`--features ...,spatial`). Not in `recommended` — vision teams pull it in explicitly. Covers the patterns that 2D-SwiftUI habits don't translate to:
+
+- **Scene types** — `WindowGroup` / `Volume` (`.windowStyle(.volumetric)`) / `ImmersiveSpace` aren't interchangeable; only one ImmersiveSpace can open system-wide. Use `@Environment(\.openImmersiveSpace)` + `dismissImmersiveSpace`; always check `OpenImmersiveSpaceAction.Result` (user can cancel the consent dialog); tear down on `scenePhase` background.
+- **Immersion styles** — default `.mixed`. Use `.progressive` for opt-in environmental separation; `.full` only when content IS the experience. Provide a visible exit; never trap.
+- **Spatial gestures** — `SpatialTapGesture`, `RotateGesture3D`, `.targetedToEntity()`. Every interactive Entity needs a hover affordance (`HoverEffectComponent` + `InputTargetComponent` + `CollisionComponent`, or `.hoverEffect(.highlight)` on SwiftUI views).
+- **Accessibility on an HMD is safety, not polish** — `@Environment(\.accessibilityReduceMotion)` is a vestibular guardrail; honor it for any motion (camera moves, particles, large transforms). Head-locked text causes vertigo; world-lock readable content. Never override system focus indicators.
+- **RealityKit** — author in Reality Composer Pro, not code. Shallow Entity hierarchies. `.head` anchor only for HUD; `.plane` for world-locked default. Cache `findEntity(named:)` results; never re-walk in update closures.
+- **Performance** — target 90fps. Frame drops cause nausea. Particles <1000 active; ~100k tri budget per Entity at 1–2m; prefer IBL over realtime lights; bake shadows.
+- **USDZ pipeline** — `.usda` source, `.usdz` ship. Reality Composer Pro is the authoring tool. Load via `Entity(named:in: realityKitContentBundle)`; handle the throwing async path.
 
 ### Apple localization (`apple-localization-best-practices.md`)
 
