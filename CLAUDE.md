@@ -17,6 +17,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-documentation-strategy.md          # Android: KDoc strategy + Dokka
 │   ├── android-gradle-conventions.md              # Android: Gradle DSL / version catalogs / modules
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
+│   ├── android-play-beta-deployment.md            # Android: Play beta tracks, signing, CI
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
@@ -28,6 +29,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-spm-package-conventions.md           # Apple: Package.swift authoring
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
 │   ├── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
+│   ├── apple-testflight-deployment.md             # Apple: TestFlight, ASC API, signing, CI
 │   ├── apple-testing-strategy.md                  # Apple: test strategy + coverage
 │   ├── apple-visionos-best-practices.md           # Apple: visionOS / RealityKit / spatial UX
 │   └── project-documentation.md                   # Cross-platform: README/CHANGELOG/ADR
@@ -95,11 +97,11 @@ Use the installer from the target repo:
 # Preview catalog with category tags
 /path/to/AppBootstrapAI/install.sh --list --platform apple --features all
 
-# Full help — enumerates all 14 feature categories
+# Full help — enumerates all 15 feature categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial` for vision projects.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial` for vision projects. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter.
 
 The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
@@ -179,6 +181,31 @@ Specialized opt-in (`--features ...,spatial`). Not in `recommended` — vision t
 - **RealityKit** — author in Reality Composer Pro, not code. Shallow Entity hierarchies. `.head` anchor only for HUD; `.plane` for world-locked default. Cache `findEntity(named:)` results; never re-walk in update closures.
 - **Performance** — target 90fps. Frame drops cause nausea. Particles <1000 active; ~100k tri budget per Entity at 1–2m; prefer IBL over realtime lights; bake shadows.
 - **USDZ pipeline** — `.usda` source, `.usdz` ship. Reality Composer Pro is the authoring tool. Load via `Entity(named:in: realityKitContentBundle)`; handle the throwing async path.
+
+### TestFlight deployment (`apple-testflight-deployment.md`)
+
+Specialized opt-in (`--features ...,deployment`). Operational rule — fires on `Fastfile`, `ExportOptions.plist`, `Info.plist`, `*.xcconfig`, CI YAML.
+
+- **Versioning** — `CFBundleShortVersionString` (user-visible, semver-ish, reuse OK) vs `CFBundleVersion` (build number, **must monotonically increment**, never reuse). Compute build number from a monotonic CI source (`agvtool` / `PlistBuddy`); never hardcode in source.
+- **App Store Connect API key (.p8)** is the modern auth — issuer + key ID + .p8 file, stored as base64 CI secrets. Don't use app-specific passwords for new automations (Apple is deprecating that path).
+- **Canonical archive + export flow**: `xcodebuild archive` → `xcodebuild -exportArchive -exportOptionsPlist` → `xcrun altool --upload-app`. ExportOptions.plist must use `method: app-store-connect` (Xcode 15+), `signingStyle: manual` (for CI), explicit `provisioningProfiles` keyed by bundle ID.
+- **Code signing**: `match` (fastlane) for shared certs across a team, or direct keychain import for solo teams. Never check `.p12` certs into source. Manual signing for CI; automatic only for local dev.
+- **TestFlight tester groups**: Internal (≤100, no review, fast loop) vs External (≤10k, beta-review on each new `CFBundleShortVersionString`). Pick deliberately.
+- **dSYM upload to Crashlytics/Sentry** runs as a post-archive CI step; `uploadSymbols: true` in ExportOptions.plist sends them to Apple separately for App Store Connect crash logs.
+- **CI**: fastlane / GitHub Actions / Xcode Cloud. Same nine-step shape regardless of tool. Pin Xcode version, Ruby/Bundler/fastlane, dependency lockfiles.
+
+### Play beta deployment (`android-play-beta-deployment.md`)
+
+Specialized opt-in (`--features ...,deployment`). Operational rule — fires on `Fastfile`, `build.gradle{,.kts}`, `gradle.properties`, `keystore.properties`, `proguard-rules.pro`, CI YAML.
+
+- **Versioning** — `versionCode` (integer, **monotonic, never reused**, Play rejects duplicates silently) vs `versionName` (string, user-visible). Compute `versionCode` from a CI env var; don't hardcode-and-commit (merge order becomes load-bearing).
+- **Play App Signing — use it.** Splits keys: upload key (yours) and app signing key (Google's). Lose the upload key → reset via Play Console. Don't use Play App Signing → lose the app signing key → app is permanently un-updatable for existing users.
+- **AAB, not APK.** New apps must upload `.aab` since August 2021. `./gradlew bundleRelease` (not `assembleRelease`). `bundletool` to convert AAB → device-specific APKs for local install testing.
+- **Service account JSON for CI** — Play Console → API access → link a GCP service account, grant "Release manager" role on specific apps (not org-wide). Store JSON as a single CI secret.
+- **Testing tracks**: internal (≤100, no review) → closed (review on first track upload) → open (public early-access listing). All version-locked — higher track blocks older builds in lower tracks.
+- **Upload tools**: Triple-T `gradle-play-publisher` (Kotlin DSL, lowest-friction for Gradle projects) or fastlane `supply` (consistent CLI with the iOS side).
+- **ProGuard / R8**: `isMinifyEnabled = true` on Release. `mapping.txt` auto-uploads to Play Console with the AAB; verify Crashlytics/Sentry plugins also upload (or release crashes show as `a.a.b()`).
+- **Keystores never in source.** Decode from a base64 CI secret to disk; clean up on job exit.
 
 ### Apple localization (`apple-localization-best-practices.md`)
 

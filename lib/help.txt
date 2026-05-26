@@ -58,6 +58,8 @@
 #                          shrinking        R8 / ProGuard
 #                          spatial          visionOS: scene types, immersion styles,
 #                                           spatial gestures, RealityKit / ECS, USDZ
+#                          deployment       TestFlight (Apple) + Play beta tracks (Android):
+#                                           versioning, signing, CI patterns, gotchas
 #
 #                        Note: apple-objc-best-practices.md is gated solely by
 #                        --apple-language, not --features.

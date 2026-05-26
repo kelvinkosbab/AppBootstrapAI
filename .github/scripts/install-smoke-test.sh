@@ -1658,6 +1658,86 @@ else
 fi
 rm -rf "$t"
 
+# --- deployment category (TestFlight + Play beta) ----------------------------
+
+bold "==> --features recommended (default) → deployment rules NOT installed"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features recommended > /dev/null
+if [[ ! -f "$t/.claude/rules/apple-testflight-deployment.md" \
+   && ! -f "$t/.claude/rules/android-play-beta-deployment.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: deployment rules should be excluded from default --features recommended"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --features recommended,deployment → BOTH deployment rules installed"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features recommended,deployment > /dev/null
+if [[ -f "$t/.claude/rules/apple-testflight-deployment.md" \
+   && -f "$t/.claude/rules/android-play-beta-deployment.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --features recommended,deployment should install both rules on --platform both"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --features all → BOTH deployment rules installed"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features all > /dev/null
+if [[ -f "$t/.claude/rules/apple-testflight-deployment.md" \
+   && -f "$t/.claude/rules/android-play-beta-deployment.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --features all should install both deployment rules"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --platform apple --features deployment → only apple-testflight, not android-play"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features deployment > /dev/null
+if [[ -f "$t/.claude/rules/apple-testflight-deployment.md" \
+   && ! -f "$t/.claude/rules/android-play-beta-deployment.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --platform apple should install TestFlight rule, exclude Play rule"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --platform android --features deployment → only android-play, not apple-testflight"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features deployment > /dev/null
+if [[ -f "$t/.claude/rules/android-play-beta-deployment.md" \
+   && ! -f "$t/.claude/rules/apple-testflight-deployment.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --platform android should install Play rule, exclude TestFlight rule"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> manifest records deployment rules' category as 'deployment'"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features all > /dev/null
+if python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+matches = {f['path']: f['category'] for f in m['files']
+           if 'deployment' in f['path']}
+assert matches.get('.claude/rules/apple-testflight-deployment.md') == 'deployment', matches
+assert matches.get('.claude/rules/android-play-beta-deployment.md') == 'deployment', matches
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: manifest should categorize both deployment rules as 'deployment'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
 # --- spatial / visionOS category (Phase 8) ----------------------------------
 
 bold "==> --features recommended (default) → visionOS rule NOT installed"

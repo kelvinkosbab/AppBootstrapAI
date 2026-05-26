@@ -236,7 +236,7 @@ source "$SCRIPT_DIR/lib/detect_platform.sh"
 
 # --- Feature categories -------------------------------------------------------
 
-ALL_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization persistence ai migration shrinking spatial"
+ALL_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization persistence ai migration shrinking spatial deployment"
 RECOMMENDED_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization"
 
 # Resolve --features input into a space-separated list of category names.
@@ -443,7 +443,7 @@ if [[ "$PLATFORM" == "both" ]]; then
     TOKEN_TIPS+=("Targeting only one platform? Re-run with --platform apple (or android) to skip the other side's rules entirely. Example: an iOS-only app doesn't need Android rules — even though they wouldn't fire on .swift files, omitting them keeps the installed catalog leaner.")
 fi
 if [[ "$FEATURES_INPUT" == "all" ]]; then
-    TOKEN_TIPS+=("--features all installs every category, including specialized opt-ins (persistence/Core Data, ai/Foundation Models, migration/XML→Compose, shrinking/R8, spatial/visionOS) you may not use. --features recommended (default) is leaner; opt into specifics explicitly: --features recommended,ai.")
+    TOKEN_TIPS+=("--features all installs every category, including specialized opt-ins (persistence/Core Data, ai/Foundation Models, migration/XML→Compose, shrinking/R8, spatial/visionOS, deployment/TestFlight+Play) you may not use. --features recommended (default) is leaner; opt into specifics explicitly: --features recommended,ai.")
 fi
 if [[ "$APPLE_LANG" == "both" ]] && [[ "$PLATFORM" != "android" ]]; then
     TOKEN_TIPS+=("Pure-Swift project? --apple-language swift (default) skips the two apple-objc-* rules. Only use 'both' if you actually have .h/.m/.mm sources.")

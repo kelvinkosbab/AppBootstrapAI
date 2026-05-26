@@ -53,6 +53,8 @@ file_category() {
             echo "shrinking" ;;
         apple-visionos-best-practices.md)
             echo "spatial" ;;
+        apple-testflight-deployment.md|android-play-beta-deployment.md)
+            echo "deployment" ;;
         apple-objc-best-practices.md)
             echo "objc-gated" ;;
         *)

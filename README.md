@@ -54,7 +54,7 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 - **`install.sh`** — one-command bootstrap into any target repo. Flags:
   - `--platform apple|android|both` — optional; if omitted, the installer auto-detects from the target dir (`Package.swift` / `*.xcodeproj` → apple; `build.gradle*` / `gradlew` → android; both present → both; neither → falls back to `both`). Detection result + matched signals print in the install header. Explicit `--platform` always wins.
   - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
-  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps; `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`); custom CSVs like `core,testing,docs` give fine-grained control
+  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps; `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`); custom CSVs like `core,testing,docs` give fine-grained control
   - `--list` previews the catalog with one-line descriptions + category tags
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
   - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
@@ -63,7 +63,7 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
   - `--dry-run` shows what an install would do without writing any files
   - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope / rename. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. The header prints a GitHub compare URL when commits differ. See [Upgrading an existing install](#upgrading-an-existing-install).
   - `--uninstall` reverses install: deletes every tracked file whose current hash matches what was installed (locally-edited files kept unless `--force-conflicts`; `CLAUDE.md` / `settings.json` kept unless `--purge`). MCP entries are removed if unchanged, unless `--keep-mcps`. Strips the `.gitignore` block and the manifest itself. See [Removing the install](#removing-the-install).
-  - `--help` documents every flag and enumerates all 14 categories
+  - `--help` documents every flag and enumerates all 15 categories
   - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (schema v2 — records per-file SHA-256 hashes so `--upgrade` can diff 3-way: installed vs. current disk vs. bundle)
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 - **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
@@ -143,6 +143,10 @@ From the root of a new app repo:
 # RealityKit conventions, head-mounted-display accessibility, USDZ pipeline)
 /path/to/AppBootstrapAI/install.sh . --platform apple --features recommended,spatial
 
+# Shipping to testers — add the deployment category for TestFlight (Apple) +
+# Play beta (Android): versioning, signing, CI patterns, common gotchas
+/path/to/AppBootstrapAI/install.sh . --features recommended,deployment
+
 # Bootstrap + wire in MCP servers at the same time
 # (writes one mcpServers entry per recipe into .claude/settings.local.json)
 /path/to/AppBootstrapAI/install.sh . --platform apple --with-mcps xcodebuildmcp,sentry
@@ -172,7 +176,7 @@ From the root of a new app repo:
 
 Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. The manifest is what powers `--upgrade`'s 3-way diff against future bundle versions.
 
-**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization`. Specialized opt-ins not in `recommended`: `persistence` (Core Data), `ai` (Foundation Models, iOS 26+), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions).
+**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization`. Specialized opt-ins not in `recommended`: `persistence` (Core Data), `ai` (Foundation Models, iOS 26+), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas).
 
 **The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|all` (additive CSV) and the installer also drops the matching file shape for those agents (one concat file for Copilot/Gemini/Codex; per-rule `.mdc` files for Cursor). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
 
