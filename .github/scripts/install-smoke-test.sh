@@ -1381,6 +1381,283 @@ else
     PASS=$((PASS + 1))
 fi
 
+# --- Skill-directory renames (Phase 5a) -------------------------------------
+#
+# Synthesize a RENAMES.md entry, fake a manifest pointing at the old skill name,
+# and verify the upgrade flow folds the migration into rename rows + applies.
+
+bold "==> RENAMES.md: skill-dir rename surfaces in plan as 'Renames — safe'"
+t="$(mktemp -d)"
+# Snapshot+restore RENAMES.md around the test so we don't pollute the repo.
+cp "$REPO_ROOT/RENAMES.md" /tmp/RENAMES.md.smoke-bak
+cat >> "$REPO_ROOT/RENAMES.md" <<'EOF'
+
+swift-old-test-pro -> swift-concurrency-pro
+EOF
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+# Mirror the new skill's files under the old-name path; mark the manifest as old.
+python3 -c "
+import json, os, shutil
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+new_files = []
+for entry in m['files']:
+    if entry.get('skill') == 'swift-concurrency-pro' and 'assets/' not in entry['path']:
+        old_path = entry['path'].replace('swift-concurrency-pro', 'swift-old-test-pro')
+        os.makedirs(os.path.dirname(os.path.join('$t', old_path)), exist_ok=True)
+        shutil.copy(os.path.join('$t', entry['path']), os.path.join('$t', old_path))
+        new_files.append({**entry, 'path': old_path, 'skill': 'swift-old-test-pro'})
+    else:
+        new_files.append(entry)
+m['files'] = new_files
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+# Remove the new-name files from disk so the rename target is a real move.
+import shutil
+for f in os.listdir('$t/.claude/skills/swift-concurrency-pro/references'):
+    os.remove(os.path.join('$t/.claude/skills/swift-concurrency-pro/references', f))
+"
+out="$("$INSTALL" "$t" --upgrade 2>&1)"
+if grep -q "Renames — safe" <<<"$out" \
+    && grep -q "swift-old-test-pro" <<<"$out" \
+    && grep -q "swift-concurrency-pro" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: skill-dir rename should surface as 'Renames — safe' in the plan"
+    FAIL=$((FAIL + 1))
+fi
+# Restore RENAMES.md
+mv /tmp/RENAMES.md.smoke-bak "$REPO_ROOT/RENAMES.md"
+rm -rf "$t"
+
+bold "==> RENAMES.md: skill-dir rename --apply moves files; manifest updates"
+t="$(mktemp -d)"
+cp "$REPO_ROOT/RENAMES.md" /tmp/RENAMES.md.smoke-bak
+cat >> "$REPO_ROOT/RENAMES.md" <<'EOF'
+
+swift-old-test-pro -> swift-concurrency-pro
+EOF
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+# Realistic-rename synthesis: user installed a hypothetical earlier "swift-old-test-pro"
+# skill (which the bundle has since renamed to swift-concurrency-pro). To simulate
+# that, mirror non-asset files of swift-concurrency-pro under the old name AND
+# remove ALL of swift-concurrency-pro from disk (the user only has the old version).
+python3 -c "
+import json, os, shutil
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+new_files = []
+for entry in m['files']:
+    if entry.get('skill') == 'swift-concurrency-pro' and 'assets/' not in entry['path']:
+        old_path = entry['path'].replace('swift-concurrency-pro', 'swift-old-test-pro')
+        os.makedirs(os.path.dirname(os.path.join('$t', old_path)), exist_ok=True)
+        shutil.copy(os.path.join('$t', entry['path']), os.path.join('$t', old_path))
+        new_files.append({**entry, 'path': old_path, 'skill': 'swift-old-test-pro'})
+    elif entry.get('skill') != 'swift-concurrency-pro':
+        new_files.append(entry)
+    # asset entries for swift-concurrency-pro are dropped — they're a real-world
+    # collision (asset filenames contain the skill name; can't auto-fold).
+m['files'] = new_files
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+shutil.rmtree('$t/.claude/skills/swift-concurrency-pro', ignore_errors=True)
+"
+"$INSTALL" "$t" --upgrade --apply > /dev/null
+old_dir_present="false"
+[[ -d "$t/.claude/skills/swift-old-test-pro" ]] && old_dir_present="true"
+new_files_present="false"
+[[ -f "$t/.claude/skills/swift-concurrency-pro/references/structured.md" ]] && new_files_present="true"
+manifest_has_old="$(python3 -c "import json; m=json.load(open('$t/.claude/.appbootstrap-manifest.json')); print(any('swift-old-test-pro' in f['path'] for f in m['files']))")"
+if [[ "$old_dir_present" == "false" && "$new_files_present" == "true" && "$manifest_has_old" == "False" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: rename --apply should move files to new skill dir and drop old manifest entries"
+    FAIL=$((FAIL + 1))
+fi
+mv /tmp/RENAMES.md.smoke-bak "$REPO_ROOT/RENAMES.md"
+rm -rf "$t"
+
+# --- --uninstall (Phase 5b) -------------------------------------------------
+
+bold "==> --uninstall: default removes tracked files, keeps CLAUDE.md/settings.json"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+"$INSTALL" "$t" --uninstall > /dev/null
+if [[ ! -f "$t/.claude/rules/apple-swift6-strict-concurrency.md" \
+    && ! -f "$t/.claude/.appbootstrap-manifest.json" \
+    && -f "$t/.claude/settings.json" \
+    && -f "$t/CLAUDE.md" ]] \
+    && ! grep -q "AppBootstrapAI" "$t/.gitignore"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --uninstall should delete rules + manifest, keep settings.json/CLAUDE.md, strip gitignore block"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --uninstall: locally-edited file is KEPT (skipped with warning)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+echo "# local edit" >> "$t/.claude/rules/apple-swift6-strict-concurrency.md"
+"$INSTALL" "$t" --uninstall > /dev/null
+if [[ -f "$t/.claude/rules/apple-swift6-strict-concurrency.md" ]] \
+    && grep -q "local edit" "$t/.claude/rules/apple-swift6-strict-concurrency.md"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --uninstall should NOT delete locally-edited files"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --uninstall --force-conflicts: deletes user-edited files too"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+echo "# local edit" >> "$t/.claude/rules/apple-swift6-strict-concurrency.md"
+"$INSTALL" "$t" --uninstall --force-conflicts > /dev/null
+if [[ ! -f "$t/.claude/rules/apple-swift6-strict-concurrency.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --uninstall --force-conflicts should delete the edited file"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --uninstall --purge: also removes CLAUDE.md and settings.json"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+"$INSTALL" "$t" --uninstall --purge > /dev/null
+if [[ ! -f "$t/CLAUDE.md" && ! -f "$t/.claude/settings.json" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --uninstall --purge should remove CLAUDE.md and settings.json"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --uninstall: removes MCP entries (matching install hash)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+"$INSTALL" "$t" --uninstall > /dev/null
+# settings.local.json might be deleted along with .claude/ — either way, no mcpServers
+mcp_present="false"
+if [[ -f "$t/.claude/settings.local.json" ]]; then
+    has_mcp="$(python3 -c "import json; sl=json.load(open('$t/.claude/settings.local.json')); print('xcodebuildmcp' in sl.get('mcpServers',{}))")"
+    [[ "$has_mcp" == "True" ]] && mcp_present="true"
+fi
+if [[ "$mcp_present" == "false" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --uninstall should remove unmodified MCP entries"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --uninstall --keep-mcps: leaves MCP entries alone"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --with-mcps xcodebuildmcp > /dev/null
+"$INSTALL" "$t" --uninstall --keep-mcps > /dev/null
+if [[ -f "$t/.claude/settings.local.json" ]] \
+    && python3 -c "
+import json, sys
+sl = json.load(open('$t/.claude/settings.local.json'))
+sys.exit(0 if 'xcodebuildmcp' in sl.get('mcpServers',{}) else 1)
+"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --uninstall --keep-mcps should leave MCP entries alone"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --uninstall --dry-run: writes nothing"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+"$INSTALL" "$t" --uninstall --dry-run > /dev/null
+if [[ -f "$t/.claude/.appbootstrap-manifest.json" \
+    && -f "$t/.claude/rules/apple-swift6-strict-concurrency.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --uninstall --dry-run must not write anything"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --uninstall: validation — --purge requires --uninstall"
+if "$INSTALL" /tmp/never --purge > /dev/null 2>&1; then
+    red "FAIL: --purge without --uninstall should exit non-zero"; FAIL=$((FAIL + 1))
+else
+    PASS=$((PASS + 1))
+fi
+
+bold "==> --uninstall: validation — --keep-mcps requires --uninstall"
+if "$INSTALL" /tmp/never --keep-mcps > /dev/null 2>&1; then
+    red "FAIL: --keep-mcps without --uninstall should exit non-zero"; FAIL=$((FAIL + 1))
+else
+    PASS=$((PASS + 1))
+fi
+
+bold "==> --uninstall: no manifest at target → clean error"
+t="$(mktemp -d)"
+if "$INSTALL" "$t" --uninstall > /tmp/uninstall_none.out 2>&1; then
+    red "FAIL: --uninstall against unmanaged target should exit non-zero"; FAIL=$((FAIL + 1))
+else
+    if grep -q "no manifest" /tmp/uninstall_none.out; then
+        PASS=$((PASS + 1))
+    else
+        red "FAIL: --uninstall with no manifest should mention 'no manifest'"
+        FAIL=$((FAIL + 1))
+    fi
+fi
+rm -rf "$t" /tmp/uninstall_none.out
+
+# --- GitHub compare URL (Phase 5c) ------------------------------------------
+
+bold "==> --upgrade: GitHub compare URL appears when manifest commit differs from bundle"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+# Fake an older commit in the manifest so a compare is meaningful.
+python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+m['bundle_commit'] = '6a1afb1461fb26d070722b7916c1dbb37260e13b'  # a real older commit
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+out="$("$INSTALL" "$t" --upgrade 2>&1)"
+if grep -q "https://github.com/.*/compare/6a1afb14" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: upgrade plan should print a GitHub compare URL when commits differ"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --upgrade: no compare URL when manifest commit matches current"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+out="$("$INSTALL" "$t" --upgrade 2>&1)"
+# manifest_commit == current bundle_commit → no compare line
+if ! grep -q "changes between them:" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: compare URL should be suppressed when manifest_commit == current commit"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --upgrade: no compare URL when manifest commit is 'unknown'"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+m['bundle_commit'] = 'unknown'
+json.dump(m, open('$t/.claude/.appbootstrap-manifest.json','w'), indent=2)
+"
+out="$("$INSTALL" "$t" --upgrade 2>&1)"
+if ! grep -q "changes between them:" <<<"$out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: compare URL should be suppressed when bundle_commit is 'unknown'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
 # --list and --help should both succeed and produce sentinel output.
 # Note: capture output before grepping. If we piped directly to `grep -q`,
 # grep closes stdin after the first match, install.sh gets SIGPIPE on the

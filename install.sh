@@ -146,6 +146,22 @@
 #                        baseline. No file content is touched. After migration,
 #                        future --upgrade runs can do real 3-way diffs.
 #
+#   --uninstall          Reverse of install — removes everything AppBootstrapAI
+#                        wrote into the target, based on the manifest. By default:
+#                          - Tracked files whose current hash matches what we
+#                            wrote are DELETED.
+#                          - Tracked files the user edited (current hash differs)
+#                            are SKIPPED with a warning. Pass --force to delete
+#                            them anyway.
+#                          - CLAUDE.md and settings.json are SKIPPED unconditionally
+#                            (user-owned by then). Pass --purge to delete them too.
+#                          - MCP entries in settings.local.json that match what
+#                            we installed are removed; modified ones are skipped
+#                            unless --force. Pass --keep-mcps to leave them all.
+#                        Combine with --dry-run to preview without writing.
+#                        Final step removes the .gitignore block and the
+#                        manifest itself.
+#
 #   -h, --help           Print this help and exit.
 #
 # What it does:
@@ -183,6 +199,9 @@ APPLY="false"
 FORCE_CONFLICTS="false"
 PRUNE="false"
 MIGRATE_MANIFEST="false"
+# Phase 5b uninstall flags.
+PURGE="false"
+KEEP_MCPS="false"
 
 # Track whether the user explicitly passed each flag. Used by --upgrade to
 # inherit selection from the manifest when the user didn't override.
@@ -220,6 +239,18 @@ while [[ $# -gt 0 ]]; do
             ACTION="upgrade"
             shift
             ;;
+        --uninstall)
+            ACTION="uninstall"
+            shift
+            ;;
+        --purge)
+            PURGE="true"
+            shift
+            ;;
+        --keep-mcps)
+            KEEP_MCPS="true"
+            shift
+            ;;
         --apply)
             APPLY="true"
             shift
@@ -254,7 +285,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            sed -n '2,164p' "${BASH_SOURCE[0]}"
+            sed -n '2,180p' "${BASH_SOURCE[0]}"
             exit 0
             ;;
         *)
@@ -264,14 +295,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# --- Phase 3 flag validation --------------------------------------------------
-# --apply / --force-conflicts / --prune / --migrate-manifest only combine with --upgrade.
+# --- Phase 3 / 5b flag validation ---------------------------------------------
+# --apply only combines with --upgrade.
 if [[ "$APPLY" == "true" && "$ACTION" != "upgrade" ]]; then
     echo "error: --apply requires --upgrade" >&2
     exit 1
 fi
-if [[ "$FORCE_CONFLICTS" == "true" && "$APPLY" != "true" ]]; then
-    echo "error: --force-conflicts requires --upgrade --apply" >&2
+# --force-conflicts is meaningful under --upgrade --apply OR --uninstall (where it
+# means "delete user-edited files anyway"). Reject otherwise.
+if [[ "$FORCE_CONFLICTS" == "true" && "$APPLY" != "true" && "$ACTION" != "uninstall" ]]; then
+    echo "error: --force-conflicts requires --upgrade --apply or --uninstall" >&2
     exit 1
 fi
 if [[ "$PRUNE" == "true" && "$APPLY" != "true" ]]; then
@@ -280,6 +313,14 @@ if [[ "$PRUNE" == "true" && "$APPLY" != "true" ]]; then
 fi
 if [[ "$MIGRATE_MANIFEST" == "true" && "$APPLY" != "true" ]]; then
     echo "error: --migrate-manifest requires --upgrade --apply" >&2
+    exit 1
+fi
+if [[ "$PURGE" == "true" && "$ACTION" != "uninstall" ]]; then
+    echo "error: --purge requires --uninstall" >&2
+    exit 1
+fi
+if [[ "$KEEP_MCPS" == "true" && "$ACTION" != "uninstall" ]]; then
+    echo "error: --keep-mcps requires --uninstall" >&2
     exit 1
 fi
 
@@ -768,6 +809,23 @@ else
     BUNDLE_COMMIT="unknown"
 fi
 
+# Detect the bundle's GitHub remote (owner/repo) so the upgrade plan can print
+# a compare URL like https://github.com/owner/repo/compare/<old>...<new>.
+# Empty string if SCRIPT_DIR isn't a git checkout, has no `origin` remote, or
+# the remote isn't on github.com.
+BUNDLE_GH_REMOTE=""
+if command -v git >/dev/null 2>&1; then
+    _remote_url="$(git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null || echo "")"
+    if [[ -n "$_remote_url" ]]; then
+        # Match SSH (git@github.com:owner/repo[.git]) and HTTPS forms.
+        if [[ "$_remote_url" =~ github\.com[:/]([^/]+)/([^/]+)$ ]]; then
+            _owner="${BASH_REMATCH[1]}"
+            _repo="${BASH_REMATCH[2]%.git}"
+            BUNDLE_GH_REMOTE="$_owner/$_repo"
+        fi
+    fi
+fi
+
 # --- --list-mcps mode ---------------------------------------------------------
 
 if [[ "$ACTION" == "list-mcps" ]]; then
@@ -1037,7 +1095,7 @@ if [[ "$ACTION" == "upgrade" ]]; then
         "$PLATFORM" "$APPLE_LANG" "$FEATURES_INPUT" "$SCRIPT_DIR" \
         "$APPLY" "$FORCE_CONFLICTS" "$PRUNE" "$MIGRATE_MANIFEST" "$DRY_RUN" "$BUNDLE_COMMIT" \
         "$settings_local_path" "$MCP_RECIPES_DIR" "$bundle_overlay_dir" \
-        "$AGENTS_INPUT" "$SELECTED_AGENTS" \
+        "$AGENTS_INPUT" "$SELECTED_AGENTS" "$BUNDLE_GH_REMOTE" \
         <<'PYTHON'
 import hashlib, json, os, shutil, sys, datetime
 
@@ -1046,7 +1104,7 @@ import hashlib, json, os, shutil, sys, datetime
  apply_flag, force_conflicts_flag, prune_flag, migrate_manifest_flag, dry_run_flag,
  bundle_commit,
  settings_local_path, mcp_recipes_dir, bundle_overlay_dir,
- agents_input, agents_resolved_str) = sys.argv[1:21]
+ agents_input, agents_resolved_str, bundle_gh_remote) = sys.argv[1:22]
 agents_resolved = agents_resolved_str.split() if agents_resolved_str else []
 
 def bundle_source_for(rel_path):
@@ -1220,7 +1278,17 @@ with open(in_scope_path) as f:
             in_scope.add(line)
 
 # ----- Parse RENAMES.md ------------------------------------------------------
-renames = {}  # old_path → new_path (always tracked at rel_path granularity)
+# Two forms supported:
+#   - `apple-old.md → apple-new.md`     — rule file rename. Resolves to
+#                                          .claude/rules/apple-old.md →
+#                                          .claude/rules/apple-new.md
+#   - `swift-old-pro → swift-new-pro`   — skill directory rename. Applied as
+#                                          a path-prefix substitution at
+#                                          classification time, so every file
+#                                          under .claude/skills/swift-old-pro/
+#                                          folds to .claude/skills/swift-new-pro/<rest>.
+renames = {}          # exact old_path → new_path for rule files
+skill_renames = {}    # old_skill_name → new_skill_name (prefix-based)
 if os.path.exists(renames_path):
     with open(renames_path) as f:
         for raw in f:
@@ -1239,15 +1307,37 @@ if os.path.exists(renames_path):
             else:
                 continue
             old, new = [s.strip() for s in line.split(sep, 1)]
-            # If basename looks like a file (.md) keep as-is; if it's a bare
-            # skill dir name, expand to the skill directory namespace. We
-            # store both forms — rule rename is a single file; skill rename
-            # would need per-file mapping which we don't have without a
-            # listing of the OLD skill's files, so for now we only honor
-            # rule renames (skills can be done in Phase 3).
             if old.endswith(".md") and new.endswith(".md"):
+                # Rule rename (file-level, exact match).
                 renames[f".claude/rules/{old}"] = f".claude/rules/{new}"
-            # else: skip — skill-dir renames need Phase 3 support
+            elif "/" not in old and "/" not in new and "." not in old and "." not in new:
+                # Skill directory rename (bare names, no slashes / dots).
+                skill_renames[old] = new
+
+def resolve_rename(rel_path):
+    """Apply rule-file + skill-dir renames; follow the chain to convergence."""
+    cur = rel_path
+    seen = set()
+    while True:
+        if cur in seen:
+            break  # cycle guard
+        seen.add(cur)
+        # Exact-match rename takes priority.
+        if cur in renames:
+            cur = renames[cur]
+            continue
+        # Skill-dir prefix rewrite.
+        rewritten = None
+        for old_skill, new_skill in skill_renames.items():
+            prefix = f".claude/skills/{old_skill}/"
+            if cur.startswith(prefix):
+                rewritten = f".claude/skills/{new_skill}/" + cur[len(prefix):]
+                break
+        if rewritten:
+            cur = rewritten
+            continue
+        break
+    return cur
 
 # ----- Read every file's current disk hash from manifest -------------------
 def sha256_path(p):
@@ -1266,7 +1356,8 @@ local_edits = []
 conflicts = []
 orphans = []
 out_of_scope = []
-renamed_rows = []  # (old_path, new_path, classification)
+renames_safe = []      # safe-to-execute renames: no local edit on old path
+renames_conflict = []  # rename + (local edit OR bundle drift) → needs --force-conflicts
 
 manifest_paths = set()
 for entry in manifest.get("files", []):
@@ -1276,10 +1367,8 @@ for entry in manifest.get("files", []):
     abs_path = os.path.join(target_root, rel)
     current_hash = sha256_path(abs_path) if installed_hash is not None else None
 
-    # Rename: if this path maps via RENAMES, follow the chain.
-    rename_target = rel
-    while rename_target in renames:
-        rename_target = renames[rename_target]
+    # Rename: apply rule-file + skill-dir renames (chain followed to convergence).
+    rename_target = resolve_rename(rel)
     is_renamed = rename_target != rel
 
     bundle_lookup_path = rename_target
@@ -1323,6 +1412,31 @@ for entry in manifest.get("files", []):
         "renamed_to": rename_target if is_renamed else None,
     }
 
+    # Renames are handled separately — apply writes the new path and deletes
+    # the old one regardless of whether the file at the old path matches bundle.
+    # Safety still matters: if the user has edited the file at the old path,
+    # executing the rename would lose that edit.
+    if is_renamed:
+        # Detect collision: new path already exists on disk AND isn't itself in
+        # the manifest. That's a user-authored file at the rename target —
+        # never overwrite. Surface as a conflict so the user resolves manually.
+        new_abs = os.path.join(target_root, rename_target)
+        new_path_collision = (
+            os.path.exists(new_abs)
+            and rename_target not in {e["path"] for e in manifest.get("files", [])}
+        )
+        if new_path_collision:
+            renames_conflict.append({**row, "note": f"target path already exists at {rename_target}"})
+        elif current_hash == bundle_hash or current_hash == installed_hash:
+            # No local edit at old path (current matches either installed-baseline
+            # or the new bundle content) → safe to rename.
+            renames_safe.append(row)
+        else:
+            # current_hash differs from BOTH installed AND bundle → user has
+            # local edits that don't match bundle. Renaming loses them.
+            renames_conflict.append(row)
+        continue
+
     # Out-of-scope: bundle still has it but current selection wouldn't install it.
     if bundle_lookup_path not in in_scope:
         out_of_scope.append(row)
@@ -1337,20 +1451,23 @@ for entry in manifest.get("files", []):
     elif current_hash == installed_hash:
         # No local edits since install. Bundle has new content → safe update.
         safe_updates.append(row)
-        if is_renamed:
-            renamed_rows.append((rel, rename_target, "safe-update"))
     elif installed_hash == bundle_hash:
         # Bundle unchanged from install, but disk differs → local edit only.
         local_edits.append(row)
     else:
         # current, installed, and bundle all differ → true conflict.
         conflicts.append(row)
-        if is_renamed:
-            renamed_rows.append((rel, rename_target, "conflict"))
 
 # ----- Additions: bundle in-scope, not in manifest --------------------------
 # (Skip rename targets — they're already accounted for as renames of an existing path.)
+# For rule renames, that's just `renames.values()`. For skill renames, we
+# need to apply the prefix to every manifest entry under the OLD skill dir
+# so the corresponding NEW-dir file is marked as a rename target (not an addition).
 rename_targets = set(renames.values())
+for entry in manifest.get("files", []):
+    resolved = resolve_rename(entry["path"])
+    if resolved != entry["path"]:
+        rename_targets.add(resolved)
 additions = []
 for rel in sorted(in_scope):
     if rel in manifest_paths:
@@ -1472,9 +1589,17 @@ def header(title, rows):
         print(f"    … and {len(rows) - 50} more")
     print("")
 
-bundle_commit = manifest.get("bundle_commit", "unknown")
-print(f"  installed bundle commit: {bundle_commit[:12] if bundle_commit != 'unknown' else 'unknown'}")
+manifest_commit = manifest.get("bundle_commit", "unknown")
+print(f"  installed bundle commit: {manifest_commit[:12] if manifest_commit != 'unknown' else 'unknown'}")
+print(f"  current bundle commit:   {bundle_commit[:12] if bundle_commit != 'unknown' else 'unknown'}")
 print(f"  installed at:            {manifest.get('installed_at', '?')}")
+# Show a GitHub compare URL when we can — quick way to view exactly what
+# changed in the bundle between install and now.
+if (bundle_gh_remote
+    and manifest_commit not in ("", "unknown")
+    and bundle_commit not in ("", "unknown")
+    and manifest_commit != bundle_commit):
+    print(f"  changes between them:    https://github.com/{bundle_gh_remote}/compare/{manifest_commit}...{bundle_commit}")
 print("")
 
 header("Up to date (no action needed):", up_to_date)
@@ -1485,11 +1610,23 @@ header("Out of scope (manifest tracks, current --features doesn't include):", ou
 header("Retired upstream (bundle no longer ships these files):", [{"path": o["path"], "type": o["type"]} for o in orphans])
 header("Would add (new in bundle, fits current --features):", additions)
 
-if renamed_rows:
-    print(f"  Renames detected ({len(renamed_rows)}):")
-    for old, new, cls in renamed_rows:
-        print(f"    {old} → {new}  ({cls})")
+# Renames get their own section so users can see what's moving where. Apply
+# treats them as (delete old, write new) atomic pairs.
+def rename_header(title, rows):
+    if not rows:
+        return
+    print(f"  {title} ({len(rows)})")
+    for r in rows[:50]:
+        note = ""
+        if r.get("note"):
+            note = f"  [{r['note']}]"
+        print(f"    {r['path']} → {r['renamed_to']}{note}")
+    if len(rows) > 50:
+        print(f"    … and {len(rows) - 50} more")
     print("")
+
+rename_header("Renames — safe (no local edits to the old path):", renames_safe)
+rename_header("Renames — conflict (local edit at old path OR target path already exists; --force-conflicts to apply anyway):", renames_conflict)
 
 # MCP plan section — only emit if there's anything to say (manifest has MCPs).
 mcp_total_tracked = (len(mcp_up_to_date) + len(mcp_safe_updates) +
@@ -1518,6 +1655,8 @@ if mcp_total_tracked > 0:
 print(f"==> Plan: {len(safe_updates)} safe update(s), {len(conflicts)} conflict(s),")
 print(f"          {len(orphans)} orphan(s), {len(additions)} addition(s),")
 print(f"          {len(local_edits)} locally-edited (untouched), {len(up_to_date)} up to date.")
+if renames_safe or renames_conflict:
+    print(f"          Renames: {len(renames_safe)} safe, {len(renames_conflict)} conflict.")
 if mcp_total_tracked > 0:
     print(f"          MCPs: {len(mcp_safe_updates)} safe update(s), {len(mcp_conflicts)} conflict(s),")
     print(f"                {len(mcp_orphans)} orphan(s), {len(mcp_local_edits)} locally-edited,")
@@ -1535,7 +1674,7 @@ if not APPLY:
 def is_never_auto(row):
     return row.get("type") in ("template", "settings")
 
-actions = []  # list of (kind, row) where kind ∈ {"update","add","delete"}
+actions = []  # list of (kind, row) where kind ∈ {"update","add","delete","rename"}
 for r in safe_updates:
     if is_never_auto(r):
         continue
@@ -1554,6 +1693,14 @@ if PRUNE:
 deleted_count_plan = sum(1 for kind, _ in actions if kind == "delete")
 for r in additions:
     actions.append(("add", r))
+
+# Renames — always-safe ones execute under --apply; conflict ones need --force-conflicts.
+for r in renames_safe:
+    actions.append(("rename", r))
+if FORCE_CONFLICTS:
+    for r in renames_conflict:
+        actions.append(("rename", r))
+skipped_rename_conflicts = 0 if FORCE_CONFLICTS else len(renames_conflict)
 
 print(f"==> Applying {len(actions)} action(s)" + (" [DRY RUN]" if DRY_RUN else "") + "...")
 
@@ -1596,6 +1743,37 @@ for kind, r in actions:
                         break
                 except OSError:
                     break
+    elif kind == "rename":
+        # Move file from r["path"] (old) → r["renamed_to"] (new). Write the
+        # bundle's content at the new path; delete the old.
+        new_rel = r["renamed_to"]
+        new_dst = os.path.join(target_root, new_rel)
+        old_dst = os.path.join(target_root, rel)
+        src = bundle_source_for(new_rel)
+        if not os.path.exists(src):
+            print(f"  warn: bundle source missing for rename target, skipping: {src}")
+            continue
+        if DRY_RUN:
+            print(f"  [dry-run] would rename: {rel} → {new_rel}")
+        else:
+            os.makedirs(os.path.dirname(new_dst), exist_ok=True)
+            shutil.copy2(src, new_dst)
+            written += 1
+            if os.path.exists(old_dst):
+                os.remove(old_dst)
+                deleted += 1
+                # Clean up empty parents under .claude/ only.
+                parent = os.path.dirname(old_dst)
+                owned_root = os.path.join(target_root, ".claude")
+                while parent.startswith(owned_root) and parent != owned_root:
+                    try:
+                        if not os.listdir(parent):
+                            os.rmdir(parent)
+                            parent = os.path.dirname(parent)
+                        else:
+                            break
+                    except OSError:
+                        break
 
 # ----- MCP apply -------------------------------------------------------------
 # Decide which MCP entries to mutate. Same model as files:
@@ -1662,6 +1840,8 @@ if DRY_RUN:
     print(f"==> [DRY RUN] {len(actions)} file action(s) + {len(mcp_updates) + len(mcp_deletions)} MCP action(s) would run; 0 written.")
     if skipped_conflicts:
         print(f"    {skipped_conflicts} file conflict(s) would be SKIPPED — re-run with --force-conflicts to overwrite.")
+    if skipped_rename_conflicts:
+        print(f"    {skipped_rename_conflicts} rename conflict(s) would be SKIPPED — re-run with --force-conflicts to apply.")
     if mcp_skipped_conflicts:
         print(f"    {mcp_skipped_conflicts} MCP conflict(s) would be SKIPPED — re-run with --force-conflicts to overwrite.")
     sys.exit(0)
@@ -1676,11 +1856,16 @@ def sha256_path(p):
             h.update(chunk)
     return h.hexdigest()
 
-# Set of rel_paths we just deleted (under --prune) — exclude from new manifest.
+# Set of rel_paths we just deleted (under --prune OR via the old side of a
+# rename) — exclude from new manifest.
 deleted_paths = set()
+renamed_to_paths = []   # (new_path, src_row) — new entries to add after carry-forward
 for kind, r in actions:
     if kind == "delete":
         deleted_paths.add(r["path"])
+    elif kind == "rename":
+        deleted_paths.add(r["path"])         # old path is gone
+        renamed_to_paths.append((r["renamed_to"], r))
 
 # Start by carrying every manifest entry forward UNLESS we deleted it.
 # Then layer additions on top. For each carried entry, recompute hash from disk.
@@ -1737,6 +1922,32 @@ for kind, r in actions:
     new_files.append(e_out)
     seen_paths.add(rel)
 
+# Renames — record the NEW path with the bundle's metadata (skill name comes
+# from the rewritten path's skill dir). Carry-forward already dropped the old
+# entry because we added it to deleted_paths above.
+for new_rel, src_row in renamed_to_paths:
+    if new_rel in seen_paths:
+        continue
+    abs_p = os.path.join(target_root, new_rel)
+    if not os.path.exists(abs_p):
+        continue
+    bundle_meta = bundle_all.get(new_rel)
+    type_ = bundle_meta[0] if bundle_meta else src_row.get("type", "rule")
+    cat   = bundle_meta[1] if bundle_meta else src_row.get("category", "-")
+    e_out = {
+        "path": new_rel,
+        "type": type_,
+        "category": cat,
+        "sha256": sha256_path(abs_p),
+    }
+    # If the new path is under a skill dir, infer the new skill name from it.
+    if new_rel.startswith(".claude/skills/"):
+        parts = new_rel.split("/")
+        if len(parts) >= 3:
+            e_out["skill"] = parts[2]
+    new_files.append(e_out)
+    seen_paths.add(new_rel)
+
 # Rebuild mcps_installed from the apply outcome:
 #   - drop entries pruned under --prune
 #   - update config_sha256 for entries we just refreshed (safe-update / force-conflicts)
@@ -1780,6 +1991,257 @@ if mcp_skipped_conflicts:
 if skipped_conflicts:
     print(f"    {skipped_conflicts} conflict(s) SKIPPED — re-run with --force-conflicts to overwrite.")
 print(f"==> Manifest refreshed: {manifest_path}")
+PYTHON
+
+    exit 0
+fi
+
+# --- --uninstall mode ---------------------------------------------------------
+#
+# Walks the manifest, classifies each tracked file (safe-delete / user-edited /
+# user-protected), removes the safe ones, strips the .gitignore block, removes
+# the manifest itself. MCP entries get the same 3-way safety: removed if
+# unchanged since install, skipped otherwise unless --force.
+
+if [[ "$ACTION" == "uninstall" ]]; then
+    if [[ ! -d "$TARGET" ]]; then
+        echo "error: target directory does not exist: $TARGET" >&2
+        exit 1
+    fi
+    TARGET="$(cd "$TARGET" && pwd)"
+    manifest_path="$TARGET/.claude/.appbootstrap-manifest.json"
+
+    if [[ ! -f "$manifest_path" ]]; then
+        echo "error: no manifest at $manifest_path" >&2
+        echo "       This target does not appear to be an AppBootstrapAI install." >&2
+        echo "       Nothing to uninstall." >&2
+        exit 1
+    fi
+
+    echo "==> Uninstalling AppBootstrapAI from $TARGET"
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo "    [DRY RUN] No files will be deleted. Re-run without --dry-run to apply."
+    fi
+
+    settings_local_path="$TARGET/.claude/settings.local.json"
+
+    python3 - \
+        "$manifest_path" "$TARGET" "$settings_local_path" \
+        "$FORCE_CONFLICTS" "$PURGE" "$KEEP_MCPS" "$DRY_RUN" \
+        <<'PYTHON'
+import hashlib, json, os, sys
+
+(manifest_path, target_root, settings_local_path,
+ force_flag, purge_flag, keep_mcps_flag, dry_run_flag) = sys.argv[1:8]
+
+FORCE        = (force_flag      == "true")
+PURGE        = (purge_flag      == "true")
+KEEP_MCPS    = (keep_mcps_flag  == "true")
+DRY_RUN      = (dry_run_flag    == "true")
+
+with open(manifest_path) as f:
+    manifest = json.load(f)
+
+def sha256_path(p):
+    if not os.path.exists(p):
+        return None
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+# ----- Classify each tracked file -------------------------------------------
+safe_delete = []     # current hash matches installed hash → delete
+user_edited = []     # current hash differs → keep unless --force
+user_protected = []  # template / settings → keep unless --purge
+missing = []         # already gone from disk
+
+for entry in manifest.get("files", []):
+    rel = entry["path"]
+    type_ = entry.get("type", "rule")
+    installed_hash = entry.get("sha256")
+    abs_path = os.path.join(target_root, rel)
+
+    if type_ == "gitignore-block":
+        continue  # handled separately below
+
+    if not os.path.exists(abs_path):
+        missing.append(rel)
+        continue
+
+    if type_ in ("template", "settings"):
+        user_protected.append({"path": rel, "type": type_})
+        continue
+
+    current_hash = sha256_path(abs_path)
+    if installed_hash is None or current_hash == installed_hash:
+        safe_delete.append({"path": rel, "type": type_})
+    else:
+        user_edited.append({"path": rel, "type": type_})
+
+# ----- Print plan -----------------------------------------------------------
+def section(title, rows):
+    if not rows:
+        return
+    print(f"  {title} ({len(rows)})")
+    for r in rows[:50]:
+        path = r["path"] if isinstance(r, dict) else r
+        print(f"    {path}")
+    if len(rows) > 50:
+        print(f"    … and {len(rows) - 50} more")
+    print("")
+
+print("")
+section("Will delete (unchanged since install):", safe_delete)
+section("Locally edited — keep unless --force:", user_edited)
+section("User-protected (CLAUDE.md / settings.json) — keep unless --purge:", user_protected)
+section("Already absent on disk (will drop from manifest):", missing)
+
+# ----- File deletions -------------------------------------------------------
+to_delete = list(safe_delete)
+if FORCE:
+    to_delete.extend(user_edited)
+if PURGE:
+    to_delete.extend(user_protected)
+
+print(f"==> Deleting {len(to_delete)} file(s)" + (" [DRY RUN]" if DRY_RUN else "") + "...")
+deleted_count = 0
+for r in to_delete:
+    rel = r["path"] if isinstance(r, dict) else r
+    abs_path = os.path.join(target_root, rel)
+    if not os.path.exists(abs_path):
+        continue
+    if DRY_RUN:
+        print(f"  [dry-run] would delete: {rel}")
+    else:
+        os.remove(abs_path)
+        deleted_count += 1
+        # Clean up empty parent dirs under .claude/ only.
+        parent = os.path.dirname(abs_path)
+        owned_root = os.path.join(target_root, ".claude")
+        while parent.startswith(owned_root) and parent != owned_root:
+            try:
+                if not os.listdir(parent):
+                    os.rmdir(parent)
+                    parent = os.path.dirname(parent)
+                else:
+                    break
+            except OSError:
+                break
+
+# ----- MCP cleanup ----------------------------------------------------------
+def mcp_config_hash(config):
+    payload = json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+mcps_removed = 0
+mcps_skipped = []   # names left in settings.local.json (modified or missing recipe)
+
+if not KEEP_MCPS and manifest.get("mcps_installed"):
+    sl_data = {}
+    if os.path.exists(settings_local_path):
+        try:
+            with open(settings_local_path) as f:
+                sl_data = json.load(f)
+        except json.JSONDecodeError:
+            print(f"  warn: {settings_local_path} not valid JSON; skipping MCP cleanup")
+            sl_data = None
+    if sl_data is None:
+        pass
+    else:
+        sl_servers = sl_data.get("mcpServers", {}) or {}
+        before = dict(sl_servers)
+        for installed in manifest["mcps_installed"]:
+            name = installed["name"]
+            installed_hash = installed.get("config_sha256")
+            current_config = sl_servers.get(name)
+            if current_config is None:
+                continue   # already removed by user
+            current_hash = mcp_config_hash(current_config)
+            if current_hash == installed_hash or FORCE:
+                if DRY_RUN:
+                    print(f"  [dry-run] would remove MCP: {name}")
+                else:
+                    del sl_servers[name]
+                    mcps_removed += 1
+            else:
+                mcps_skipped.append(name)
+        if not DRY_RUN and sl_servers != before:
+            if sl_servers:
+                sl_data["mcpServers"] = sl_servers
+            else:
+                # If mcpServers ended up empty AND we created it via --with-mcps,
+                # drop the key. Other top-level keys (customField, permissions, etc.)
+                # stay untouched.
+                sl_data.pop("mcpServers", None)
+            with open(settings_local_path, "w") as f:
+                json.dump(sl_data, f, indent=2)
+                f.write("\n")
+
+# ----- .gitignore block + manifest removal ---------------------------------
+gitignore_path = os.path.join(target_root, ".gitignore")
+gitignore_stripped = False
+if os.path.exists(gitignore_path) and not DRY_RUN:
+    with open(gitignore_path) as f:
+        lines = f.read().splitlines()
+    out_lines = []
+    in_block = False
+    for line in lines:
+        if line.startswith("# --- AppBootstrapAI ("):
+            in_block = True
+            # Also drop a leading blank line if present
+            while out_lines and out_lines[-1] == "":
+                out_lines.pop()
+            continue
+        if in_block and line == "# --- end AppBootstrapAI ---":
+            in_block = False
+            continue
+        if not in_block:
+            out_lines.append(line)
+    new_content = "\n".join(out_lines)
+    if new_content and not new_content.endswith("\n"):
+        new_content += "\n"
+    with open(gitignore_path, "w") as f:
+        f.write(new_content)
+    gitignore_stripped = True
+elif os.path.exists(gitignore_path):
+    # dry-run path: just check if there's a block to strip
+    with open(gitignore_path) as f:
+        if "# --- AppBootstrapAI (" in f.read():
+            print("  [dry-run] would strip .gitignore block")
+
+if not DRY_RUN:
+    if os.path.exists(manifest_path):
+        os.remove(manifest_path)
+        # Try to remove .claude/ if now empty.
+        claude_dir = os.path.dirname(manifest_path)
+        try:
+            if not os.listdir(claude_dir):
+                os.rmdir(claude_dir)
+        except OSError:
+            pass
+
+# ----- Summary --------------------------------------------------------------
+print("")
+if DRY_RUN:
+    print(f"==> [DRY RUN] {len(to_delete)} file(s) would be deleted; {mcps_removed} MCP entry(ies) would be removed.")
+    if user_edited and not FORCE:
+        print(f"    {len(user_edited)} locally-edited file(s) would be KEPT — re-run with --force to remove.")
+    if user_protected and not PURGE:
+        print(f"    {len(user_protected)} user-protected file(s) (CLAUDE.md / settings.json) would be KEPT — re-run with --purge to remove.")
+    if mcps_skipped:
+        print(f"    {len(mcps_skipped)} MCP entry(ies) would be KEPT (modified): {', '.join(mcps_skipped)}")
+else:
+    print(f"==> Uninstall complete: {deleted_count} file(s) deleted, {mcps_removed} MCP entry(ies) removed.")
+    if gitignore_stripped:
+        print(f"    Stripped AppBootstrapAI block from {gitignore_path}")
+    if user_edited and not FORCE:
+        print(f"    Kept {len(user_edited)} locally-edited file(s) — re-run with --force to remove.")
+    if user_protected and not PURGE:
+        print(f"    Kept {len(user_protected)} user-protected file(s) (CLAUDE.md / settings.json) — re-run with --purge to remove.")
+    if mcps_skipped:
+        print(f"    Kept {len(mcps_skipped)} modified MCP entry(ies): {', '.join(mcps_skipped)}")
 PYTHON
 
     exit 0

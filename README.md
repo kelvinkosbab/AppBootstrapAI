@@ -61,7 +61,8 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
   - `--with-mcps <csv>` writes one `mcpServers.<name>` entry per recipe into `.claude/settings.local.json`. Existing entries are never overwritten. Setup notes (auth, env vars) print after install. See [`mcp-recipes/`](mcp-recipes/) for the available recipes.
   - `--agents <csv>` picks which AI agents to install for. Default `claude`; additive options: `copilot` (writes `.github/copilot-instructions.md`), `cursor` (writes `.cursor/rules/*.mdc`), `gemini` (writes `GEMINI.md`), `codex` (writes `AGENTS.md`), or `all`. Same rule content, per-agent file shape. Skills are Claude-only.
   - `--dry-run` shows what an install would do without writing any files
-  - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. See [Upgrading an existing install](#upgrading-an-existing-install).
+  - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope / rename. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. The header prints a GitHub compare URL when commits differ. See [Upgrading an existing install](#upgrading-an-existing-install).
+  - `--uninstall` reverses install: deletes every tracked file whose current hash matches what was installed (locally-edited files kept unless `--force-conflicts`; `CLAUDE.md` / `settings.json` kept unless `--purge`). MCP entries are removed if unchanged, unless `--keep-mcps`. Strips the `.gitignore` block and the manifest itself. See [Removing the install](#removing-the-install).
   - `--help` documents every flag and enumerates all 13 categories
   - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (schema v2 — records per-file SHA-256 hashes so `--upgrade` can diff 3-way: installed vs. current disk vs. bundle)
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
@@ -287,13 +288,66 @@ MCP recipes installed via `--with-mcps` are tracked in the manifest with their `
 
 The hash is computed over the recipe's `config` object with stable sort + compact separators, so reformatting `mcp-recipes/<name>.json` doesn't drift the hash.
 
+### Renames
+
+When the bundle renames a rule or skill upstream, the rename is tracked in [`RENAMES.md`](RENAMES.md) at the bundle root. The upgrade plan folds the migration into a single rename row instead of "deleted X, added Y." Two forms:
+
+- **Rule renames** (file-level): `apple-old.md → apple-new.md`. Resolves to `.claude/rules/<old>.md` → `.claude/rules/<new>.md`.
+- **Skill renames** (directory-level): `swift-old-pro → swift-new-pro`. Resolves to a path-prefix rewrite of every file under the old skill dir.
+
+Renames classify as **safe** (current matches installed or bundle — moving the file loses nothing) or **conflict** (you have uncommitted edits at the old path, OR the new path already exists from a user-authored file). Default skip on conflict; `--force-conflicts` applies anyway.
+
+### Where the bundle changed: the GitHub compare URL
+
+When the upgrade plan detects that the bundle's current `git rev-parse HEAD` differs from what the manifest recorded at install time, and the bundle's `origin` remote is a GitHub URL, the header prints a compare link:
+
+```
+  installed bundle commit: 6a1afb1461fb
+  current bundle commit:   30ee587195be
+  changes between them:    https://github.com/kelvinkosbab/AppBootstrapAI/compare/6a1afb14...30ee5871
+```
+
+Click through to see exactly what shipped between your install and now. Falls back gracefully when the bundle isn't a git checkout, has no GitHub remote, or both commits resolve to "unknown".
+
 ### Things the upgrade flow won't do
 
 - **`CLAUDE.md`** is never auto-touched. The plan surfaces "template advanced upstream" when relevant; the diff is for you to apply by hand. `CLAUDE.md` fills with project-specific content fast, so auto-merge is dangerous.
 - **`.claude/settings.json`** gets the same treatment for the same reason — you probably added permissions, tweaked allowlists. The plan informs; you merge.
 - **Non-`mcpServers` keys in `settings.local.json`** are preserved across upgrade-apply. Only `mcpServers.<name>` entries listed in the manifest's `mcps_installed` get touched.
 - **MCP additions** — `--upgrade` doesn't auto-add new MCP recipes. Adding an MCP is always explicit via `--with-mcps <name>`.
-- **Renamed rules** (e.g., a rule file gets a better name in a future bundle release) are tracked in [`RENAMES.md`](RENAMES.md) at the bundle root. The upgrade plan folds rename pairs into a single row instead of showing "deleted X, added Y."
+
+## Removing the install
+
+```bash
+# Default — delete every tracked file that hasn't been edited; keep CLAUDE.md / settings.json.
+/path/to/AppBootstrapAI/install.sh /your/repo --uninstall
+
+# Preview without writing
+/path/to/AppBootstrapAI/install.sh /your/repo --uninstall --dry-run
+
+# Aggressive: also delete locally-edited tracked files
+/path/to/AppBootstrapAI/install.sh /your/repo --uninstall --force-conflicts
+
+# Aggressive: also delete CLAUDE.md + settings.json
+/path/to/AppBootstrapAI/install.sh /your/repo --uninstall --purge
+
+# Leave settings.local.json MCP entries alone (don't touch your local MCP config)
+/path/to/AppBootstrapAI/install.sh /your/repo --uninstall --keep-mcps
+```
+
+Classifications:
+
+- **Will delete (unchanged since install)** — current hash matches what we wrote → safe to remove.
+- **Locally edited — keep unless `--force-conflicts`** — current hash differs from installed hash. Skipping protects work you did.
+- **User-protected — keep unless `--purge`** — `CLAUDE.md` and `.claude/settings.json` are always skipped by default (you almost certainly customized them).
+- **MCP entries** — same 3-way safety: removed if `settings.local.json` matches the install-time hash, skipped otherwise unless `--force-conflicts`. Pass `--keep-mcps` to leave them all.
+
+What `--uninstall` always does (regardless of flags):
+
+- Removes the `# --- AppBootstrapAI (...) ---` block from `.gitignore`.
+- Deletes the manifest at `.claude/.appbootstrap-manifest.json`.
+- Cleans up empty parent directories under `.claude/` only — never touches your project root.
+- Preserves every non-`mcpServers` key in `.claude/settings.local.json` (your permissions, custom fields, etc.).
 
 ## Saving AI tokens
 
