@@ -29,6 +29,7 @@ WITH_MCPS=""
 AGENTS_INPUT="claude"
 ACTION="install"
 DRY_RUN="false"
+# shellcheck disable=SC2034   # read by lib/list_modes.sh (--list --json branch)
 JSON_OUTPUT="false"
 # Phase 3 upgrade-apply flags. Each requires --upgrade + --apply (validated below).
 APPLY="false"
@@ -192,6 +193,7 @@ resolve_agents() {
 # user having to remember every flag). Explicit flags on this invocation still
 # win — that's how users opt into new feature categories at upgrade time.
 
+# shellcheck disable=SC2034   # read by lib/upgrade_mode.sh's plan header
 UPGRADE_INHERITED_FROM_MANIFEST="false"
 if [[ "$ACTION" == "upgrade" ]]; then
     upgrade_manifest_path="${TARGET}/.claude/.appbootstrap-manifest.json"
@@ -202,20 +204,24 @@ if [[ "$ACTION" == "upgrade" ]]; then
             IFS='|' read -r m_platform m_apple m_features m_agents <<<"$inherited"
             if [[ -z "$PLATFORM" && -n "$m_platform" ]]; then
                 PLATFORM="$m_platform"
+                # shellcheck disable=SC2034   # read by lib/upgrade_mode.sh
                 UPGRADE_INHERITED_FROM_MANIFEST="true"
             fi
             if [[ "$APPLE_LANG_EXPLICIT" != "true" && -n "$m_apple" ]]; then
                 APPLE_LANG="$m_apple"
+                # shellcheck disable=SC2034
                 UPGRADE_INHERITED_FROM_MANIFEST="true"
             fi
             if [[ "$FEATURES_EXPLICIT" != "true" && -n "$m_features" ]]; then
                 FEATURES_INPUT="$m_features"
+                # shellcheck disable=SC2034
                 UPGRADE_INHERITED_FROM_MANIFEST="true"
             fi
             if [[ "$AGENTS_EXPLICIT" != "true" && -n "$m_agents" ]]; then
                 AGENTS_INPUT="$m_agents"
                 # Re-resolve SELECTED_AGENTS from the inherited value.
                 SELECTED_AGENTS="$(resolve_agents "$AGENTS_INPUT")"
+                # shellcheck disable=SC2034
                 UPGRADE_INHERITED_FROM_MANIFEST="true"
             fi
         fi
@@ -345,6 +351,7 @@ act() {
 # the bundle was extracted from a tarball or git isn't on PATH. Purely informational —
 # the upgrade flow uses content hashes, not commit SHAs.
 # Defined here so both install AND upgrade flows can stamp it into the manifest.
+# shellcheck disable=SC2034   # read by lib/install_mode.sh (write_manifest) and lib/upgrade_mode.sh
 if command -v git >/dev/null 2>&1; then
     BUNDLE_COMMIT="$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
 else
@@ -355,6 +362,7 @@ fi
 # a compare URL like https://github.com/owner/repo/compare/<old>...<new>.
 # Empty string if SCRIPT_DIR isn't a git checkout, has no `origin` remote, or
 # the remote isn't on github.com.
+# shellcheck disable=SC2034   # read by lib/upgrade_mode.sh
 BUNDLE_GH_REMOTE=""
 if command -v git >/dev/null 2>&1; then
     _remote_url="$(git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null || echo "")"
@@ -363,6 +371,7 @@ if command -v git >/dev/null 2>&1; then
         if [[ "$_remote_url" =~ github\.com[:/]([^/]+)/([^/]+)$ ]]; then
             _owner="${BASH_REMATCH[1]}"
             _repo="${BASH_REMATCH[2]%.git}"
+            # shellcheck disable=SC2034
             BUNDLE_GH_REMOTE="$_owner/$_repo"
         fi
     fi
