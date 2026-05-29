@@ -293,6 +293,18 @@ assert 'rules' in data and isinstance(data['rules'], list), 'missing rules array
 assert 'skills' in data and isinstance(data['skills'], list), 'missing skills array'
 assert data['selection']['platform'] == 'both'
 assert data['selection']['features_input'] == 'all'
+# categories array — the contract the MCP server reads as its source of truth.
+assert 'categories' in data and isinstance(data['categories'], list), 'missing categories array'
+assert len(data['categories']) >= 15, f'expected >=15 categories, got {len(data[\"categories\"])}'
+cat_names = {c['name'] for c in data['categories']}
+assert {'spatial', 'deployment'} <= cat_names, f'categories missing spatial/deployment: {cat_names}'
+for c in data['categories']:
+    assert 'name' in c and 'recommended' in c, f'category missing name/recommended: {c}'
+    assert isinstance(c['recommended'], bool), f'recommended must be bool: {c}'
+# recommended preset must be exactly the 9 day-one categories
+recommended = {c['name'] for c in data['categories'] if c['recommended']}
+assert recommended == {'core','concurrency','ui','testing','docs','error-handling','packaging','logging','localization'}, \
+    f'unexpected recommended set: {recommended}'
 # Every rule should have filename/category/installed/description
 for r in data['rules']:
     for k in ('filename', 'category', 'installed', 'description'):

@@ -60,6 +60,21 @@ if [[ "$ACTION" == "list" ]]; then
         json_string_array "$SELECTED_AGENTS"
         printf '\n  },\n'
 
+        # Canonical category catalog — single source of truth for consumers
+        # (e.g. the MCP server) that need the full set + which are in the
+        # `recommended` preset. Driven by ALL_CATEGORIES / RECOMMENDED_CATEGORIES.
+        printf '  "categories": [\n'
+        first_cat=1
+        for cat_name in $ALL_CATEGORIES; do
+            recommended="false"
+            case " $RECOMMENDED_CATEGORIES " in
+                *" $cat_name "*) recommended="true" ;;
+            esac
+            if [[ "$first_cat" -eq 1 ]]; then first_cat=0; else printf ',\n'; fi
+            printf '    {"name": "%s", "recommended": %s}' "$cat_name" "$recommended"
+        done
+        printf '\n  ],\n'
+
         printf '  "rules": [\n'
         shopt -s nullglob
         first_rule=1

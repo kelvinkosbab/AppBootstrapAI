@@ -1,0 +1,53 @@
+name: mcp-server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mcp-server/**'
+      - 'install.sh'
+      - 'lib/**'
+      - '.github/workflows/mcp-server.yml'
+  pull_request:
+    paths:
+      - 'mcp-server/**'
+      - 'install.sh'
+      - 'lib/**'
+      - '.github/workflows/mcp-server.yml'
+
+# Why install.sh + lib/ trigger this too: the server reads its category set
+# live from `install.sh --list --json`. A change to the JSON contract that
+# breaks the server should fail here, not silently at an adopter's machine.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mcp-server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check + build (tsc)
+        run: npm run build
+
+      - name: Smoke — server starts and loads the category set from install.sh
+        run: |
+          # The server reads stdin as the MCP transport; feed it nothing and
+          # give it a few seconds to connect, then assert the startup log shows
+          # the categories were loaded live from install.sh.
+          timeout 15 node dist/index.js </dev/null 2>stderr.log || true
+          echo "--- server stderr ---"
+          cat stderr.log
+          grep -q "categories loaded" stderr.log \
+            || { echo "::error::server did not report loading categories from install.sh"; exit 1; }

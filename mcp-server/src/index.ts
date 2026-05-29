@@ -7,11 +7,15 @@
  * rather than parsing shell output.
  *
  * Tools:
- *   - list_categories     Return the 13 feature categories with descriptions.
+ *   - list_categories     Return the feature categories with descriptions. The
+ *                         set is read live from `install.sh --list --json`, so
+ *                         it never drifts from what the installer recognizes.
  *   - list_rules          Return every rule's frontmatter (description, globs, file path).
  *   - list_skills         Return every skill's frontmatter + its reference files.
  *   - preview_install     Run `install.sh --list` for a given selection; return parsed catalog.
- *   - install             Run `install.sh` against a target directory.
+ *   - install             Run `install.sh` against a target directory (supports
+ *                         --agents and --with-mcps).
+ *   - preview_upgrade     Run `install.sh <dir> --upgrade` (plan-only, writes nothing).
  *
  * Communicates over stdio (the standard MCP transport for local subprocess servers).
  * Configure a client by pointing at the compiled `dist/index.js`.
@@ -44,26 +48,39 @@ const INSTALL_SH = join(REPO_ROOT, "install.sh");
 const RULES_DIR = join(REPO_ROOT, ".claude", "rules");
 const SKILLS_DIR = join(REPO_ROOT, ".claude", "skills");
 
-// --- Static category metadata -------------------------------------------------
-// Mirrors the case statement in install.sh's file_category() and the header
-// comment in install.sh. Kept in sync manually — there isn't a single source
-// of truth for categories yet.
+// --- Category metadata --------------------------------------------------------
+//
+// The authoritative SET of categories — and which ones are in the `recommended`
+// preset — is read at startup from `install.sh --list --json` (see
+// loadCategories below). That makes install.sh the single source of truth and
+// kills the drift class that used to live here as a hand-maintained array.
+//
+// This map supplies only PROSE descriptions (presentation). A category present
+// in install.sh but missing here just gets an empty description — it can never
+// silently disappear from the set.
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+    core:             "Project-level README/CHANGELOG/CONTRIBUTING/ADR patterns.",
+    concurrency:      "Swift 6.2 strict concurrency / Kotlin coroutines structured concurrency.",
+    ui:               "SwiftUI/MVVM / Jetpack Compose patterns + accessibility.",
+    testing:          "Test strategy + coverage gates (Apple + Android).",
+    docs:             "DocC / KDoc documentation strategy.",
+    "error-handling": "Swift typed throws / Result / LocalizedError.",
+    packaging:        "Package.swift / Gradle conventions / SPM and Gradle authoring.",
+    logging:          "os.Logger discipline (privacy markers, subsystem/category).",
+    localization:     "String Catalogs / strings.xml / plurals / RTL.",
+    persistence:      "Core Data under Swift 6 strict concurrency.",
+    ai:               "Apple Foundation Models (iOS 26+).",
+    migration:        "Android XML/Fragment → Compose migration.",
+    shrinking:        "R8 / ProGuard configuration and keep-rule discipline.",
+    spatial:          "visionOS: scene types, immersion styles, spatial gestures, RealityKit/ECS, USDZ pipeline.",
+    deployment:       "TestFlight (Apple) + Play beta tracks (Android): versioning, signing, CI patterns, gotchas.",
+};
 
-const CATEGORIES = [
-    { name: "core",            recommended: true,  description: "Project-level README/CHANGELOG/CONTRIBUTING/ADR patterns." },
-    { name: "concurrency",     recommended: true,  description: "Swift 6.2 strict concurrency / Kotlin coroutines structured concurrency." },
-    { name: "ui",              recommended: true,  description: "SwiftUI/MVVM / Jetpack Compose patterns + accessibility." },
-    { name: "testing",         recommended: true,  description: "Test strategy + coverage gates (Apple + Android)." },
-    { name: "docs",            recommended: true,  description: "DocC / KDoc documentation strategy." },
-    { name: "error-handling",  recommended: true,  description: "Swift typed throws / Result / LocalizedError." },
-    { name: "packaging",       recommended: true,  description: "Package.swift / Gradle conventions / SPM and Gradle authoring." },
-    { name: "logging",         recommended: true,  description: "os.Logger discipline (privacy markers, subsystem/category)." },
-    { name: "localization",    recommended: true,  description: "String Catalogs / strings.xml / plurals / RTL." },
-    { name: "persistence",     recommended: false, description: "Core Data under Swift 6 strict concurrency." },
-    { name: "ai",              recommended: false, description: "Apple Foundation Models (iOS 26+)." },
-    { name: "migration",       recommended: false, description: "Android XML/Fragment → Compose migration." },
-    { name: "shrinking",       recommended: false, description: "R8 / ProGuard configuration and keep-rule discipline." },
-];
+interface Category { name: string; recommended: boolean; description: string; }
+
+// Populated once at startup by loadCategories(). Tool handlers run after the
+// server connects, so this is always set by the time they read it.
+let CATEGORIES: Category[] = [];
 
 // --- Helpers ------------------------------------------------------------------
 
@@ -115,6 +132,33 @@ function runCommand(cmd: string, args: string[], cwd?: string): Promise<{ stdout
         child.on("error", rejectP);
         child.on("close", (code) => resolveP({ stdout, stderr, code: code ?? -1 }));
     });
+}
+
+/**
+ * Read the canonical category set from `install.sh --list --json` and merge in
+ * the prose descriptions. Single source of truth — keeps the MCP server from
+ * drifting out of sync with the installer's feature taxonomy.
+ */
+async function loadCategories(): Promise<Category[]> {
+    const result = await runCommand(
+        "bash",
+        [INSTALL_SH, "--list", "--json", "--platform", "both", "--features", "all"]
+    );
+    if (result.code !== 0) {
+        throw new Error(`install.sh --list --json failed (code ${result.code}): ${result.stderr}`);
+    }
+    const parsed = JSON.parse(result.stdout);
+    if (!Array.isArray(parsed.categories)) {
+        throw new Error(
+            "install.sh --list --json did not return a 'categories' array. " +
+            "Is install.sh up to date with the MCP server? (Needs the categories emitter.)"
+        );
+    }
+    return parsed.categories.map((c: { name: string; recommended: boolean }) => ({
+        name: c.name,
+        recommended: c.recommended,
+        description: CATEGORY_DESCRIPTIONS[c.name] ?? "",
+    }));
 }
 
 // --- Tool implementations -----------------------------------------------------
@@ -195,6 +239,8 @@ async function toolInstall(args: {
     platform?: string;
     apple_language?: string;
     features?: string;
+    agents?: string;
+    with_mcps?: string;
 }) {
     if (!args.target_dir) {
         throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
@@ -212,10 +258,18 @@ async function toolInstall(args: {
     }
     validateFeatures(features);
 
-    const result = await runCommand(
-        "bash",
-        [INSTALL_SH, args.target_dir, "--platform", platform, "--apple-language", appleLanguage, "--features", features]
-    );
+    // Build args incrementally so optional flags are only passed when provided
+    // (install.sh defaults --agents to claude and --with-mcps to empty).
+    const installArgs = [
+        INSTALL_SH, args.target_dir,
+        "--platform", platform,
+        "--apple-language", appleLanguage,
+        "--features", features,
+    ];
+    if (args.agents) installArgs.push("--agents", args.agents);
+    if (args.with_mcps) installArgs.push("--with-mcps", args.with_mcps);
+
+    const result = await runCommand("bash", installArgs);
 
     const summary = {
         exit_code: result.code,
@@ -223,6 +277,8 @@ async function toolInstall(args: {
         platform,
         apple_language: appleLanguage,
         features,
+        agents: args.agents ?? "claude",
+        with_mcps: args.with_mcps ?? null,
         stdout: result.stdout,
         stderr: result.stderr,
     };
@@ -235,6 +291,28 @@ async function toolInstall(args: {
     }
 
     return { content: [{ type: "text" as const, text: JSON.stringify(summary, null, 2) }] };
+}
+
+async function toolPreviewUpgrade(args: { target_dir: string; features?: string }) {
+    if (!args.target_dir) {
+        throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
+    }
+    if (args.features) validateFeatures(args.features);
+
+    // Plan-only: `--upgrade` without `--apply` never writes. Selection flags
+    // default from the target's manifest, so we only forward --features when
+    // the caller explicitly wants to opt into new categories.
+    const upgradeArgs = [INSTALL_SH, args.target_dir, "--upgrade"];
+    if (args.features) upgradeArgs.push("--features", args.features);
+
+    const result = await runCommand("bash", upgradeArgs);
+    if (result.code !== 0) {
+        throw new McpError(
+            ErrorCode.InternalError,
+            `install.sh --upgrade exited with code ${result.code}.\n\nstderr:\n${result.stderr}\n\nstdout:\n${result.stdout}`
+        );
+    }
+    return { content: [{ type: "text" as const, text: result.stdout }] };
 }
 
 // --- MCP wiring ---------------------------------------------------------------
@@ -253,7 +331,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
         {
             name: "list_categories",
-            description: "List the 13 feature categories AppBootstrapAI's install.sh recognizes (core, concurrency, ui, testing, docs, error-handling, packaging, logging, localization, persistence, ai, migration, shrinking). Returns name + recommended flag + description for each.",
+            description: "List the feature categories AppBootstrapAI's install.sh recognizes. Returns name + recommended flag + description for each. The set is read live from install.sh so it never drifts. `recommended: true` categories install by default; the rest are opt-in via --features.",
             inputSchema: { type: "object", properties: {}, additionalProperties: false }
         },
         {
@@ -281,7 +359,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         {
             name: "install",
-            description: "Run AppBootstrapAI's installer against a target directory. Copies skills, rules, settings.json, CLAUDE.md template, and .gitignore entries matching the selection. Never overwrites existing CLAUDE.md or settings.json (prints what was skipped). Returns install.sh's stdout/stderr + exit code.",
+            description: "Run AppBootstrapAI's installer against a target directory. Copies skills, rules, settings.json, CLAUDE.md template, and .gitignore entries matching the selection. With --agents, also writes per-agent files (.github/copilot-instructions.md, .cursor/rules/*.mdc, GEMINI.md, AGENTS.md). Never overwrites existing CLAUDE.md/settings.json/agent files (prints what was skipped). Returns install.sh's stdout/stderr + exit code.",
             inputSchema: {
                 type: "object",
                 properties: {
@@ -289,6 +367,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     platform: { type: "string", enum: ["apple", "android", "both"], description: "Default: both" },
                     apple_language: { type: "string", enum: ["swift", "objc", "both"], description: "Default: swift. Only relevant when platform includes apple." },
                     features: { type: "string", description: "Comma-separated category list, or one of: 'recommended' (default), 'all'." },
+                    agents: { type: "string", description: "Comma-separated AI agents to install for: claude (default), copilot, cursor, gemini, codex, or 'all'. Additive." },
+                    with_mcps: { type: "string", description: "Comma-separated MCP recipe names to add to .claude/settings.local.json (e.g. 'xcodebuildmcp,sentry'). See list-mcps in the bundle for available recipes." },
+                },
+                required: ["target_dir"],
+                additionalProperties: false
+            }
+        },
+        {
+            name: "preview_upgrade",
+            description: "Run `install.sh <target_dir> --upgrade` — a plan-only diff of what would change if the target re-installed from the current bundle. Writes NOTHING. Classifies each tracked file as up-to-date / safe-update / locally-edited / conflict / orphan / addition / rename, and surfaces a GitHub compare URL when the bundle commit differs. Use before deciding whether to re-run `install`.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    target_dir: { type: "string", description: "Absolute path to an existing AppBootstrapAI install (must contain .claude/.appbootstrap-manifest.json). Required." },
+                    features: { type: "string", description: "Optional. Opt into new categories at upgrade time (e.g. 'recommended,spatial'). Defaults to whatever the manifest recorded." },
                 },
                 required: ["target_dir"],
                 additionalProperties: false
@@ -306,6 +399,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
             case "list_skills":     return await toolListSkills();
             case "preview_install": return await toolPreviewInstall(args as any);
             case "install":         return await toolInstall(args as any);
+            case "preview_upgrade": return await toolPreviewUpgrade(args as any);
             default:
                 throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }
@@ -318,8 +412,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
     }
 });
 
+// Load the canonical category set from install.sh before accepting requests.
+// If install.sh is missing/old, fail loudly at startup — better than serving
+// a stale or empty category list. (The install/preview tools wouldn't work
+// without install.sh anyway.)
+try {
+    CATEGORIES = await loadCategories();
+} catch (e) {
+    console.error(`appbootstrap-mcp: failed to load categories from install.sh: ${e instanceof Error ? e.message : String(e)}`);
+    process.exit(1);
+}
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
 
 // stderr is the canonical place for MCP servers to log to (stdout is the MCP transport).
-console.error("appbootstrap-mcp server connected via stdio");
+console.error(`appbootstrap-mcp server connected via stdio (${CATEGORIES.length} categories loaded)`);
