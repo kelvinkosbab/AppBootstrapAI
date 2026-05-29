@@ -509,6 +509,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   ├── mcp_merge.py                   # Python: MCP merge into settings.local.json
 │   └── inherit_selection.py           # Python: read selection fields from a manifest
 ├── RENAMES.md                         # Rule/skill rename map honored by --upgrade
+├── CHANGELOG.md                       # Keep-a-Changelog notable changes
 ├── CLAUDE.md                          # This repo's own AI onboarding
 ├── LICENSE                            # MIT
 └── README.md
@@ -526,6 +527,10 @@ See [CLAUDE.md](CLAUDE.md) for:
 
 - **Skills exist for both Apple and Android.** Apple has 8 skills (concurrency, testing, SwiftUI, Core Data, DocC, error handling, logging, SPM); Android has 3 (Gradle architecture, XML-to-Compose migration, R8/ProGuard). Android skill coverage will grow as production patterns surface — Compose-pro and coroutines-pro equivalents of the Apple skills are on the roadmap.
 - All rules (Apple + Android) are loaded automatically by `globs` and apply equally; there is no "primary" / "secondary" platform in the bundle's design.
+
+## Changelog
+
+Notable changes are tracked in [`CHANGELOG.md`](CHANGELOG.md), following the [Keep a Changelog](https://keepachangelog.com) format the bundle's own `project-documentation.md` rule recommends.
 
 ## Credits
 

@@ -1,0 +1,40 @@
+name: python
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**.py'
+      - '.github/scripts/**.py'
+      - '.github/workflows/python.yml'
+  pull_request:
+    paths:
+      - 'lib/**.py'
+      - '.github/scripts/**.py'
+      - '.github/workflows/python.yml'
+
+# The install.sh modes delegate the JSON-heavy work (upgrade plan/apply,
+# uninstall, MCP merge, manifest inheritance) to lib/*.py. The install
+# smoke test exercises those end-to-end, but only on the branches it hits —
+# a NameError or stray reference in an unexercised branch would slip through.
+# ruff's pyflakes (F) rules catch exactly that class (undefined names, unused
+# imports, f-strings without placeholders) with zero style bikeshedding.
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ruff check (pyflakes rules)
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "check --select F lib .github/scripts"
+
+      - name: Set up Python (for py_compile baseline)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: py_compile (syntax floor, zero-dependency)
+        run: python3 -m py_compile lib/*.py .github/scripts/*.py

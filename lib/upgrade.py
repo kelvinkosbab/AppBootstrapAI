@@ -194,7 +194,7 @@ if schema == 1:
 
 if schema > 2:
     print(f"error: manifest schema_version={schema} is newer than this installer understands.", file=sys.stderr)
-    print(f"       Update install.sh from the bundle and retry.", file=sys.stderr)
+    print("       Update install.sh from the bundle and retry.", file=sys.stderr)
     sys.exit(2)
 
 # ----- Load bundle data ------------------------------------------------------
