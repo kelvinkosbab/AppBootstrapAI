@@ -451,6 +451,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-documentation-strategy.md          # KDoc strategy + Dokka
 │   │   ├── android-gradle-conventions.md              # Gradle DSL, version catalogs, modules
 │   │   ├── android-localization-best-practices.md     # strings.xml, plurals, RTL
+│   │   ├── android-play-beta-deployment.md            # Play beta tracks, signing, CI (deployment)
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
 │   │   ├── android-testing-strategy.md                # Android test strategy + JaCoCo
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
@@ -462,7 +463,9 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-spm-package-conventions.md           # Package.swift authoring
 │   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.2 strict concurrency
 │   │   ├── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
+│   │   ├── apple-testflight-deployment.md             # TestFlight, ASC API, signing, CI (deployment)
 │   │   ├── apple-testing-strategy.md                  # Apple test strategy + coverage
+│   │   ├── apple-visionos-best-practices.md           # visionOS / RealityKit / spatial UX (spatial)
 │   │   └── project-documentation.md                   # README/CHANGELOG/ADR/inline comments
 │   ├── skills/                        # On-demand skills
 │   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs
@@ -492,7 +495,20 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   ├── src/index.ts                   # 5 tools: list_categories/rules/skills, preview_install, install
 │   ├── package.json
 │   └── README.md                      # MCP setup instructions for Claude Code / Cursor / others
-├── install.sh                         # One-command bootstrap
+├── install.sh                         # CLI dispatcher (~450 lines): args, validation, mode dispatch
+├── lib/                               # install.sh's sourced modules (keeps the entry point small)
+│   ├── help.txt                       # Full --help text (cat'd by the -h/--help handler)
+│   ├── predicates.sh                  # file_category, should_install_*, sha256, concat helpers
+│   ├── detect_platform.sh             # --platform auto-detection from target-dir signals
+│   ├── list_modes.sh                  # --list and --list-mcps handlers
+│   ├── install_mode.sh                # the install path (skills, rules, agents, gitignore, manifest)
+│   ├── install_mcps.sh                # --with-mcps merge wrapper (calls mcp_merge.py)
+│   ├── upgrade_mode.sh                # --upgrade bash wrapper (calls upgrade.py)
+│   ├── upgrade.py                     # Python: upgrade plan/apply executor (3-way diff)
+│   ├── uninstall.py                   # Python: --uninstall executor
+│   ├── mcp_merge.py                   # Python: MCP merge into settings.local.json
+│   └── inherit_selection.py           # Python: read selection fields from a manifest
+├── RENAMES.md                         # Rule/skill rename map honored by --upgrade
 ├── CLAUDE.md                          # This repo's own AI onboarding
 ├── LICENSE                            # MIT
 └── README.md

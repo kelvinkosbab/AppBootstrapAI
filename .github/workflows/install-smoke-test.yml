@@ -5,15 +5,21 @@ on:
     branches: [main]
     paths:
       - 'install.sh'
+      - 'lib/**'
       - 'templates/**'
       - '.claude/**'
+      - 'mcp-recipes/**'
+      - 'RENAMES.md'
       - '.github/scripts/install-smoke-test.sh'
       - '.github/workflows/install-smoke-test.yml'
   pull_request:
     paths:
       - 'install.sh'
+      - 'lib/**'
       - 'templates/**'
       - '.claude/**'
+      - 'mcp-recipes/**'
+      - 'RENAMES.md'
       - '.github/scripts/install-smoke-test.sh'
       - '.github/workflows/install-smoke-test.yml'
 

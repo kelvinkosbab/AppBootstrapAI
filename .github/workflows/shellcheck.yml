@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - 'install.sh'
+      - 'lib/**.sh'
       - '.github/scripts/**.sh'
       - '.github/workflows/shellcheck.yml'
   pull_request:
     paths:
       - 'install.sh'
+      - 'lib/**.sh'
       - '.github/scripts/**.sh'
       - '.github/workflows/shellcheck.yml'
 
