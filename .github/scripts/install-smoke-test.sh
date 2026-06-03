@@ -194,6 +194,8 @@ assert_file_exists "$target_rec/.claude/rules/android-linting-strategy.md"      
 # Skills covered by recommended:
 assert_dir_exists  "$target_rec/.claude/skills/swift-error-handling-pro"                    "recommended includes error-handling skill"
 assert_dir_exists  "$target_rec/.claude/skills/swift-logging-pro"                           "recommended includes logging skill"
+assert_file_exists "$target_rec/.claude/rules/apple-logging-strategy.md"                    "recommended includes logging rule (apple)"
+assert_file_exists "$target_rec/.claude/rules/android-logging-strategy.md"                  "recommended includes logging rule (android)"
 assert_dir_exists  "$target_rec/.claude/skills/swift-package-pro"                           "recommended includes packaging skill"
 
 # recommended EXCLUDES: persistence, ai, migration, shrinking.
@@ -1668,6 +1670,51 @@ if ! grep -q "changes between them:" <<<"$out"; then
     PASS=$((PASS + 1))
 else
     red "FAIL: compare URL should be suppressed when bundle_commit is 'unknown'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+# --- logging rules (filling the Android gap) ---------------------------------
+
+bold "==> logging: --platform android --features logging now installs the android rule (was empty)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features logging > /dev/null
+if [[ -f "$t/.claude/rules/android-logging-strategy.md" \
+   && ! -f "$t/.claude/rules/apple-logging-strategy.md" \
+   && ! -d "$t/.claude/skills/swift-logging-pro" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: android logging should install the android rule, exclude apple rule + swift skill"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> logging: --platform apple → apple rule + swift-logging-pro skill, not android rule"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features logging > /dev/null
+if [[ -f "$t/.claude/rules/apple-logging-strategy.md" \
+   && -d "$t/.claude/skills/swift-logging-pro" \
+   && ! -f "$t/.claude/rules/android-logging-strategy.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: apple logging should install apple rule + skill, exclude android rule"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> logging: manifest categorizes both logging rules as 'logging'"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features logging > /dev/null
+if python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+cats = {f['path']: f['category'] for f in m['files'] if 'logging-strategy' in f['path']}
+assert cats.get('.claude/rules/apple-logging-strategy.md') == 'logging', cats
+assert cats.get('.claude/rules/android-logging-strategy.md') == 'logging', cats
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: manifest should categorize both logging rules as 'logging'"
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$t"

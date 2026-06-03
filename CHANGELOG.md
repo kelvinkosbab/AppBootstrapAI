@@ -50,10 +50,12 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
 - **Apple rules** — Swift 6.2 strict concurrency, SwiftUI MVVM, Foundation
   Models, accessibility, Objective-C + ObjC accessibility, SPM conventions,
   DocC strategy, testing strategy, localization, **linting** (SwiftLint +
-  formatter), **visionOS** (spatial), and **TestFlight deployment**.
+  formatter), **logging** (os.Logger / privacy markers / levels), **visionOS**
+  (spatial), and **TestFlight deployment**.
 - **Android rules** — coroutines, Compose, Gradle conventions, project rules,
   accessibility, KDoc strategy, testing strategy, localization, **linting**
-  (ktlint + detekt + Android Lint), and **Play beta deployment**.
+  (ktlint + detekt + Android Lint), **logging** (Timber / release-stripping /
+  crash-reporter integration), and **Play beta deployment**.
 - **Cross-platform** — project documentation rule (README/CHANGELOG/ADR).
 - **Skills (Apple/Swift)** — `swift-concurrency-pro`, `swift-docc-pro`,
   `swift-error-handling-pro`, `swift-logging-pro`, `swift-package-pro`,

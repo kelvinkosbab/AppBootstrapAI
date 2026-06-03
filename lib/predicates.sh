@@ -39,7 +39,7 @@ file_category() {
             echo "error-handling" ;;
         apple-spm-package-conventions.md|swift-package-pro|android-gradle-conventions.md|android-project-rules.md|android-gradle-architecture-pro)
             echo "packaging" ;;
-        swift-logging-pro)
+        swift-logging-pro|apple-logging-strategy.md|android-logging-strategy.md)
             echo "logging" ;;
         apple-localization-best-practices.md|android-localization-best-practices.md)
             echo "localization" ;;

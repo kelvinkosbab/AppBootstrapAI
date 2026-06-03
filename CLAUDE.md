@@ -18,6 +18,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-gradle-conventions.md              # Android: Gradle DSL / version catalogs / modules
 │   ├── android-linting-strategy.md                # Android: ktlint + detekt + Android Lint
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
+│   ├── android-logging-strategy.md                # Android: Timber, levels, release-stripping
 │   ├── android-play-beta-deployment.md            # Android: Play beta tracks, signing, CI
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
@@ -26,6 +27,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
 │   ├── apple-linting-strategy.md                  # Apple: SwiftLint + formatter discipline
 │   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
+│   ├── apple-logging-strategy.md                  # Apple: os.Logger, privacy markers, levels
 │   ├── apple-objc-accessibility-best-practices.md # Apple: UIKit a11y in Objective-C
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
 │   ├── apple-spm-package-conventions.md           # Apple: Package.swift authoring
@@ -254,6 +256,27 @@ In `recommended`. Fires on `.kt`/`.kts` + `.editorconfig` / `detekt.yml` / `lint
 - **Suppression** — `@Suppress` / `@SuppressLint` scoped to the smallest element with a reason; never `@file:Suppress` as a shortcut.
 - **Triage decision-order when a rule fires** — fix the code (default) > tune the rule's threshold/severity globally > scope-suppress with a reason > disable project-wide (rare). ktlint mostly skips triage (auto-fixable via `ktlintFormat`); triage is really for detekt + Android Lint. Prioritize by tier: correctness/security first → smells (baseline the rest) → formatting (ktlint owns it).
 - **CI** — `./gradlew ktlintCheck detekt lintDebug`, all three as blocking checks; pin all three versions via the catalog.
+
+### Apple logging (`apple-logging-strategy.md`)
+
+In `recommended`. Always-on steering that complements the `swift-logging-pro` skill (rule = while writing; skill = deep review). Fires on `.swift`. Encodes:
+
+- **`Logger` (os.Logger), never `print` / `NSLog`** in shipping code. `print` is unstructured/unfilterable/no-privacy; acceptable only in tests/scripts/CLIs.
+- **Subsystem = reverse-DNS bundle id (app-wide constant); category per area** (`Networking`, `Auth`). One `Logger` per category, held as a `static let`.
+- **Privacy markers — the part people get wrong.** Interpolated values are `<private>` by default; mark `.public` for non-sensitive values you need to see, `.private(mask: .hash)` to correlate without exposing. Never mark secrets/PII `.public`.
+- **Levels** — `.debug` (free in release, not persisted) / `.info` / `.notice` (default, persisted) / `.error` / `.fault`. Match level to severity; reserve `.error`/`.fault` for real problems.
+- **Lazy `@autoclosure` interpolation** — interpolate directly in the call (don't pre-build the string); no manual level guards needed. Signposts (`OSSignposter`) for Instruments timing.
+- **Never log** secrets, tokens, PII beyond a hashed correlation ID, or whole request/response bodies. Retrieve via Console / `log` CLI / in-app `OSLogStore`.
+
+### Android logging (`android-logging-strategy.md`)
+
+In `recommended`. Fires on `.kt`/`.kts`. Encodes:
+
+- **Timber over `android.util.Log`** — plant a tree in `Application.onCreate()`: `DebugTree` in debug, a `CrashReportingTree` in release. Direct `Log` can't be redirected/stripped/routed.
+- **Levels** V/D/I/W/E/WTF; **pass the `Throwable`** as the first arg (`Timber.e(e, …)`), don't string-concat it — the crash reporter gets the real stack + groups by format string. Use Timber format args, not Kotlin templates (lazy).
+- **Strip debug logs from release** — two layers: DebugTree only in debug, AND R8 `-assumenosideeffects` on `Log.v`/`Log.d` (never on `Log.e`/`Log.w`). See `r8-shrink-pro`.
+- **No PII/secrets/bodies** — log a hashed correlation ID; redact known-sensitive fields in the release tree before forwarding (Logcat is semi-public).
+- **Crash-reporter integration** — the release tree forwards `INFO`+ as breadcrumbs and `WARN`/`ERROR` `Throwable`s as non-fatals (`recordException` / Sentry). Don't double-report at the call site.
 
 ### Apple documentation strategy (`apple-documentation-strategy.md`)
 
