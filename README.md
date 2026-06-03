@@ -20,6 +20,9 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 - **`apple-documentation-strategy.md`** — what to document (and what not), DocC discipline (summary line, `- Parameter`/`- Returns`/`- Throws`, double-backtick symbol linking, `## Topics` organization), deprecation discipline with mandatory migration paths, when to write a DocC Article vs. a doc comment.
 - **`apple-localization-best-practices.md`** — String Catalogs (`.xcstrings`) as the modern format, type-safe `Strings` enum facade pattern, `LocalizedStringResource` over `NSLocalizedString`, plurals, locale-aware `.formatted()` for numbers/dates/currency, RTL via leading/trailing modifiers, translator-context comments.
 - **`apple-spm-package-conventions.md`** — `Package.swift` authoring: `swift-tools-version` discipline, mandatory `platforms:`, flat per-module folder layout (`{Module}/Sources/` + `{Module}/Tests/`, matching KozBon and BasicSwiftUtilities), `makeTargets()` helper for many similar modules with `hasTests` / `hasResources` / `plugins` toggles, resources (`.process` vs `.copy`), build plugins (SwiftLintPlugins, swift-docc-plugin), `Package.resolved` discipline (commit for apps, gitignore for libraries), local-path overrides for sibling-package development, modern features (`InternalImportsByDefault`, `.swiftLanguageMode(.v6)`, `public import`), dependency hygiene (`from:` vs `exact:`).
+- **`apple-linting-strategy.md`** *(linting)* — SwiftLint as primary linter + a single formatter (SwiftFormat or Apple's swift-format, not both): `.swiftlint.yml` structure, the high-value `opt_in_rules` (`force_unwrapping`, `empty_count`, …), analyzer rules, scoped `// swiftlint:disable:next` hygiene, `--strict` in CI, build-phase vs SPM-plugin vs CI placement, incremental adoption on legacy code, version pinning.
+- **`apple-visionos-best-practices.md`** *(spatial)* — visionOS: scene types (Window / Volume / ImmersiveSpace), immersion styles, spatial gestures + hover affordances, head-mounted-display accessibility (Reduce Motion as vestibular safety), RealityKit / ECS conventions, 90fps performance budgets, USDZ pipeline.
+- **`apple-testflight-deployment.md`** *(deployment)* — shipping to TestFlight: `CFBundleVersion` monotonicity, App Store Connect API key (.p8) auth, `xcodebuild archive` → `-exportArchive` → `altool` flow, ExportOptions.plist gotchas, manual signing for CI, internal vs external tester groups, dSYM upload, ranked gotchas.
 - **`swift-concurrency-pro` skill** — reviews async/await, actors, structured concurrency.
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
@@ -39,6 +42,8 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 - **`android-documentation-strategy.md`** — KDoc syntax (`@param` / `@return` / `@throws` / `@property` / `@sample` / `@see`), Composable docs (state hoisting, semantics, skippable vs. restartable), Hilt module docs, suspend / cancellation behavior, deprecation with `ReplaceWith`, Dokka conventions and external links.
 - **`android-localization-best-practices.md`** — `strings.xml` discipline, `stringResource` / `pluralStringResource` in Compose, positional format args (`%1$s` not `%s`), `<plurals>` with `getQuantityString`, locale-aware `NumberFormat` / `DateTimeFormatter`, RTL with `start`/`end` modifiers and `android:supportsRtl="true"`, translator-context comment blocks.
 - **`android-gradle-conventions.md`** — Kotlin DSL only, version catalogs (`gradle/libs.versions.toml`) as single source of truth, AGP/Kotlin/Compose-compiler co-versioning, `jvmToolchain`, `api` vs `implementation`, multi-module graph patterns (`:app` + `:feature:*` + `:data:*` + `:core:*`), library publishing with `consumer-rules.pro`, KSP over kapt. **Now includes** an inline-strings → catalog migration walkthrough for legacy projects.
+- **`android-linting-strategy.md`** *(linting)* — three linters, three jobs: ktlint (`.editorconfig`, formatting), detekt (`detekt.yml` tuning, `buildUponDefaultConfig`, type resolution, baselines), and Android Lint (`lint {}`, `lint.xml`, `warningsAsErrors`, baselines). `@Suppress` / `@SuppressLint` hygiene, CI placement (`ktlintCheck detekt lintDebug`), version pinning.
+- **`android-play-beta-deployment.md`** *(deployment)* — shipping to Play beta tracks: `versionCode` monotonicity, Play App Signing (upload key vs app signing key), AAB-not-APK, service-account JSON for CI, internal/closed/open tracks, Triple-T / fastlane upload, `mapping.txt` upload, ranked gotchas.
 - **`android-gradle-architecture-pro` skill** — reviews multi-module Android builds against the **Now in Android** convention-plugin pattern: `build-logic/convention/` factoring, version-catalog depth, AGP co-versioning, KSP-over-kapt migration.
 - **`xml-to-compose-migration-pro` skill** — reviews and assists XML/Fragment → Compose migration: incremental interop via `ComposeView` / `AndroidView`, layout translation (LinearLayout/ConstraintLayout/FrameLayout → Modifier), RecyclerView → `LazyColumn` with stable keys, Fragment → Composable, Navigation Component → Navigation-Compose, ViewModel bridging, themes/styles → `MaterialTheme`.
 - **`r8-shrink-pro` skill** — reviews R8 / ProGuard configuration: `-keep` rule discipline, `consumer-rules.pro` contract for libraries, common reflection-library rules (Moshi, Room, Retrofit, Hilt, Glide, kotlinx-serialization), mapping-file workflow, debugging release-build crashes.
@@ -54,7 +59,7 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 - **`install.sh`** — one-command bootstrap into any target repo. Flags:
   - `--platform apple|android|both` — optional; if omitted, the installer auto-detects from the target dir (`Package.swift` / `*.xcodeproj` → apple; `build.gradle*` / `gradlew` → android; both present → both; neither → falls back to `both`). Detection result + matched signals print in the install header. Explicit `--platform` always wins.
   - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
-  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps; `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`); custom CSVs like `core,testing,docs` give fine-grained control
+  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`); custom CSVs like `core,testing,docs` give fine-grained control
   - `--list` previews the catalog with one-line descriptions + category tags
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
   - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
@@ -63,7 +68,7 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
   - `--dry-run` shows what an install would do without writing any files
   - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope / rename. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. The header prints a GitHub compare URL when commits differ. See [Upgrading an existing install](#upgrading-an-existing-install).
   - `--uninstall` reverses install: deletes every tracked file whose current hash matches what was installed (locally-edited files kept unless `--force-conflicts`; `CLAUDE.md` / `settings.json` kept unless `--purge`). MCP entries are removed if unchanged, unless `--keep-mcps`. Strips the `.gitignore` block and the manifest itself. See [Removing the install](#removing-the-install).
-  - `--help` documents every flag and enumerates all 15 categories
+  - `--help` documents every flag and enumerates all 16 categories
   - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (schema v2 — records per-file SHA-256 hashes so `--upgrade` can diff 3-way: installed vs. current disk vs. bundle)
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 - **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
@@ -176,7 +181,7 @@ From the root of a new app repo:
 
 Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. The manifest is what powers `--upgrade`'s 3-way diff against future bundle versions.
 
-**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization`. Specialized opt-ins not in `recommended`: `persistence` (Core Data), `ai` (Foundation Models, iOS 26+), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas).
+**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint). Specialized opt-ins not in `recommended`: `persistence` (Core Data), `ai` (Foundation Models, iOS 26+), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas).
 
 **The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|all` (additive CSV) and the installer also drops the matching file shape for those agents (one concat file for Copilot/Gemini/Codex; per-rule `.mdc` files for Cursor). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
 
@@ -450,6 +455,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-coroutines-best-practices.md       # Structured concurrency
 │   │   ├── android-documentation-strategy.md          # KDoc strategy + Dokka
 │   │   ├── android-gradle-conventions.md              # Gradle DSL, version catalogs, modules
+│   │   ├── android-linting-strategy.md                # ktlint + detekt + Android Lint (linting)
 │   │   ├── android-localization-best-practices.md     # strings.xml, plurals, RTL
 │   │   ├── android-play-beta-deployment.md            # Play beta tracks, signing, CI (deployment)
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
@@ -457,6 +463,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
 │   │   ├── apple-documentation-strategy.md            # DocC strategy + deprecation
 │   │   ├── apple-foundation-models.md                 # On-device LLM patterns
+│   │   ├── apple-linting-strategy.md                  # SwiftLint + formatter (linting)
 │   │   ├── apple-localization-best-practices.md       # String Catalogs, plurals, RTL
 │   │   ├── apple-objc-accessibility-best-practices.md # UIKit a11y in ObjC
 │   │   ├── apple-objc-best-practices.md               # Modern Objective-C

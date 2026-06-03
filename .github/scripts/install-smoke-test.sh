@@ -182,13 +182,15 @@ target_rec="$(mktemp -d)"
 "$INSTALL" "$target_rec" --platform both --apple-language both --features recommended >/dev/null
 
 # recommended INCLUDES: core, concurrency, ui, testing, docs, error-handling,
-# packaging, logging, localization. Spot-check one rule from each.
+# packaging, logging, localization, linting. Spot-check one rule from each.
 assert_file_exists "$target_rec/.claude/rules/project-documentation.md"                    "recommended includes core"
 assert_file_exists "$target_rec/.claude/rules/apple-swift6-strict-concurrency.md"           "recommended includes concurrency"
 assert_file_exists "$target_rec/.claude/rules/apple-swiftui-mvvm.md"                        "recommended includes ui"
 assert_file_exists "$target_rec/.claude/rules/apple-testing-strategy.md"                    "recommended includes testing"
 assert_file_exists "$target_rec/.claude/rules/apple-documentation-strategy.md"              "recommended includes docs"
 assert_file_exists "$target_rec/.claude/rules/apple-localization-best-practices.md"         "recommended includes localization"
+assert_file_exists "$target_rec/.claude/rules/apple-linting-strategy.md"                    "recommended includes linting (apple)"
+assert_file_exists "$target_rec/.claude/rules/android-linting-strategy.md"                  "recommended includes linting (android)"
 # Skills covered by recommended:
 assert_dir_exists  "$target_rec/.claude/skills/swift-error-handling-pro"                    "recommended includes error-handling skill"
 assert_dir_exists  "$target_rec/.claude/skills/swift-logging-pro"                           "recommended includes logging skill"
@@ -295,15 +297,15 @@ assert data['selection']['platform'] == 'both'
 assert data['selection']['features_input'] == 'all'
 # categories array — the contract the MCP server reads as its source of truth.
 assert 'categories' in data and isinstance(data['categories'], list), 'missing categories array'
-assert len(data['categories']) >= 15, f'expected >=15 categories, got {len(data[\"categories\"])}'
+assert len(data['categories']) >= 16, f'expected >=16 categories, got {len(data[\"categories\"])}'
 cat_names = {c['name'] for c in data['categories']}
-assert {'spatial', 'deployment'} <= cat_names, f'categories missing spatial/deployment: {cat_names}'
+assert {'spatial', 'deployment', 'linting'} <= cat_names, f'categories missing spatial/deployment/linting: {cat_names}'
 for c in data['categories']:
     assert 'name' in c and 'recommended' in c, f'category missing name/recommended: {c}'
     assert isinstance(c['recommended'], bool), f'recommended must be bool: {c}'
-# recommended preset must be exactly the 9 day-one categories
+# recommended preset must be exactly the 10 day-one categories
 recommended = {c['name'] for c in data['categories'] if c['recommended']}
-assert recommended == {'core','concurrency','ui','testing','docs','error-handling','packaging','logging','localization'}, \
+assert recommended == {'core','concurrency','ui','testing','docs','error-handling','packaging','logging','localization','linting'}, \
     f'unexpected recommended set: {recommended}'
 # Every rule should have filename/category/installed/description
 for r in data['rules']:
@@ -1666,6 +1668,74 @@ if ! grep -q "changes between them:" <<<"$out"; then
     PASS=$((PASS + 1))
 else
     red "FAIL: compare URL should be suppressed when bundle_commit is 'unknown'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+# --- linting category (in `recommended`) -------------------------------------
+
+bold "==> linting is IN recommended → both linting rules install by default"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features recommended > /dev/null
+if [[ -f "$t/.claude/rules/apple-linting-strategy.md" \
+   && -f "$t/.claude/rules/android-linting-strategy.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: linting rules should install under default --features recommended"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --platform apple → only apple-linting-strategy, not android"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+if [[ -f "$t/.claude/rules/apple-linting-strategy.md" \
+   && ! -f "$t/.claude/rules/android-linting-strategy.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --platform apple should install apple linting rule, exclude android"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --platform android → only android-linting-strategy, not apple"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended > /dev/null
+if [[ -f "$t/.claude/rules/android-linting-strategy.md" \
+   && ! -f "$t/.claude/rules/apple-linting-strategy.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --platform android should install android linting rule, exclude apple"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> excluding linting: --features recommended minus linting is honored via explicit CSV"
+t="$(mktemp -d)"
+# An explicit CSV without 'linting' must NOT pull the linting rules in.
+"$INSTALL" "$t" --platform both --features core,testing > /dev/null
+if [[ ! -f "$t/.claude/rules/apple-linting-strategy.md" \
+   && ! -f "$t/.claude/rules/android-linting-strategy.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: a CSV without 'linting' should not install the linting rules"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> manifest records linting rules' category as 'linting'"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features recommended > /dev/null
+if python3 -c "
+import json
+m = json.load(open('$t/.claude/.appbootstrap-manifest.json'))
+cats = {f['path']: f['category'] for f in m['files'] if 'linting-strategy' in f['path']}
+assert cats.get('.claude/rules/apple-linting-strategy.md') == 'linting', cats
+assert cats.get('.claude/rules/android-linting-strategy.md') == 'linting', cats
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: manifest should categorize both linting rules as 'linting'"
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$t"

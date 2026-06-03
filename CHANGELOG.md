@@ -49,19 +49,20 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
   `--upgrade` so renames show as a single row, not delete + add.
 - **Apple rules** — Swift 6.2 strict concurrency, SwiftUI MVVM, Foundation
   Models, accessibility, Objective-C + ObjC accessibility, SPM conventions,
-  DocC strategy, testing strategy, localization, **visionOS** (spatial), and
-  **TestFlight deployment**.
+  DocC strategy, testing strategy, localization, **linting** (SwiftLint +
+  formatter), **visionOS** (spatial), and **TestFlight deployment**.
 - **Android rules** — coroutines, Compose, Gradle conventions, project rules,
-  accessibility, KDoc strategy, testing strategy, localization, and **Play beta
-  deployment**.
+  accessibility, KDoc strategy, testing strategy, localization, **linting**
+  (ktlint + detekt + Android Lint), and **Play beta deployment**.
 - **Cross-platform** — project documentation rule (README/CHANGELOG/ADR).
 - **Skills (Apple/Swift)** — `swift-concurrency-pro`, `swift-docc-pro`,
   `swift-error-handling-pro`, `swift-logging-pro`, `swift-package-pro`,
   `swift-testing-pro`, `swiftui-pro`, `coredata-swift6-pro`. **(Android)** —
   `android-gradle-architecture-pro`, `r8-shrink-pro`,
   `xml-to-compose-migration-pro`.
-- **`spatial`** (visionOS) and **`deployment`** (TestFlight + Play beta)
-  feature categories — opt-in, not in `recommended`.
+- **`linting`** feature category — in the `recommended` default set (10
+  categories). **`spatial`** (visionOS) and **`deployment`** (TestFlight + Play
+  beta) feature categories — opt-in, not in `recommended`.
 - **MCP server** (`mcp-server/`) wrapping `install.sh` as typed tools:
   `list_categories`, `list_rules`, `list_skills`, `preview_install`,
   `install`, `preview_upgrade`. Reads its category set live from

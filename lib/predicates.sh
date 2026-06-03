@@ -43,6 +43,8 @@ file_category() {
             echo "logging" ;;
         apple-localization-best-practices.md|android-localization-best-practices.md)
             echo "localization" ;;
+        apple-linting-strategy.md|android-linting-strategy.md)
+            echo "linting" ;;
         coredata-swift6-pro)
             echo "persistence" ;;
         apple-foundation-models.md)

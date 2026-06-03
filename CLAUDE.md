@@ -16,6 +16,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-coroutines-best-practices.md       # Android: Kotlin coroutines / structured concurrency
 │   ├── android-documentation-strategy.md          # Android: KDoc strategy + Dokka
 │   ├── android-gradle-conventions.md              # Android: Gradle DSL / version catalogs / modules
+│   ├── android-linting-strategy.md                # Android: ktlint + detekt + Android Lint
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
 │   ├── android-play-beta-deployment.md            # Android: Play beta tracks, signing, CI
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
@@ -23,6 +24,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
 │   ├── apple-documentation-strategy.md            # Apple: DocC strategy + deprecation
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
+│   ├── apple-linting-strategy.md                  # Apple: SwiftLint + formatter discipline
 │   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
 │   ├── apple-objc-accessibility-best-practices.md # Apple: UIKit a11y in Objective-C
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
@@ -97,11 +99,11 @@ Use the installer from the target repo:
 # Preview catalog with category tags
 /path/to/AppBootstrapAI/install.sh --list --platform apple --features all
 
-# Full help — enumerates all 15 feature categories
+# Full help — enumerates all 16 feature categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial` for vision projects. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial` for vision projects. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter.
 
 The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
@@ -228,6 +230,28 @@ Scoped to `**/*.{kt,kts,xml}` (covers code and `res/values*/strings.xml`). Encod
 - Locale-aware `NumberFormat` / `java.time.DateTimeFormatter`; never `String.format("%.2f", ...)` or `SimpleDateFormat`.
 - RTL: `<application android:supportsRtl="true">`; use `start`/`end` modifiers, never `left`/`right`. `android:autoMirrored="true"` on directional drawables.
 - Comment blocks in `strings.xml` describe where strings appear and what each `%1$s` means.
+
+### Apple linting (`apple-linting-strategy.md`)
+
+In `recommended`. Fires on `.swift` + `.swiftlint.yml` / `.swiftformat` / `.swift-format`. Encodes:
+
+- **Formatter vs linter — different jobs.** A formatter owns whitespace/layout deterministically; SwiftLint owns style + correctness smells. Pick **one** formatter (SwiftFormat *or* Apple's swift-format, never both) and disable SwiftLint's overlapping formatting rules so they don't fight.
+- **`opt_in_rules` is where the value is** — SwiftLint ships ~200 rules with the best ones OFF by default. Enable `force_unwrapping` (top crash-class catch), `empty_count`, `first_where`, `explicit_init`, `unused_import`/`unused_declaration` (analyzer), etc.
+- **Suppression hygiene** — `// swiftlint:disable:next <rule>` (single-line, auto-scoped) over the region `disable`/`enable` form; never blanket `disable all` (move to `excluded:` instead); every suppression gets a why-comment.
+- **Analyzer rules** (`unused_import`, `unused_declaration`) need `swiftlint analyze` + a compiler log — CI only, not the build path.
+- **Placement** — SPM build-tool plugin / Xcode Run Script / pre-commit / CI. CI uses `--strict` (warnings → errors); pin the SwiftLint version (rule sets change between releases).
+- **Legacy adoption** — `excluded:` generated code, get to zero on default rules, add `opt_in_rules` a few at a time; no giant `disabled_rules` shortcut.
+
+### Android linting (`android-linting-strategy.md`)
+
+In `recommended`. Fires on `.kt`/`.kts` + `.editorconfig` / `detekt.yml` / `lint.xml` / build scripts. Three linters, **three non-overlapping jobs** — running one doesn't cover the others:
+
+- **ktlint** — formatter + basic Kotlin style via `.editorconfig` (`ktlint_code_style`). `ktlintFormat` locally, `ktlintCheck` in CI. Disable `function-naming` so Compose `@Composable` PascalCase doesn't fight it.
+- **detekt** — static analysis (complexity, bugs, smells). `buildUponDefaultConfig = true` and override thresholds; don't enable detekt's `formatting` ruleset alongside standalone ktlint (they duplicate). Type-resolution task (`detektMain`) in CI for the rules that need the classpath.
+- **Android Lint** (`lintDebug`) — Android-platform checks ktlint/detekt can't see (resources, manifest, API misuse, a11y, security). `lint { abortOnError = true; warningsAsErrors = true; checkDependencies = true }`. Use `lintDebug`, not just `lintRelease`.
+- **Baselines** (detekt + Android Lint) for legacy adoption — generate once, burn down; never regenerate to silence a failing CI.
+- **Suppression** — `@Suppress` / `@SuppressLint` scoped to the smallest element with a reason; never `@file:Suppress` as a shortcut.
+- **CI** — `./gradlew ktlintCheck detekt lintDebug`, all three as blocking checks; pin all three versions via the catalog.
 
 ### Apple documentation strategy (`apple-documentation-strategy.md`)
 

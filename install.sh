@@ -236,8 +236,8 @@ source "$SCRIPT_DIR/lib/detect_platform.sh"
 
 # --- Feature categories -------------------------------------------------------
 
-ALL_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization persistence ai migration shrinking spatial deployment"
-RECOMMENDED_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization"
+ALL_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting persistence ai migration shrinking spatial deployment"
+RECOMMENDED_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting"
 
 # Resolve --features input into a space-separated list of category names.
 # Supports composition: each comma-separated token expands independently, so

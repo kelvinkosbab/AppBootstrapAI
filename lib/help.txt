@@ -36,7 +36,7 @@
 #   --features           Comma-separated list of feature categories, or one of:
 #                        - recommended (default) → curated subset for most apps:
 #                            core, concurrency, ui, testing, docs,
-#                            error-handling, packaging, logging, localization
+#                            error-handling, packaging, logging, localization, linting
 #                        - all                   → every category
 #                        - custom CSV, e.g. --features core,testing,docs
 #                        - composable, e.g. --features recommended,ai,persistence
@@ -52,6 +52,7 @@
 #                          packaging        Package.swift / Gradle / SPM authoring
 #                          logging          os.Logger discipline
 #                          localization     String Catalogs / strings.xml / RTL
+#                          linting          SwiftLint+formatter / ktlint+detekt+Android Lint
 #                          persistence      Core Data under Swift 6
 #                          ai               Apple Foundation Models (iOS 26+)
 #                          migration        XML/Fragment → Compose migration
