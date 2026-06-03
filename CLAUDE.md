@@ -239,6 +239,7 @@ In `recommended`. Fires on `.swift` + `.swiftlint.yml` / `.swiftformat` / `.swif
 - **`opt_in_rules` is where the value is** — SwiftLint ships ~200 rules with the best ones OFF by default. Enable `force_unwrapping` (top crash-class catch), `empty_count`, `first_where`, `explicit_init`, `unused_import`/`unused_declaration` (analyzer), etc.
 - **Suppression hygiene** — `// swiftlint:disable:next <rule>` (single-line, auto-scoped) over the region `disable`/`enable` form; never blanket `disable all` (move to `excluded:` instead); every suppression gets a why-comment.
 - **Analyzer rules** (`unused_import`, `unused_declaration`) need `swiftlint analyze` + a compiler log — CI only, not the build path.
+- **Triage decision-order when a rule fires** — fix the code (default) > tune the rule's threshold globally > scope-suppress with a reason > disable project-wide (rare). Never invert it to clear one finding. Prioritize a backlog by tier: correctness (`force_unwrapping`) first → smells → style (autocorrect handles it).
 - **Placement** — SPM build-tool plugin / Xcode Run Script / pre-commit / CI. CI uses `--strict` (warnings → errors); pin the SwiftLint version (rule sets change between releases).
 - **Legacy adoption** — `excluded:` generated code, get to zero on default rules, add `opt_in_rules` a few at a time; no giant `disabled_rules` shortcut.
 
@@ -249,8 +250,9 @@ In `recommended`. Fires on `.kt`/`.kts` + `.editorconfig` / `detekt.yml` / `lint
 - **ktlint** — formatter + basic Kotlin style via `.editorconfig` (`ktlint_code_style`). `ktlintFormat` locally, `ktlintCheck` in CI. Disable `function-naming` so Compose `@Composable` PascalCase doesn't fight it.
 - **detekt** — static analysis (complexity, bugs, smells). `buildUponDefaultConfig = true` and override thresholds; don't enable detekt's `formatting` ruleset alongside standalone ktlint (they duplicate). Type-resolution task (`detektMain`) in CI for the rules that need the classpath.
 - **Android Lint** (`lintDebug`) — Android-platform checks ktlint/detekt can't see (resources, manifest, API misuse, a11y, security). `lint { abortOnError = true; warningsAsErrors = true; checkDependencies = true }`. Use `lintDebug`, not just `lintRelease`.
-- **Baselines** (detekt + Android Lint) for legacy adoption — generate once, burn down; never regenerate to silence a failing CI.
+- **Baselines** (detekt + Android Lint) for legacy adoption — generate once, burn down; never regenerate to silence a failing CI (re-accepts new debt — the worst Android linting habit).
 - **Suppression** — `@Suppress` / `@SuppressLint` scoped to the smallest element with a reason; never `@file:Suppress` as a shortcut.
+- **Triage decision-order when a rule fires** — fix the code (default) > tune the rule's threshold/severity globally > scope-suppress with a reason > disable project-wide (rare). ktlint mostly skips triage (auto-fixable via `ktlintFormat`); triage is really for detekt + Android Lint. Prioritize by tier: correctness/security first → smells (baseline the rest) → formatting (ktlint owns it).
 - **CI** — `./gradlew ktlintCheck detekt lintDebug`, all three as blocking checks; pin all three versions via the catalog.
 
 ### Apple documentation strategy (`apple-documentation-strategy.md`)

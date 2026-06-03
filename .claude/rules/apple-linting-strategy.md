@@ -110,6 +110,34 @@ let url = URL(string: "https://example.com")!   // compile-time constant, can't 
 - **Never blanket-disable a whole file** by putting `// swiftlint:disable all` at the top. If a file needs that, it belongs in `excluded:`.
 - **Every suppression gets a trailing comment** explaining the exception. An unexplained `disable` is a future bug.
 
+## Triage — What To Do When a Rule Fires
+
+A finding is a question, not a verdict — but the answer is *usually* "fix it." When it isn't, there's an order of preference. Reaching past the top of this list to silence a finding is how a config rots into noise everyone ignores.
+
+**Per-finding decision order (prefer earlier):**
+
+1. **Fix the code.** The default. Most findings are real; the linter is right more often than your gut says. This is the only response that improves the codebase.
+2. **Tune the rule** — when the rule is *valuable* but its *threshold* is wrong for this project (line length, `type_body_length`, `cyclomatic_complexity`, `identifier_name` length). Adjust the config **once, globally**, in `.swiftlint.yml`. One config edit beats N call-site suppressions.
+3. **Suppress at the call site** — `// swiftlint:disable:next <rule>` with a reason — when *this one instance* is a justified exception but the rule is right in general (a compile-time-constant force-unwrap, a deliberately long generated literal).
+4. **Disable the rule project-wide** — only when the rule is *wrong for the whole codebase* (e.g., it fights a framework convention). Rare. Put it in `disabled_rules:` with a comment saying why.
+
+Never invert this. Jumping to step 4 to clear a single finding throws away the rule's value everywhere else.
+
+**Prioritizing a backlog** (turning SwiftLint on existing code floods you — work it in tiers, not all at once):
+
+- **Tier 1 — correctness.** `force_unwrapping`, `force_cast`, `force_try` — real crash classes. Fix now; set these to `error` severity so they block CI.
+- **Tier 2 — bug-prone smells.** Complexity, large types, `unused_declaration`. Fix where cheap; defer the rest behind `excluded:` until you reach them.
+- **Tier 3 — style.** Spacing, ordering, idioms. The formatter + `--fix` (`swiftlint --fix`) auto-corrects most. Don't hand-fix what autocorrect handles.
+
+**Severity as a gate:** correctness rules → `error` (blocks CI). Style rules → `warning` while adopting, then promote to `error` once you're clean so they can't regress. SwiftLint has no first-class baseline file — the backlog tool is `excluded:` (carve out untidy dirs) plus **incremental `opt_in_rules`** (enable a batch, fix it, enable the next), not a giant `disabled_rules` list.
+
+**Anti-patterns:**
+
+- **Blanket-disabling a rule to make CI green.** That's deleting the rule, dressed up. Fix, tune, or scope-suppress instead.
+- **Suppressing without a reason comment** — the next reader can't tell a justified exception from laziness.
+- **Treating all findings as equal** — a `force_unwrapping` and a missing blank line are not the same priority. Triage by tier.
+- **Adding to `disabled_rules:` as a backlog shortcut** — that debt never gets paid. Prefer per-rule thresholds and `excluded:` paths you'll revisit.
+
 ## Where It Runs
 
 | Location | Purpose | Notes |

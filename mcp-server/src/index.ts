@@ -68,7 +68,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     packaging:        "Package.swift / Gradle conventions / SPM and Gradle authoring.",
     logging:          "os.Logger discipline (privacy markers, subsystem/category).",
     localization:     "String Catalogs / strings.xml / plurals / RTL.",
-    linting:          "SwiftLint + formatter (Apple) / ktlint + detekt + Android Lint (Android): config, suppression hygiene, baselines, CI placement.",
+    linting:          "SwiftLint + formatter (Apple) / ktlint + detekt + Android Lint (Android): config, suppression hygiene, baselines, triage decision-order, CI placement.",
     persistence:      "Core Data under Swift 6 strict concurrency.",
     ai:               "Apple Foundation Models (iOS 26+).",
     migration:        "Android XML/Fragment → Compose migration.",

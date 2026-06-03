@@ -138,6 +138,37 @@ import com.example.generated.*
 - **`tools:ignore` in XML** for any remaining XML resources (rare in Compose-first projects).
 - **Every suppression gets a comment** explaining why the rule doesn't apply here.
 
+## Triage — What To Do When a Rule Fires
+
+A finding is a question, not a verdict — and across three linters the answer is *usually* "fix it." When it isn't, follow the order of preference below. Reaching past the top to silence a finding is how a config rots into noise the team ignores.
+
+**Per-finding decision order (prefer earlier):**
+
+1. **Fix the code.** The default, and the only response that improves the codebase. The linter is right more often than your gut says.
+2. **Tune the rule** — when the rule is *valuable* but its *threshold/severity* is wrong for this project. detekt: adjust thresholds in `detekt.yml` (`LongMethod`, `CyclomaticComplexMethod`, `MaxLineLength`). Android Lint: set severity in `lint.xml` or the `lint {}` block. ktlint: toggle a `ktlint_standard_*` rule in `.editorconfig`. **Once, globally** — one config edit beats N `@Suppress`es.
+3. **Suppress at the call site** — `@Suppress("RuleId")` / `@SuppressLint("CheckId")` scoped to the smallest element, with a reason — when *this one instance* is a justified exception but the rule is right in general.
+4. **Disable the rule project-wide** — only when the rule is *wrong for the whole codebase* (e.g., `function-naming` vs. Compose `@Composable` PascalCase). Rare. Do it in `.editorconfig` / `detekt.yml` / `lint.xml` with a comment saying why.
+
+Never invert this. Disabling a rule to clear one finding throws away its value everywhere else.
+
+**ktlint mostly skips triage.** Almost every ktlint finding is auto-fixable — run `./gradlew ktlintFormat` and it's gone. Triage is really about detekt and Android Lint, where findings need a human decision.
+
+**Prioritizing a backlog** (turning the linters on existing code — work it in tiers):
+
+- **Tier 1 — correctness + security.** Android Lint's `HardcodedText` (in security-sensitive contexts), `MissingPermission`, exported-component issues, `StopShip`; detekt's `potential-bugs` ruleset. Promote to `error`; fix now.
+- **Tier 2 — bug-prone smells.** detekt complexity/dead-code; Android Lint performance + correctness warnings. Fix where cheap; **baseline** the rest (`detekt-baseline.xml`, `lint-baseline.xml`) so the gate only fails on *new* issues.
+- **Tier 3 — formatting/style.** ktlint owns this — `ktlintFormat` clears it. No backlog.
+
+**Baseline discipline (the Android backlog tool):** a baseline is a **debt ledger, not a silencer**. Generate it once, then **burn it down** over releases — track its line count; it should shrink. **Never regenerate a baseline to make a failing CI pass** — that re-snapshots the *new* issue into the accepted set and defeats the gate. Fix the new finding or suppress it explicitly with a reason.
+
+**Anti-patterns:**
+
+- **Regenerating the baseline to silence CI** — re-accepts new debt. The single worst linting habit on Android.
+- **Blanket-disabling a rule to go green** — deleting the rule, dressed up.
+- **`@file:Suppress` / `abortOnError = false`** as backlog shortcuts — both hide everything, including future violations.
+- **Suppressing without a reason comment.**
+- **Treating all findings as equal** — a hardcoded secret and a long method are not the same tier.
+
 ## CI Placement
 
 All three are blocking checks; the local loop is lighter:
