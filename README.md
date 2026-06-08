@@ -6,9 +6,27 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 
 **Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex` (or `all`) and `install.sh` drops the right file shape per agent: `.github/copilot-instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`. Skills stay Claude-only. For Kiro / Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) below.
 
+**Get started in one line:** `./install.sh setup` runs a guided flow that detects whether you're creating, adopting, or updating — and walks you through the rest. Prefer flags? See [Getting started](#getting-started).
+
+## Contents
+
+[What you get](#what-you-get) · [Getting started](#getting-started) · [Quick start](#quick-start) · [How it fires](#how-it-fires) · [Using AI to install](#using-ai-to-install) · [Upgrading](#upgrading-an-existing-install) · [Removing](#removing-the-install) · [Saving AI tokens](#saving-ai-tokens) · [Non-Claude agents](#using-with-non-claude-ai-agents) · [Repo layout](#repo-layout) · [Extending](#extending-for-your-project) · [Roadmap](#roadmap)
+
 ## What you get
 
-### Apple
+The 30-second view. Expand any section below for the full rule-by-rule detail, or run `./install.sh --list --features all` for the always-current catalog.
+
+| Area | What's inside |
+|------|---------------|
+| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · accessibility · testing · DocC · localization · SPM · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
+| **Android rules** | Kotlin/Compose/MVVM/Hilt · coroutines · accessibility · testing · KDoc · localization · Gradle · linting · logging · Play beta |
+| **Skills (Claude)** | 8 Apple + 3 Android on-demand deep-review agents |
+| **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex |
+| **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
+| **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
+
+<details>
+<summary><strong>Apple — 14 rules + 8 skills</strong> (click to expand)</summary>
 
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.2 strict concurrency, enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text).
@@ -33,7 +51,10 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 - **`swift-logging-pro` skill** — `os.Logger` review: subsystem/category conventions, privacy markers, log-level semantics.
 - **`swift-package-pro` skill** — SPM library design: public API surface, `InternalImportsByDefault`, resources, versioning, dependency hygiene.
 
-### Android
+</details>
+
+<details>
+<summary><strong>Android — 11 rules + 3 skills</strong> (click to expand)</summary>
 
 - **`android-project-rules.md`** — Kotlin, Jetpack Compose, MVVM, Hilt, StateFlow, Retrofit/Moshi, ktlint.
 - **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
@@ -50,11 +71,17 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 - **`xml-to-compose-migration-pro` skill** — reviews and assists XML/Fragment → Compose migration: incremental interop via `ComposeView` / `AndroidView`, layout translation (LinearLayout/ConstraintLayout/FrameLayout → Modifier), RecyclerView → `LazyColumn` with stable keys, Fragment → Composable, Navigation Component → Navigation-Compose, ViewModel bridging, themes/styles → `MaterialTheme`.
 - **`r8-shrink-pro` skill** — reviews R8 / ProGuard configuration: `-keep` rule discipline, `consumer-rules.pro` contract for libraries, common reflection-library rules (Moshi, Room, Retrofit, Hilt, Glide, kotlinx-serialization), mapping-file workflow, debugging release-build crashes.
 
-### Cross-platform
+</details>
+
+<details>
+<summary><strong>Cross-platform — 1 rule</strong> (click to expand)</summary>
 
 - **`project-documentation.md`** — README structure, [Keep a Changelog](https://keepachangelog.com) format, `CONTRIBUTING.md` essentials, ADR conventions (`docs/adr/####-title.md`, immutable once accepted), inline-comment philosophy (*why* not *what*), and link-rot defenses (pinned versions, permalinked source). Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`.
 
-### Baseline
+</details>
+
+<details>
+<summary><strong>Baseline &amp; bundle files</strong> — settings, .gitignore, the full <code>install.sh</code> flag reference, templates (click to expand)</summary>
 
 - **`settings.json`** — safe defaults for `xcodebuild`, `swift`, `swiftlint`, `./gradlew`, `gradle`, `ktlint`, `adb`, `git`, `gh`, plus Apple/Android docs domains for `WebFetch`.
 - **`.gitignore`** — recommended entries for Xcode, SPM, CocoaPods, Carthage, fastlane, plus Gradle/Android Studio/Kotlin.
@@ -80,7 +107,10 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 - **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
 
-### Recommended companion tooling (optional)
+</details>
+
+<details>
+<summary><strong>Recommended companion MCP tooling</strong> (optional — click to expand)</summary>
 
 #### MCP servers for the Apple side
 
@@ -109,6 +139,8 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 #### Cross-tool rule sync
 
 - **Multi-agent support** — pass `--agents copilot,cursor,gemini,codex` to `install.sh` and the bundle writes the right file shape for each agent (in addition to or instead of Claude). For agents not in that built-in set (Kiro, Cline, Goose, Roo, Windsurf, etc.), point a sync tool at `.claude/`. See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents).
+
+</details>
 
 ## Getting started
 
