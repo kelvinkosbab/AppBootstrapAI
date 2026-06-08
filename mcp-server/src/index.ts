@@ -7,6 +7,9 @@
  * rather than parsing shell output.
  *
  * Tools:
+ *   - recommend_setup     Analyze a directory and return the recommended action
+ *                         (create / adopt / upgrade) as JSON with a ready-to-run
+ *                         command[]. The agent's entry point: call it first.
  *   - list_categories     Return the feature categories with descriptions. The
  *                         set is read live from `install.sh --list --json`, so
  *                         it never drifts from what the installer recognizes.
@@ -16,6 +19,8 @@
  *   - install             Run `install.sh` against a target directory (supports
  *                         --agents and --with-mcps).
  *   - preview_upgrade     Run `install.sh <dir> --upgrade` (plan-only, writes nothing).
+ *   - preview_uninstall   Run `install.sh <dir> --uninstall --dry-run` (plan-only).
+ *   - uninstall           Run `install.sh <dir> --uninstall` (destructive — preview first).
  *
  * Communicates over stdio (the standard MCP transport for local subprocess servers).
  * Configure a client by pointing at the compiled `dist/index.js`.
@@ -316,6 +321,64 @@ async function toolPreviewUpgrade(args: { target_dir: string; features?: string 
     return { content: [{ type: "text" as const, text: result.stdout }] };
 }
 
+async function toolRecommend(args: { target_dir: string }) {
+    if (!args.target_dir) {
+        throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
+    }
+    // Read-only analysis. Returns the parsed recommendation object so the agent
+    // can act on `command` / `preview_command` directly.
+    const result = await runCommand("bash", [INSTALL_SH, "recommend", args.target_dir, "--json"]);
+    if (result.code !== 0) {
+        throw new McpError(
+            ErrorCode.InternalError,
+            `install.sh recommend exited with code ${result.code}: ${result.stderr}`
+        );
+    }
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(result.stdout);
+    } catch {
+        throw new McpError(ErrorCode.InternalError, `recommend did not return JSON:\n${result.stdout}`);
+    }
+    return { content: [{ type: "text" as const, text: JSON.stringify(parsed, null, 2) }] };
+}
+
+async function toolUninstall(args: {
+    target_dir: string;
+    dry_run?: boolean;
+    purge?: boolean;
+    keep_mcps?: boolean;
+    force_conflicts?: boolean;
+}) {
+    if (!args.target_dir) {
+        throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
+    }
+    const uninstallArgs = [INSTALL_SH, args.target_dir, "--uninstall"];
+    if (args.dry_run) uninstallArgs.push("--dry-run");
+    if (args.purge) uninstallArgs.push("--purge");
+    if (args.keep_mcps) uninstallArgs.push("--keep-mcps");
+    if (args.force_conflicts) uninstallArgs.push("--force-conflicts");
+
+    const result = await runCommand("bash", uninstallArgs);
+    const summary = {
+        exit_code: result.code,
+        target_dir: args.target_dir,
+        dry_run: !!args.dry_run,
+        purge: !!args.purge,
+        keep_mcps: !!args.keep_mcps,
+        force_conflicts: !!args.force_conflicts,
+        stdout: result.stdout,
+        stderr: result.stderr,
+    };
+    if (result.code !== 0) {
+        throw new McpError(
+            ErrorCode.InternalError,
+            `install.sh --uninstall exited with code ${result.code}.\n\nstderr:\n${result.stderr}\n\nstdout:\n${result.stdout}`
+        );
+    }
+    return { content: [{ type: "text" as const, text: JSON.stringify(summary, null, 2) }] };
+}
+
 // --- MCP wiring ---------------------------------------------------------------
 
 const server = new Server(
@@ -330,6 +393,18 @@ const server = new Server(
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
+        {
+            name: "recommend_setup",
+            description: "Analyze a directory and return the recommended AppBootstrapAI action as structured JSON. CALL THIS FIRST when asked to set up / update / improve a repo — it tells you exactly what to run. Detects managed-state (manifest → upgrade), platform, Apple-language, and framework usage (FoundationModels→ai, Core Data/SwiftData→persistence, Room→persistence, R8/ProGuard→shrinking, XML layouts/Fragments→migration, fastlane/CI→deployment). Returns { state, platform, apple_language, features, action, feature_reasons, command[], preview_command[] }. Read-only — writes nothing. Then run preview (command + --dry-run) and confirm before calling `install`.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    target_dir: { type: "string", description: "Absolute path to the directory to analyze. Required." },
+                },
+                required: ["target_dir"],
+                additionalProperties: false
+            }
+        },
         {
             name: "list_categories",
             description: "List the feature categories AppBootstrapAI's install.sh recognizes. Returns name + recommended flag + description for each. The set is read live from install.sh so it never drifts. `recommended: true` categories install by default; the rest are opt-in via --features.",
@@ -388,6 +463,33 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                 additionalProperties: false
             }
         },
+        {
+            name: "preview_uninstall",
+            description: "Plan-only `install.sh <target_dir> --uninstall --dry-run`. Lists what an uninstall WOULD delete vs. keep (unchanged tracked files deleted; locally-edited files and CLAUDE.md/settings.json kept) without writing anything. Use before `uninstall`.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    target_dir: { type: "string", description: "Absolute path to an existing AppBootstrapAI install. Required." },
+                },
+                required: ["target_dir"],
+                additionalProperties: false
+            }
+        },
+        {
+            name: "uninstall",
+            description: "Reverse an AppBootstrapAI install in target_dir. Deletes every tracked file unchanged since install; keeps locally-edited files unless force_conflicts, keeps CLAUDE.md/settings.json unless purge, removes MCP entries unless keep_mcps; strips the .gitignore block + manifest. DESTRUCTIVE — call preview_uninstall first and confirm with the user.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    target_dir: { type: "string", description: "Absolute path to an existing AppBootstrapAI install. Required." },
+                    purge: { type: "boolean", description: "Also delete CLAUDE.md and .claude/settings.json. Default false." },
+                    keep_mcps: { type: "boolean", description: "Leave settings.local.json MCP entries untouched. Default false." },
+                    force_conflicts: { type: "boolean", description: "Also delete locally-edited tracked files. Default false." },
+                },
+                required: ["target_dir"],
+                additionalProperties: false
+            }
+        },
     ]
 }));
 
@@ -395,12 +497,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
     const { name, arguments: args } = request.params;
     try {
         switch (name) {
-            case "list_categories": return await toolListCategories();
-            case "list_rules":      return await toolListRules();
-            case "list_skills":     return await toolListSkills();
-            case "preview_install": return await toolPreviewInstall(args as any);
-            case "install":         return await toolInstall(args as any);
-            case "preview_upgrade": return await toolPreviewUpgrade(args as any);
+            case "recommend_setup":   return await toolRecommend(args as any);
+            case "list_categories":   return await toolListCategories();
+            case "list_rules":        return await toolListRules();
+            case "list_skills":       return await toolListSkills();
+            case "preview_install":   return await toolPreviewInstall(args as any);
+            case "install":           return await toolInstall(args as any);
+            case "preview_upgrade":   return await toolPreviewUpgrade(args as any);
+            case "preview_uninstall": return await toolUninstall({ ...(args as any), dry_run: true });
+            case "uninstall":         return await toolUninstall(args as any);
             default:
                 throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }

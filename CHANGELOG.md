@@ -56,9 +56,22 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
   `--upgrade` (which preserves the manifest baseline), instead of silently
   resetting it. Pass **`--force`** to deliberately re-install over a managed
   target.
+- **`AGENTS.md`** at the repo root — a terse, machine-first guide for AI agents
+  *operating* AppBootstrapAI (the recommend → preview → run workflow, the verb
+  table, the create/adopt/upgrade situations, and the guardrails). Distinct from
+  the `AGENTS.md` the installer writes into target repos.
+- **`recommend` command** — `install.sh recommend <dir> [--json]` analyzes a
+  directory (read-only) and prints the exact create / adopt / upgrade command to
+  run, with rationale. Detects managed-state (manifest present → upgrade),
+  platform + signals, Apple-language (`.m`/`.mm`/`.h` scan), and framework usage
+  → feature categories (`import FoundationModels` → `ai`; Core Data / SwiftData
+  → `persistence`; Room → `persistence`; R8/ProGuard → `shrinking`; XML layouts
+  / Fragments → `migration`; fastlane / CI → `deployment`). `--json` emits a
+  machine-readable object with a ready-to-exec `command` array — built so an AI
+  agent gets the right action in one call instead of grepping the tree.
 - **Subcommand verbs** — `install.sh` now accepts a leading command verb
-  (`install` / `upgrade` / `uninstall` / `list` / `list-mcps` / `setup` /
-  `help`), so `install.sh upgrade .` reads correctly instead of
+  (`install` / `recommend` / `upgrade` / `uninstall` / `list` / `list-mcps` /
+  `setup` / `help`), so `install.sh upgrade .` reads correctly instead of
   `install.sh . --upgrade`. Backward-compatible: every verb has a `--flag`
   alias and the bare `install` verb is optional, so existing scripts, the MCP
   server, and CI keep working unchanged. The file name stays `install.sh`.
@@ -85,10 +98,11 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
 - **`linting`** feature category — in the `recommended` default set (10
   categories). **`spatial`** (visionOS) and **`deployment`** (TestFlight + Play
   beta) feature categories — opt-in, not in `recommended`.
-- **MCP server** (`mcp-server/`) wrapping `install.sh` as typed tools:
-  `list_categories`, `list_rules`, `list_skills`, `preview_install`,
-  `install`, `preview_upgrade`. Reads its category set live from
-  `install.sh --list --json`.
+- **MCP server** (`mcp-server/`) wrapping `install.sh` as nine typed tools:
+  `recommend_setup` (analyze a dir → suggested command, the agent's entry point),
+  `list_categories`, `list_rules`, `list_skills`, `preview_install`, `install`,
+  `preview_upgrade`, `preview_uninstall`, `uninstall`. Reads its category set
+  live from `install.sh --list --json`.
 - **Templates** — `Package.template.swift` (with a `makeTargets()` helper) and
   three starter `CLAUDE.md` templates (apple / android / cross-platform).
 - **Git-workflow guardrails** in `CLAUDE.md` and every template: never commit,

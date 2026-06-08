@@ -86,7 +86,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`settings.json`** — safe defaults for `xcodebuild`, `swift`, `swiftlint`, `./gradlew`, `gradle`, `ktlint`, `adb`, `git`, `gh`, plus Apple/Android docs domains for `WebFetch`.
 - **`.gitignore`** — recommended entries for Xcode, SPM, CocoaPods, Carthage, fastlane, plus Gradle/Android Studio/Kotlin.
 - **`install.sh`** — one-command bootstrap into any target repo.
-  - **Commands** (verb form): `install [TARGET]` (default — verb optional), `upgrade TARGET`, `uninstall TARGET`, `list`, `list-mcps`, `setup` (guided), `help`. Each has a legacy `--flag` alias (`--upgrade`, `--uninstall`, `--list`, `--list-mcps`, `-i`/`--interactive`, `-h`/`--help`) — verbs and flags are interchangeable, so existing scripts keep working. A directory whose name collides with a verb can be targeted via an explicit path (`./upgrade`) or the `--flag` form.
+  - **Commands** (verb form): `install [TARGET]` (default — verb optional), `recommend [TARGET]` (analyze a dir → suggested command, `--json` for agents), `upgrade TARGET`, `uninstall TARGET`, `list`, `list-mcps`, `setup` (guided), `help`. Each has a legacy `--flag` alias (`--upgrade`, `--uninstall`, `--list`, `--list-mcps`, `-i`/`--interactive`, `-h`/`--help`) — verbs and flags are interchangeable, so existing scripts keep working. A directory whose name collides with a verb can be targeted via an explicit path (`./upgrade`) or the `--flag` form.
   Flags:
   - `-i` / `--interactive` — guided, prompt-driven setup. Detects create vs. adopt vs. update and walks through platform / Apple-language / features / agents / MCP recipes with defaults. Works at a TTY or from piped stdin (Enter accepts each default); prints a plan and confirms before writing. See [Getting started](#getting-started).
   - `--new` — create the target directory (and parents) and `git init` a fresh repo before installing, for green-field projects. Light scaffolding only — does not generate an Xcode/Gradle project. Install-only (rejected with `--upgrade`/`--uninstall`).
@@ -326,11 +326,21 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 
 ## Using AI to install
 
-`install.sh` is a shell command — every coding agent can run it. If you'd rather *ask* the agent to bootstrap your repo than run the script by hand, three things make that work well:
+`install.sh` is a shell command — every coding agent can run it. Agents operating this package should read [`AGENTS.md`](AGENTS.md) — a terse, machine-first guide to the create / adopt / update workflow. If you'd rather *ask* the agent to bootstrap your repo than run the script by hand, four things make that work well:
 
-1. **Hand the agent this repo's URL and your project description.** Most agents need just enough context to pick the right flags. A prompt like *"Bootstrap this iOS+macOS app with AppBootstrapAI — Swift only, include the AI/Foundation Models category"* tells Claude / Cursor / Gemini / Kiro / Copilot what they need to know.
-2. **The agent can introspect the catalog before installing.** `./install.sh --list --features all` prints every rule and skill with its category and one-line description. Agents that read the output can recommend the right `--features` list for your project.
-3. **For agents that speak MCP** (Claude Code, Cursor, others with MCP client support), this repo ships an [MCP server](mcp-server/README.md) that exposes the installer as five structured tools: `list_categories`, `list_rules`, `list_skills`, `preview_install`, and `install`. Wire it into your agent's MCP config and the agent runs the installer through a typed API rather than parsing shell output. See [`mcp-server/`](mcp-server/) for setup.
+1. **Let the package do the analysis: `./install.sh recommend <dir>`.** This is the fastest path for an agent. Point it at any directory and it introspects the repo — managed-state, platform, Apple-language, and framework usage (`import FoundationModels` → `ai`, Core Data / SwiftData → `persistence`, Room → `persistence`, R8/ProGuard → `shrinking`, fastlane/CI → `deployment`, …) — then prints the **exact** create / adopt / upgrade command to run, with the reasoning behind each choice. Add `--json` for a machine-readable object (with a ready-to-exec `command` array) instead of prose. One call replaces the agent grepping the tree by hand.
+
+   ```bash
+   # Human-readable
+   /path/to/AppBootstrapAI/install.sh recommend ~/Projects/MyApp
+   # Machine-readable (the agent parses `command` / `preview_command`)
+   /path/to/AppBootstrapAI/install.sh recommend ~/Projects/MyApp --json
+   ```
+
+   The recommended flow for an agent is **`recommend` → run the suggested `--dry-run` preview → run the real command**.
+2. **Hand the agent this repo's URL and your project description.** Most agents need just enough context to pick the right flags. A prompt like *"Bootstrap this iOS+macOS app with AppBootstrapAI — Swift only, include the AI/Foundation Models category"* tells Claude / Cursor / Gemini / Kiro / Copilot what they need to know.
+3. **The agent can introspect the catalog before installing.** `./install.sh --list --features all` prints every rule and skill with its category and one-line description. Agents that read the output can recommend the right `--features` list for your project.
+4. **For agents that speak MCP** (Claude Code, Cursor, others with MCP client support), this repo ships an [MCP server](mcp-server/README.md) that exposes the installer as nine structured tools: **`recommend_setup`** (call first — analyze a dir → suggested command), `list_categories`, `list_rules`, `list_skills`, `preview_install`, `install`, `preview_upgrade`, `preview_uninstall`, and `uninstall`. Wire it into your agent's MCP config and the agent runs the installer through a typed API rather than parsing shell output. See [`mcp-server/`](mcp-server/) for setup.
 
 **Recommended prompts** (copy-paste-friendly for the agent of your choice):
 
@@ -602,7 +612,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   ├── firebase.json                  # Cross-platform (official Google MCP)
 │   └── sentry.json                    # Cross-platform (official hosted Sentry MCP)
 ├── mcp-server/                        # MCP server wrapping install.sh as typed tools
-│   ├── src/index.ts                   # 5 tools: list_categories/rules/skills, preview_install, install
+│   ├── src/index.ts                   # 9 tools: recommend_setup, list_*, preview_install, install, preview/uninstall
 │   ├── package.json
 │   └── README.md                      # MCP setup instructions for Claude Code / Cursor / others
 ├── install.sh                         # CLI dispatcher (~450 lines): args, validation, mode dispatch
@@ -617,7 +627,9 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   ├── upgrade.py                     # Python: upgrade plan/apply executor (3-way diff)
 │   ├── uninstall.py                   # Python: --uninstall executor
 │   ├── mcp_merge.py                   # Python: MCP merge into settings.local.json
-│   └── inherit_selection.py           # Python: read selection fields from a manifest
+│   ├── inherit_selection.py           # Python: read selection fields from a manifest
+│   └── recommend.py                   # Python: `recommend` — analyze a dir → suggested command
+├── AGENTS.md                          # How an AI agent should operate this package (recommend → preview → run)
 ├── RENAMES.md                         # Rule/skill rename map honored by --upgrade
 ├── CHANGELOG.md                       # Keep-a-Changelog notable changes
 ├── CLAUDE.md                          # This repo's own AI onboarding

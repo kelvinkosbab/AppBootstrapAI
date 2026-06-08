@@ -10,13 +10,17 @@ If you'd rather just run `install.sh` by hand or via shell tool — that still w
 
 | Tool | Description |
 |------|-------------|
-| `list_categories` | Returns the 13 feature categories (name + `recommended` flag + description). Useful for the agent to know what's available before recommending `--features`. |
+| `recommend_setup` | **Call this first.** Analyzes `target_dir` (read-only) and returns the recommended action as JSON — `state`, `platform`, `apple_language`, `features`, `action`, `feature_reasons`, and a ready-to-run `command[]` / `preview_command[]`. Detects managed-state + framework usage (FoundationModels→`ai`, Core Data/SwiftData→`persistence`, Room→`persistence`, R8→`shrinking`, fastlane/CI→`deployment`, …). |
+| `list_categories` | Returns the feature categories (name + `recommended` flag + description), read live from `install.sh`. Useful before recommending `--features`. |
 | `list_rules` | Returns every steering rule in `.claude/rules/` with its description and `globs:` from frontmatter. |
 | `list_skills` | Returns every skill in `.claude/skills/` with its description and reference-file names. |
 | `preview_install` | Runs `install.sh --list` with the given `platform`, `apple_language`, `features` and returns the catalog with `[✓]/[ ]` marks. No files written — preview only. |
 | `install` | Runs `install.sh` against `target_dir`. Returns exit code + stdout + stderr. Same overwrite-policy as the CLI (never replaces existing `CLAUDE.md` / `settings.json`). |
+| `preview_upgrade` | Plan-only 3-way diff of `target_dir` vs. the current bundle. Writes nothing. |
+| `preview_uninstall` | Plan-only `--uninstall --dry-run`: what an uninstall would delete vs. keep. Writes nothing. |
+| `uninstall` | Reverses an install (`purge` / `keep_mcps` / `force_conflicts` options). Destructive — call `preview_uninstall` first. |
 
-Each tool's input schema is fully typed (see `src/index.ts`), so agents get autocomplete-grade hints when calling.
+Each tool's input schema is fully typed (see `src/index.ts`), so agents get autocomplete-grade hints when calling. The intended loop is **`recommend_setup` → preview → act**.
 
 ## Setup
 
@@ -49,7 +53,7 @@ Add to your project's `.claude/settings.json` (or your global `~/.claude/setting
 }
 ```
 
-Restart Claude Code; the five tools become callable from any Claude session.
+Restart Claude Code; the nine tools become callable from any Claude session.
 
 ### Wire into other MCP clients
 
@@ -60,8 +64,11 @@ The transport is stdio. Any MCP-compatible client (Cursor, Gemini CLI's experime
 Once configured, an agent can call tools like:
 
 ```
+recommend_setup({ target_dir: "/Users/me/Projects/MyApp" })
+→ Analyzes the repo. Returns { state, platform, features, action, command[] }. Call this first.
+
 list_categories()
-→ Returns the 13 categories with recommended flags. Agent learns what's installable.
+→ Returns the feature categories with recommended flags. Agent learns what's installable.
 
 preview_install({ platform: "apple", apple_language: "swift", features: "recommended" })
 → Returns the install.sh --list output as plain text. Agent shows the user what would land.
