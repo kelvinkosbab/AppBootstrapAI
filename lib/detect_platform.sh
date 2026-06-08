@@ -113,7 +113,7 @@ case "$APPLE_LANG" in
         ;;
 esac
 
-if [[ "$JSON_OUTPUT" == "true" ]] && [[ "$ACTION" != "list" ]]; then
-    echo "error: --json is only valid with --list" >&2
+if [[ "$JSON_OUTPUT" == "true" ]] && [[ "$ACTION" != "list" && "$ACTION" != "recommend" ]]; then
+    echo "error: --json is only valid with list / recommend" >&2
     exit 1
 fi

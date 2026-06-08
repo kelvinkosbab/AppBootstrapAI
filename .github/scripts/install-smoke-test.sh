@@ -1778,6 +1778,92 @@ else
 fi
 rm -rf "$t"
 
+# --- recommend (analyze a dir → suggested command) ---------------------------
+
+bold "==> recommend: fresh Apple repo detects ai + persistence"
+t="$(mktemp -d)"
+touch "$t/Package.swift"
+mkdir -p "$t/Sources" "$t/Model/My.xcdatamodeld"
+printf 'import FoundationModels\n' > "$t/Sources/Chat.swift"
+printf 'import CoreData\n' > "$t/Sources/Store.swift"
+rec="$("$INSTALL" recommend "$t" 2>&1)"
+if grep -q "platform:  apple" <<<"$rec" \
+   && grep -q "recommended,persistence,ai" <<<"$rec" \
+   && grep -qi "import FoundationModels" <<<"$rec" \
+   && grep -q "install $t" <<<"$rec"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: recommend should detect apple + ai + persistence and emit an install command"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> recommend: Android repo detects persistence (Room) + shrinking (R8)"
+t="$(mktemp -d)"
+touch "$t/settings.gradle.kts" "$t/gradlew" "$t/proguard-rules.pro"
+mkdir -p "$t/app/src"
+printf 'import androidx.room.Entity\n' > "$t/app/src/U.kt"
+rec="$("$INSTALL" recommend "$t" 2>&1)"
+if grep -q "platform:  android" <<<"$rec" \
+   && grep -q "persistence" <<<"$rec" && grep -q "shrinking" <<<"$rec"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: recommend should detect android + persistence + shrinking"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> recommend: managed dir routes to upgrade"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+rec="$("$INSTALL" recommend "$t" 2>&1)"
+if grep -q "state:     managed" <<<"$rec" \
+   && grep -q "action:    upgrade" <<<"$rec" \
+   && grep -q "upgrade $t --apply" <<<"$rec"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: recommend on a managed dir should suggest upgrade --apply"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> recommend: missing dir → create with --new"
+rec="$("$INSTALL" recommend "/tmp/abai-rec-missing-$$" 2>&1)"
+if grep -q "state:     missing" <<<"$rec" \
+   && grep -q -- "--new" <<<"$rec"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: recommend on a missing dir should suggest install --new"
+    FAIL=$((FAIL + 1))
+fi
+
+bold "==> recommend: unmanaged dir (.claude/rules, no manifest) → adopt"
+t="$(mktemp -d)"
+touch "$t/Package.swift"; mkdir -p "$t/.claude/rules"; touch "$t/.claude/rules/x.md"
+rec="$("$INSTALL" recommend "$t" 2>&1)"
+grep -q "state:     unmanaged" <<<"$rec" && PASS=$((PASS + 1)) \
+    || { red "FAIL: recommend should classify a manifest-less .claude/rules dir as unmanaged"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
+bold "==> recommend --json emits a parseable object with command[]"
+t="$(mktemp -d)"; touch "$t/build.gradle.kts" "$t/gradlew"
+js="$("$INSTALL" recommend "$t" --json 2>&1)"
+if python3 -c "import json,sys; d=json.loads(sys.argv[1]); assert d['platform']=='android'; assert isinstance(d['command'],list) and d['command'][1]=='install'; assert d['state']=='fresh'" "$js" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: recommend --json should be a parseable object with a command array"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> recommend: --recommend flag alias works like the verb"
+t="$(mktemp -d)"; touch "$t/Package.swift"
+a="$("$INSTALL" recommend "$t" 2>&1)"
+b="$("$INSTALL" --recommend "$t" 2>&1)"
+[[ "$a" == "$b" && -n "$a" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: --recommend alias should match the recommend verb"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
 # --- subcommand verbs (backward-compatible with the --flag forms) ------------
 
 bold "==> verb: 'list' equals '--list'"

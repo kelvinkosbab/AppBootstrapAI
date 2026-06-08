@@ -65,6 +65,7 @@ if [[ $# -gt 0 ]]; then
         install)   ACTION="install";   shift ;;
         upgrade)   ACTION="upgrade";   shift ;;
         uninstall) ACTION="uninstall"; shift ;;
+        recommend) ACTION="recommend"; shift ;;
         list)      ACTION="list";      shift ;;
         list-mcps) ACTION="list-mcps"; shift ;;
         setup)     INTERACTIVE="true"; shift ;;
@@ -102,6 +103,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --uninstall)
             ACTION="uninstall"
+            shift
+            ;;
+        --recommend)
+            ACTION="recommend"
             shift
             ;;
         --new)
@@ -295,6 +300,20 @@ source "$SCRIPT_DIR/lib/detect_platform.sh"
 
 ALL_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting persistence ai migration shrinking spatial deployment"
 RECOMMENDED_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting"
+
+# --- recommend: analyze a directory and print the suggested command ----------
+# Self-contained, read-only. Lives here (after the category constants) so the
+# analyzer knows the recommended vs. opt-in split without re-deriving it. Does
+# its own platform/state/framework detection in lib/recommend.py; exits when done.
+if [[ "$ACTION" == "recommend" ]]; then
+    recommend_args=(--target "$TARGET"
+                    --recommended "$RECOMMENDED_CATEGORIES"
+                    --all "$ALL_CATEGORIES"
+                    --self "$SCRIPT_DIR/install.sh")
+    [[ "$JSON_OUTPUT" == "true" ]] && recommend_args+=(--json)
+    python3 "$SCRIPT_DIR/lib/recommend.py" "${recommend_args[@]}"
+    exit $?
+fi
 
 # Resolve --features input into a space-separated list of category names.
 # Supports composition: each comma-separated token expands independently, so
