@@ -58,7 +58,12 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 
 - **`settings.json`** — safe defaults for `xcodebuild`, `swift`, `swiftlint`, `./gradlew`, `gradle`, `ktlint`, `adb`, `git`, `gh`, plus Apple/Android docs domains for `WebFetch`.
 - **`.gitignore`** — recommended entries for Xcode, SPM, CocoaPods, Carthage, fastlane, plus Gradle/Android Studio/Kotlin.
-- **`install.sh`** — one-command bootstrap into any target repo. Flags:
+- **`install.sh`** — one-command bootstrap into any target repo.
+  - **Commands** (verb form): `install [TARGET]` (default — verb optional), `upgrade TARGET`, `uninstall TARGET`, `list`, `list-mcps`, `setup` (guided), `help`. Each has a legacy `--flag` alias (`--upgrade`, `--uninstall`, `--list`, `--list-mcps`, `-i`/`--interactive`, `-h`/`--help`) — verbs and flags are interchangeable, so existing scripts keep working. A directory whose name collides with a verb can be targeted via an explicit path (`./upgrade`) or the `--flag` form.
+  Flags:
+  - `-i` / `--interactive` — guided, prompt-driven setup. Detects create vs. adopt vs. update and walks through platform / Apple-language / features / agents / MCP recipes with defaults. Works at a TTY or from piped stdin (Enter accepts each default); prints a plan and confirms before writing. See [Getting started](#getting-started).
+  - `--new` — create the target directory (and parents) and `git init` a fresh repo before installing, for green-field projects. Light scaffolding only — does not generate an Xcode/Gradle project. Install-only (rejected with `--upgrade`/`--uninstall`).
+  - `--force` — allow a plain `install` over a directory that's already a managed AppBootstrapAI install. Without it, re-installing over a managed repo is refused with guidance to use `--upgrade` (which preserves the manifest baseline). Install-only.
   - `--platform apple|android|both` — optional; if omitted, the installer auto-detects from the target dir (`Package.swift` / `*.xcodeproj` → apple; `build.gradle*` / `gradlew` → android; both present → both; neither → falls back to `both`). Detection result + matched signals print in the install header. Explicit `--platform` always wins.
   - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
   - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`); custom CSVs like `core,testing,docs` give fine-grained control
@@ -105,9 +110,71 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, and lo
 
 - **Multi-agent support** — pass `--agents copilot,cursor,gemini,codex` to `install.sh` and the bundle writes the right file shape for each agent (in addition to or instead of Claude). For agents not in that built-in set (Kiro, Cline, Goose, Roo, Windsurf, etc.), point a sync tool at `.claude/`. See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents).
 
+## Getting started
+
+The installer takes a **command verb** — `install` (the default, so it can be
+omitted), `upgrade`, `uninstall`, `list`, `list-mcps`, or `setup`. Three ways in,
+depending on where you are. Not sure which? Run **`setup`** and it figures it out:
+
+```bash
+# Guided, prompt-driven — detects create vs. adopt vs. update and walks you
+# through platform, features, agents, and MCP recipes with sensible defaults.
+/path/to/AppBootstrapAI/install.sh setup
+```
+
+> **Verbs and flags are interchangeable.** Every verb has a legacy flag alias —
+> `upgrade` == `--upgrade`, `uninstall` == `--uninstall`, `list` == `--list`,
+> `setup` == `-i` / `--interactive`. Existing scripts that use the flag form keep
+> working unchanged.
+
+### 1. New project (green-field)
+
+Create the directory, `git init` it, and install the bundle in one step:
+
+```bash
+/path/to/AppBootstrapAI/install.sh install ~/Projects/MyNewApp --new --platform apple
+```
+
+`--new` makes the target dir (and parents) and initializes a fresh git repo,
+then installs. It's light scaffolding — it does **not** generate an Xcode or
+Gradle project; create that with Xcode / Android Studio, then commit.
+
+### 2. Existing project (adopt)
+
+Point the installer at your repo root. Platform auto-detects from the files
+already there (`install` is the default verb, so you can omit it):
+
+```bash
+cd /path/to/your/app
+/path/to/AppBootstrapAI/install.sh .
+```
+
+Nothing you've authored gets overwritten — an existing `CLAUDE.md`,
+`settings.json`, or agent file is left alone and the installer prints what it
+skipped so you can merge by hand.
+
+### 3. Update an existing install (stay current with upstream)
+
+Once a repo is managed (it has a `.claude/.appbootstrap-manifest.json`), use
+`upgrade` — never a plain re-install:
+
+```bash
+/path/to/AppBootstrapAI/install.sh upgrade .           # plan-only preview
+/path/to/AppBootstrapAI/install.sh upgrade . --apply   # execute the plan
+```
+
+`upgrade` runs a 3-way diff (what was installed vs. your current files vs. the
+latest bundle) so your local edits are preserved. A plain `install` over a
+managed repo is **refused** with guidance to use `upgrade` — that guard stops
+a re-install from silently resetting the manifest baseline. If you genuinely
+want to re-install over a managed target, pass `--force`.
+
 ## Quick start
 
-From the root of a new app repo:
+The full flag reference. Examples below use the bare/`install` form; prefix any
+of them with a verb (`install` / `upgrade` / `uninstall` / `list` / `setup`) or
+use the equivalent `--flag` — they're interchangeable. From the root of a new app
+repo:
 
 ```bash
 # Zero-flag install — installer auto-detects platform from the target dir.

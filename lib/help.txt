@@ -1,17 +1,42 @@
 # AppBootstrapAI installer — copies the Claude Code bundle into a target repo.
 #
 # Usage:
-#   ./install.sh [TARGET_DIR] [--platform apple|android|both]
-#                             [--apple-language swift|objc|both]
-#                             [--features all|recommended|<csv>]
-#                             [--with-mcps <csv>]
-#                             [--dry-run]
-#   ./install.sh --list [--json] [--features ...] [--platform ...]
-#   ./install.sh --list-mcps
-#   ./install.sh --help
+#   ./install.sh setup                               # guided: create / adopt / update
+#   ./install.sh install [TARGET_DIR] [--platform apple|android|both]
+#                                     [--apple-language swift|objc|both]
+#                                     [--features all|recommended|<csv>]
+#                                     [--agents claude,copilot,cursor,gemini,codex|all]
+#                                     [--with-mcps <csv>] [--new] [--force] [--dry-run]
+#   ./install.sh upgrade TARGET_DIR [--apply ...]    # update a prior install
+#   ./install.sh uninstall TARGET_DIR [...]          # remove a prior install
+#   ./install.sh list [--json] [--features ...] [--platform ...]
+#   ./install.sh list-mcps
+#   ./install.sh help
+#
+# Commands (the verb is optional; install is the default):
+#   install      Copy the bundle into TARGET_DIR. The default action — the verb
+#                may be omitted, so `./install.sh .` == `./install.sh install .`.
+#   upgrade      3-way diff a prior install vs. the current bundle (plan-only;
+#                add --apply to write). Alias: the --upgrade flag.
+#   uninstall    Reverse a prior install. Alias: the --uninstall flag.
+#   list         Preview the catalog for a selection. Alias: the --list flag.
+#   list-mcps    List available MCP-server recipes. Alias: the --list-mcps flag.
+#   setup        Guided, prompt-driven flow. Alias: -i / --interactive.
+#   help         Print this help. Alias: -h / --help.
+#
+#   The legacy flag forms (--upgrade / --uninstall / --list / --list-mcps /
+#   -i / -h) remain fully supported, so existing scripts keep working. A
+#   directory whose name collides with a verb can be targeted via an explicit
+#   path (./upgrade) or the equivalent --flag form.
+#
+# Three common starting points:
+#   New project:       ./install.sh install ./my-app --platform apple --new
+#   Existing project:  cd my-repo && /path/to/install.sh .        (adopts; never overwrites)
+#   Update later:      cd my-repo && /path/to/install.sh upgrade . --apply
+#   Not sure?          ./install.sh setup                          (it figures out which)
 #
 # Defaults: TARGET_DIR=.  --platform <auto-detected>  --apple-language swift
-#           --features recommended
+#           --features recommended  --agents claude
 #
 # Flags:
 #   --platform           Which platform's rules and skills to install.
@@ -64,6 +89,28 @@
 #
 #                        Note: apple-objc-best-practices.md is gated solely by
 #                        --apple-language, not --features.
+#
+#   -i, --interactive    Guided, prompt-driven flow. Detects whether you're
+#                        creating a new project, adopting into an existing repo,
+#                        or updating a prior install, then walks through
+#                        platform / features / agents / MCPs with sensible
+#                        defaults and a preview before writing. Accepts Enter
+#                        for each default; reads piped answers too. The easiest
+#                        way to start if you don't know the flags.
+#
+#   --new                Create TARGET_DIR (and parents) if it doesn't exist,
+#                        and `git init` it when it isn't already a git repo.
+#                        Turns the bootstrap into a one-liner for a brand-new
+#                        project: `install.sh ./my-app --platform apple --new`.
+#                        Without --new, a missing TARGET_DIR is an error (so a
+#                        typo'd path doesn't silently create a stray directory).
+#
+#   --force              Re-install over a target that already has an
+#                        AppBootstrapAI install. By default, install refuses on
+#                        a managed target and points you at --upgrade (re-running
+#                        install only adds missing files AND resets the upgrade
+#                        baseline). Use --force only when you specifically want a
+#                        plain re-install.
 #
 #   --dry-run            Show what would be installed without writing any files.
 #                        Useful for previewing an upgrade or auditing a re-run on

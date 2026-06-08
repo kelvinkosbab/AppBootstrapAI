@@ -71,9 +71,26 @@ Each skill ships with:
 
 ## How to onboard this into a new app project
 
-Use the installer from the target repo:
+Use the installer from the target repo. It takes a **command verb** —
+`install` (the default, so it can be omitted), `upgrade`, `uninstall`, `list`,
+`list-mcps`, or `setup` — each with a legacy `--flag` alias (`--upgrade`,
+`--uninstall`, `--list`, `-i`/`--interactive`, …) that stays fully supported:
 
 ```bash
+# Not sure where to start? Guided, prompt-driven setup detects
+# create vs. adopt vs. update and walks through every choice with defaults.
+/path/to/AppBootstrapAI/install.sh setup        # alias: --interactive
+
+# New project (green-field) — create the dir, git init, then install
+/path/to/AppBootstrapAI/install.sh install ~/Projects/MyNewApp --new --platform apple
+
+# Adopt into an existing repo (platform auto-detects; 'install' verb optional)
+/path/to/AppBootstrapAI/install.sh .
+
+# Update an already-managed repo — never a plain re-install
+/path/to/AppBootstrapAI/install.sh upgrade .             # plan-only
+/path/to/AppBootstrapAI/install.sh upgrade . --apply     # execute
+
 # Pure-Swift Apple project — installs the "recommended" features set (default)
 /path/to/AppBootstrapAI/install.sh . --platform apple
 

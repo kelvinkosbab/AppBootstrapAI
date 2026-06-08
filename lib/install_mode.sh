@@ -12,12 +12,68 @@
 
 # --- Install mode -------------------------------------------------------------
 
+# Missing target: create it under --new (new-project bootstrap), else error.
+# The error guards against a typo'd path silently creating a stray directory.
 if [[ ! -d "$TARGET" ]]; then
-    echo "error: target directory does not exist: $TARGET" >&2
+    if [[ "$NEW_PROJECT" == "true" ]]; then
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo "[dry-run] would create directory $TARGET"
+        else
+            mkdir -p "$TARGET"
+            echo "--> Created $TARGET"
+        fi
+    else
+        echo "error: target directory does not exist: $TARGET" >&2
+        echo "       Pass --new to create it (and git init a fresh repo), e.g.:" >&2
+        echo "         install.sh $TARGET --platform apple --new" >&2
+        exit 1
+    fi
+fi
+
+# Resolve to an absolute path. Tolerate a not-yet-created dir under
+# --new + --dry-run (can't cd into it) by composing the path manually.
+if [[ -d "$TARGET" ]]; then
+    TARGET="$(cd "$TARGET" && pwd)"
+else
+    case "$TARGET" in
+        /*) : ;;
+        *)  TARGET="$PWD/$TARGET" ;;
+    esac
+fi
+
+# --new: git init a fresh repo (only when the dir isn't already under git).
+if [[ "$NEW_PROJECT" == "true" && "$DRY_RUN" != "true" ]]; then
+    if [[ ! -d "$TARGET/.git" ]] && command -v git >/dev/null 2>&1; then
+        git -C "$TARGET" init -q && echo "--> git init $TARGET"
+    fi
+fi
+
+# Already-managed target: refuse a plain re-install and steer to --upgrade,
+# unless --force. Re-running install only adds missing files AND rewrites the
+# manifest — which resets the --upgrade baseline (a silent footgun).
+MANAGED_MANIFEST="$TARGET/.claude/.appbootstrap-manifest.json"
+if [[ -f "$MANAGED_MANIFEST" && "$FORCE" != "true" ]]; then
+    echo "==> $TARGET already has an AppBootstrapAI install." >&2
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - "$MANAGED_MANIFEST" <<'PY' >&2 || true
+import json, sys
+try:
+    m = json.load(open(sys.argv[1]))
+    print(f"    installed at:  {m.get('installed_at', '?')}")
+    bc = m.get("bundle_commit", "unknown")
+    print(f"    bundle commit: {bc[:12] if bc != 'unknown' else 'unknown'}")
+except Exception:
+    pass
+PY
+    fi
+    echo "    Re-running install only ADDS missing files and rewrites the manifest," >&2
+    echo "    which resets the --upgrade baseline. To review/apply bundle updates:" >&2
+    echo "      install.sh \"$TARGET\" --upgrade           # preview the plan" >&2
+    echo "      install.sh \"$TARGET\" --upgrade --apply   # execute it" >&2
+    echo "    To re-install anyway (adds any missing files), pass --force." >&2
     exit 1
 fi
 
-TARGET="$(cd "$TARGET" && pwd)"
 echo "==> Installing AppBootstrapAI into $TARGET"
 if [[ "$PLATFORM_AUTODETECTED" == "true" ]]; then
     echo "    platform: $PLATFORM (auto-detected)   apple-language: $APPLE_LANG"

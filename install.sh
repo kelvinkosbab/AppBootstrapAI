@@ -39,6 +39,10 @@ MIGRATE_MANIFEST="false"
 # Phase 5b uninstall flags.
 PURGE="false"
 KEEP_MCPS="false"
+# Phase 8 entry-experience flags.
+NEW_PROJECT="false"     # --new: create TARGET (and parents) + git init if missing
+FORCE="false"           # --force: allow re-install over an already-managed target
+INTERACTIVE="false"     # -i / --interactive: prompt-driven create/adopt/update flow
 
 # Track whether the user explicitly passed each flag. Used by --upgrade to
 # inherit selection from the manifest when the user didn't override.
@@ -47,6 +51,26 @@ FEATURES_EXPLICIT="false"
 AGENTS_EXPLICIT="false"
 
 # --- Argument parsing ---------------------------------------------------------
+
+# Subcommand verbs (optional, backward-compatible). If the first argument is a
+# bare verb matching a known command, consume it and set the action; the rest of
+# the line is parsed exactly as before. The legacy flag forms (--upgrade /
+# --uninstall / --list / --list-mcps / -i) still work, so the MCP server, CI, and
+# downstream callers are unaffected. None of the verbs start with '-', so flag
+# arguments (e.g. --upgrade, --help) never match a verb case and fall through to
+# the flag loop. A directory whose name collides with a verb can still be
+# targeted via an explicit path (./upgrade) or the equivalent --flag form.
+if [[ $# -gt 0 ]]; then
+    case "$1" in
+        install)   ACTION="install";   shift ;;
+        upgrade)   ACTION="upgrade";   shift ;;
+        uninstall) ACTION="uninstall"; shift ;;
+        list)      ACTION="list";      shift ;;
+        list-mcps) ACTION="list-mcps"; shift ;;
+        setup)     INTERACTIVE="true"; shift ;;
+        help)      cat "$SCRIPT_DIR/lib/help.txt"; exit 0 ;;
+    esac
+fi
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -78,6 +102,18 @@ while [[ $# -gt 0 ]]; do
             ;;
         --uninstall)
             ACTION="uninstall"
+            shift
+            ;;
+        --new)
+            NEW_PROJECT="true"
+            shift
+            ;;
+        --force)
+            FORCE="true"
+            shift
+            ;;
+        -i|--interactive)
+            INTERACTIVE="true"
             shift
             ;;
         --purge)
@@ -160,6 +196,27 @@ fi
 if [[ "$KEEP_MCPS" == "true" && "$ACTION" != "uninstall" ]]; then
     echo "error: --keep-mcps requires --uninstall" >&2
     exit 1
+fi
+# --new / --force are install-only. (Interactive may set ACTION=upgrade later;
+# that path manages its own target creation, so these stay install-scoped.)
+if [[ "$NEW_PROJECT" == "true" && "$ACTION" != "install" ]]; then
+    echo "error: --new only applies to install (drop --upgrade/--uninstall/--list)" >&2
+    exit 1
+fi
+if [[ "$FORCE" == "true" && "$ACTION" != "install" ]]; then
+    echo "error: --force only applies to install (re-install over a managed target)" >&2
+    exit 1
+fi
+
+# --- Interactive guided flow --------------------------------------------------
+# Runs here (after arg parsing, before upgrade-inherit / autodetect / resolution)
+# so the answers it gathers — including an `update` choice that sets ACTION=upgrade
+# — feed the normal pipeline exactly as flags would. It only mutates selection
+# globals; the real work happens in the dispatch below.
+if [[ "$INTERACTIVE" == "true" ]]; then
+    # shellcheck source=lib/interactive.sh
+    source "$SCRIPT_DIR/lib/interactive.sh"
+    run_interactive
 fi
 
 # --- Agents catalog + resolver -----------------------------------------------

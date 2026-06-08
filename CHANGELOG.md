@@ -42,6 +42,26 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
   into `.claude/settings.local.json` with config hashing.
 - **`--dry-run`** and **`--list` / `--list --json`** (machine-readable catalog
   consumed by the MCP server).
+- **Guided setup (`-i` / `--interactive`)** — a prompt-driven flow that detects
+  whether you're creating a new project, adopting into an existing repo, or
+  updating an existing install, then walks through platform / Apple-language /
+  features / agents / MCP recipes with sensible defaults. Reads answers at a TTY
+  or from piped stdin (Enter accepts each default), prints a plan, and confirms
+  before writing.
+- **`--new`** — create the target directory (and parents) and `git init` a fresh
+  repo before installing, for green-field projects. Light scaffolding only — it
+  doesn't generate an Xcode/Gradle project.
+- **Managed-target guard** — running plain `install` over a directory that
+  already has an AppBootstrapAI install now refuses with guidance to use
+  `--upgrade` (which preserves the manifest baseline), instead of silently
+  resetting it. Pass **`--force`** to deliberately re-install over a managed
+  target.
+- **Subcommand verbs** — `install.sh` now accepts a leading command verb
+  (`install` / `upgrade` / `uninstall` / `list` / `list-mcps` / `setup` /
+  `help`), so `install.sh upgrade .` reads correctly instead of
+  `install.sh . --upgrade`. Backward-compatible: every verb has a `--flag`
+  alias and the bare `install` verb is optional, so existing scripts, the MCP
+  server, and CI keep working unchanged. The file name stays `install.sh`.
 - **Manifest v2** at `.claude/.appbootstrap-manifest.json` — per-file SHA-256
   hashes, `bundle_commit`, full selection, and `mcps_installed`. Powers the
   upgrade/uninstall flows.
@@ -74,7 +94,7 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
 - **Git-workflow guardrails** in `CLAUDE.md` and every template: never commit,
   push, amend, or run destructive git commands without explicit instruction.
 - **CI** — `shellcheck`; `frontmatter` (rule/skill validation); a cross-OS
-  (Ubuntu + macOS) `install-smoke-test` with 230+ assertions; an `mcp-server`
+  (Ubuntu + macOS) `install-smoke-test` with 250+ assertions; an `mcp-server`
   workflow (`tsc` build + startup smoke); and a `python` workflow
   (`ruff check --select F` + `py_compile`) covering `lib/*.py` and
   `.github/scripts`.

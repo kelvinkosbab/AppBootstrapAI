@@ -428,7 +428,8 @@ d = json.load(open(p))
 d['mcpServers']['xcodebuildmcp']['args'] = ['custom-marker']
 json.dump(d, open(p, 'w'), indent=2)
 "
-"$INSTALL" "$target_mcp_idem" --platform apple --with-mcps xcodebuildmcp >/dev/null
+# Deliberate re-install over a now-managed target → requires --force.
+"$INSTALL" "$target_mcp_idem" --platform apple --with-mcps xcodebuildmcp --force >/dev/null
 if python3 -c "
 import json
 d = json.load(open('$target_mcp_idem/.claude/settings.local.json'))
@@ -1672,6 +1673,178 @@ else
     red "FAIL: compare URL should be suppressed when bundle_commit is 'unknown'"
     FAIL=$((FAIL + 1))
 fi
+rm -rf "$t"
+
+# --- entry experience: --new / --force / managed-refuse / interactive --------
+
+bold "==> --new creates a missing target dir and installs"
+t="$(mktemp -d)/created-app"
+"$INSTALL" "$t" --platform apple --features recommended --new > /dev/null
+if [[ -d "$t" && -f "$t/CLAUDE.md" && -f "$t/.claude/.appbootstrap-manifest.json" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --new should create the dir and install into it"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$(dirname "$t")"
+
+bold "==> --new git-inits a fresh repo (when git available + no .git)"
+t="$(mktemp -d)/git-app"
+"$INSTALL" "$t" --platform apple --features recommended --new > /dev/null
+if command -v git >/dev/null 2>&1; then
+    [[ -d "$t/.git" ]] && PASS=$((PASS + 1)) || { red "FAIL: --new should git init"; FAIL=$((FAIL + 1)); }
+else
+    PASS=$((PASS + 1))   # no git in this environment — skip the assertion, don't fail
+fi
+rm -rf "$(dirname "$t")"
+
+bold "==> missing dir WITHOUT --new still errors (typo guard)"
+if "$INSTALL" /tmp/abai-nope-$$ --platform apple > /tmp/new_none.out 2>&1; then
+    red "FAIL: missing dir without --new should exit non-zero"; FAIL=$((FAIL + 1))
+else
+    grep -q "does not exist" /tmp/new_none.out && PASS=$((PASS + 1)) \
+        || { red "FAIL: missing-dir error message changed"; FAIL=$((FAIL + 1)); }
+fi
+rm -f /tmp/new_none.out
+
+bold "==> re-install over a managed target REFUSES and steers to --upgrade"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+before_stamp="$(python3 -c "import json;print(json.load(open('$t/.claude/.appbootstrap-manifest.json'))['installed_at'])")"
+if "$INSTALL" "$t" --platform apple --features recommended > /tmp/reinstall.out 2>&1; then
+    red "FAIL: re-install over managed target should exit non-zero"; FAIL=$((FAIL + 1))
+else
+    after_stamp="$(python3 -c "import json;print(json.load(open('$t/.claude/.appbootstrap-manifest.json'))['installed_at'])")"
+    if grep -q -- "--upgrade" /tmp/reinstall.out && [[ "$before_stamp" == "$after_stamp" ]]; then
+        PASS=$((PASS + 1))   # refused, steered to --upgrade, and baseline NOT rewritten
+    else
+        red "FAIL: managed re-install should steer to --upgrade and leave the manifest untouched"
+        FAIL=$((FAIL + 1))
+    fi
+fi
+rm -f /tmp/reinstall.out
+rm -rf "$t"
+
+bold "==> --force allows re-install over a managed target"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+if "$INSTALL" "$t" --platform apple --features recommended --force > /dev/null 2>&1; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --force should permit re-install over a managed target"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --force / --new rejected on non-install actions"
+if "$INSTALL" /tmp/x --upgrade --new > /dev/null 2>&1; then red "FAIL: --new should require install"; FAIL=$((FAIL+1)); else PASS=$((PASS+1)); fi
+if "$INSTALL" /tmp/x --upgrade --force > /dev/null 2>&1; then red "FAIL: --force should require install"; FAIL=$((FAIL+1)); else PASS=$((PASS+1)); fi
+
+bold "==> --interactive: ADOPT into an existing repo (piped answers)"
+t="$(mktemp -d)"
+# answers: target, platform=apple, apple-lang(Enter), features(Enter), agents(Enter), mcps? n, proceed? y
+printf '%s\napple\n\n\n\nn\ny\n' "$t" | "$INSTALL" --interactive > /dev/null 2>&1
+if [[ -f "$t/CLAUDE.md" && -f "$t/.claude/rules/apple-swift6-strict-concurrency.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: interactive adopt should install into the existing repo"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --interactive: CREATE a new project (piped answers)"
+t="$(mktemp -d)/inew"
+# answers: target, create? y, platform=android, features(Enter), agents(Enter), mcps? n, proceed? y
+printf '%s\ny\nandroid\n\n\nn\ny\n' "$t" | "$INSTALL" --interactive > /dev/null 2>&1
+if [[ -d "$t" && -f "$t/.claude/rules/android-project-rules.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: interactive create should mkdir + install"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$(dirname "$t")"
+
+bold "==> --interactive: managed dir routes to UPGRADE (plan only, no writes)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+python3 -c "import json;p='$t/.claude/.appbootstrap-manifest.json';m=json.load(open(p));m['bundle_commit']='oldcommit0000';json.dump(m,open(p,'w'),indent=2)"
+out="$(printf '%s\ny\nn\n' "$t" | "$INSTALL" --interactive 2>&1)"
+still_old="$(python3 -c "import json;print(json.load(open('$t/.claude/.appbootstrap-manifest.json'))['bundle_commit'])")"
+if grep -q "Upgrade plan" <<<"$out" && [[ "$still_old" == "oldcommit0000" ]]; then
+    PASS=$((PASS + 1))   # ran the plan, wrote nothing
+else
+    red "FAIL: interactive on managed dir should run upgrade plan without writing"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+# --- subcommand verbs (backward-compatible with the --flag forms) ------------
+
+bold "==> verb: 'list' equals '--list'"
+a="$("$INSTALL" list --platform apple --features recommended 2>&1)"
+b="$("$INSTALL" --list --platform apple --features recommended 2>&1)"
+[[ "$a" == "$b" && -n "$a" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: 'list' verb should match '--list'"; FAIL=$((FAIL + 1)); }
+
+bold "==> verb: 'list-mcps' equals '--list-mcps'"
+a="$("$INSTALL" list-mcps 2>&1)"
+b="$("$INSTALL" --list-mcps 2>&1)"
+[[ "$a" == "$b" && -n "$a" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: 'list-mcps' verb should match '--list-mcps'"; FAIL=$((FAIL + 1)); }
+
+bold "==> verb: 'help' equals '--help'"
+a="$("$INSTALL" help 2>&1)"
+b="$("$INSTALL" --help 2>&1)"
+[[ "$a" == "$b" && -n "$a" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: 'help' verb should match '--help'"; FAIL=$((FAIL + 1)); }
+
+bold "==> verb: 'install <dir>' installs (verb may precede the target)"
+t="$(mktemp -d)"
+"$INSTALL" install "$t" --platform apple --features recommended > /dev/null
+[[ -f "$t/.claude/.appbootstrap-manifest.json" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: 'install' verb should install into the target"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
+bold "==> verb: 'upgrade <dir>' runs the plan like '--upgrade'"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+# Capture then grep — piping straight into `grep -q` under `set -o pipefail`
+# lets grep close the pipe early, SIGPIPE-ing install.sh and flipping the `if`.
+up_out="$("$INSTALL" upgrade "$t" 2>&1)"
+if grep -qi "upgrade plan" <<< "$up_out"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: 'upgrade' verb should print the upgrade plan"; FAIL=$((FAIL + 1))
+fi
+# Verb form, plan-only, must leave the manifest untouched (same as --upgrade).
+before="$(python3 -c "import json;print(json.load(open('$t/.claude/.appbootstrap-manifest.json'))['installed_at'])")"
+"$INSTALL" upgrade "$t" > /dev/null 2>&1
+after="$(python3 -c "import json;print(json.load(open('$t/.claude/.appbootstrap-manifest.json'))['installed_at'])")"
+[[ "$before" == "$after" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: 'upgrade' verb (plan-only) should not rewrite the manifest"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
+bold "==> verb: 'uninstall <dir>' removes like '--uninstall'"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+"$INSTALL" uninstall "$t" > /dev/null 2>&1
+[[ -f "$t/.claude/.appbootstrap-manifest.json" ]] \
+    && { red "FAIL: 'uninstall' verb should remove the manifest"; FAIL=$((FAIL + 1)); } \
+    || PASS=$((PASS + 1))
+rm -rf "$t"
+
+bold "==> verb: 'setup' routes to the interactive flow (piped adopt answers)"
+t="$(mktemp -d)"
+printf '%s\napple\n\n\n\nn\ny\n' "$t" | "$INSTALL" setup > /dev/null 2>&1
+[[ -f "$t/.claude/rules/apple-swift6-strict-concurrency.md" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: 'setup' verb should run interactive + install"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
+bold "==> a non-verb dir name is still treated as the install target"
+t="$(mktemp -d)"   # random tmp name — never collides with a verb
+"$INSTALL" "$t" --platform android --features recommended > /dev/null
+[[ -f "$t/.claude/rules/android-project-rules.md" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: a non-verb dir name should be the install target"; FAIL=$((FAIL + 1)); }
 rm -rf "$t"
 
 # --- logging rules (filling the Android gap) ---------------------------------
