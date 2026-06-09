@@ -5,7 +5,7 @@
 #   ./install.sh install [TARGET_DIR] [--platform apple|android|both]
 #                                     [--apple-language swift|objc|both]
 #                                     [--features all|recommended|<csv>]
-#                                     [--agents claude,copilot,cursor,gemini,codex|all]
+#                                     [--agents claude,copilot,cursor,gemini,codex,kiro|all]
 #                                     [--with-mcps <csv>] [--new] [--force] [--dry-run]
 #   ./install.sh recommend [TARGET_DIR] [--json]     # analyze a dir → suggested command
 #   ./install.sh upgrade TARGET_DIR [--apply ...]    # update a prior install
@@ -142,6 +142,7 @@
 #                          cursor   → .cursor/rules/<name>.mdc          (per-rule files)
 #                          gemini   → GEMINI.md                          (concat of in-scope rules)
 #                          codex    → AGENTS.md                          (concat of in-scope rules)
+#                          kiro     → .kiro/steering/<name>.md           (per-rule; fileMatch frontmatter)
 #                          all      → every agent above
 #                        Skills are Claude-only — non-Claude agents get rules
 #                        only. Existing agent files are NEVER overwritten by

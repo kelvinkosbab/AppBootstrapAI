@@ -141,6 +141,22 @@ if [[ "$ACTION" == "upgrade" ]]; then
         echo "$rel_path|$tag|-|$hash|" >> "$bundle_all_tmp"
         echo "$rel_path" >> "$bundle_in_scope_tmp"
     }
+    if agents_has kiro; then
+        mkdir -p "$bundle_overlay_dir/.kiro/steering"
+        for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
+            name="$(basename "$f")"
+            cat="$(file_category "$name")"; [[ -z "$cat" ]] && cat="-"
+            dst="$bundle_overlay_dir/.kiro/steering/$name"
+            kiro_steering_from_rule "$f" > "$dst"
+            hash="$(sha256_file "$dst")"
+            rel_path=".kiro/steering/$name"
+            echo "$rel_path|agent-file-kiro|$cat|$hash|" >> "$bundle_all_tmp"
+            if should_install_rule "$name"; then
+                echo "$rel_path" >> "$bundle_in_scope_tmp"
+            fi
+        done
+    fi
+
     if agents_has copilot; then
         _materialize_concat ".github/copilot-instructions.md" "agent-file-copilot" "GitHub Copilot"
     fi

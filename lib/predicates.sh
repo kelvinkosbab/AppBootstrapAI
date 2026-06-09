@@ -207,6 +207,67 @@ concat_in_scope_rules() {
     done
 }
 
+# Split a comma-separated glob list on TOP-LEVEL commas only — commas inside
+# `{...}` brace groups are kept (so `**/*.{kt,kts}` stays one pattern, while
+# `Package.swift,**/Package.swift` splits into two). One pattern per line.
+_split_top_level_commas() {
+    awk -v s="$1" 'BEGIN{
+        depth=0; cur="";
+        for (i=1; i<=length(s); i++) {
+            c = substr(s, i, 1);
+            if (c == "{") { depth++; cur = cur c; continue }
+            if (c == "}") { if (depth>0) depth--; cur = cur c; continue }
+            if (c == "," && depth == 0) { if (cur != "") print cur; cur = ""; continue }
+            cur = cur c;
+        }
+        if (cur != "") print cur;
+    }'
+}
+
+# Transform a .claude/rules/<name>.md into a Kiro steering file (Amazon Kiro,
+# https://kiro.dev/docs/steering/). Kiro steering lives in .kiro/steering/*.md
+# with YAML frontmatter using `inclusion` + `fileMatchPattern` (glob), NOT our
+# `description`/`globs` keys — so we rewrite the frontmatter and keep the body.
+# Each rule's `globs` maps directly to `fileMatchPattern` (single quoted string,
+# or an inline YAML array when the rule lists several top-level patterns), so a
+# rule only enters Kiro's context when a matching file is open — preserving the
+# same glob-scoping (and token economy) the Claude rules have.
+#
+# Output is deterministic for a given rule file, so install + the upgrade overlay
+# produce byte-identical content and the 3-way hash diff works.
+#
+# Usage: kiro_steering_from_rule <rule_md_path>   →  prints to stdout
+kiro_steering_from_rule() {
+    local rule_file="$1"
+    local globs
+    globs="$(awk -F': ' '/^globs:/{print $2; exit}' "$rule_file")"
+    # Strip a single layer of surrounding double quotes.
+    globs="${globs%\"}"; globs="${globs#\"}"
+
+    local patterns=() p
+    while IFS= read -r p; do [[ -n "$p" ]] && patterns+=("$p"); done \
+        < <(_split_top_level_commas "$globs")
+
+    printf -- '---\n'
+    printf -- 'inclusion: fileMatch\n'
+    if [[ "${#patterns[@]}" -le 1 ]]; then
+        printf -- "fileMatchPattern: '%s'\n" "${patterns[0]:-**/*}"
+    else
+        local joined="" first=1
+        for p in "${patterns[@]}"; do
+            if [[ "$first" -eq 1 ]]; then first=0; else joined="$joined, "; fi
+            joined="$joined'$p'"
+        done
+        printf -- 'fileMatchPattern: [%s]\n' "$joined"
+    fi
+    printf -- '---\n\n'
+
+    # Emit the rule body verbatim — everything after the rule's own frontmatter.
+    # Once past the two `---` delimiters, print every line (including any literal
+    # `---` horizontal rules / YAML examples inside the body).
+    awk 'fm>=2 {print; next} /^---[[:space:]]*$/ {fm++}' "$rule_file"
+}
+
 # Print a JSON-array of strings from a space-separated list.
 json_string_array() {
     local items="$1"

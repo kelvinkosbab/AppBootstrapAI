@@ -435,7 +435,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         {
             name: "install",
-            description: "Run AppBootstrapAI's installer against a target directory. Copies skills, rules, settings.json, CLAUDE.md template, and .gitignore entries matching the selection. With --agents, also writes per-agent files (.github/copilot-instructions.md, .cursor/rules/*.mdc, GEMINI.md, AGENTS.md). Never overwrites existing CLAUDE.md/settings.json/agent files (prints what was skipped). Returns install.sh's stdout/stderr + exit code.",
+            description: "Run AppBootstrapAI's installer against a target directory. Copies skills, rules, settings.json, CLAUDE.md template, and .gitignore entries matching the selection. With --agents, also writes per-agent files (.github/copilot-instructions.md, .cursor/rules/*.mdc, GEMINI.md, AGENTS.md, .kiro/steering/*.md). Never overwrites existing CLAUDE.md/settings.json/agent files (prints what was skipped). Returns install.sh's stdout/stderr + exit code.",
             inputSchema: {
                 type: "object",
                 properties: {
@@ -443,7 +443,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     platform: { type: "string", enum: ["apple", "android", "both"], description: "Default: both" },
                     apple_language: { type: "string", enum: ["swift", "objc", "both"], description: "Default: swift. Only relevant when platform includes apple." },
                     features: { type: "string", description: "Comma-separated category list, or one of: 'recommended' (default), 'all'." },
-                    agents: { type: "string", description: "Comma-separated AI agents to install for: claude (default), copilot, cursor, gemini, codex, or 'all'. Additive." },
+                    agents: { type: "string", description: "Comma-separated AI agents to install for: claude (default), copilot, cursor, gemini, codex, kiro, or 'all'. Additive." },
                     with_mcps: { type: "string", description: "Comma-separated MCP recipe names to add to .claude/settings.local.json (e.g. 'xcodebuildmcp,sentry'). See list-mcps in the bundle for available recipes." },
                 },
                 required: ["target_dir"],

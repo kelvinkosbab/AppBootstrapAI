@@ -1,10 +1,10 @@
 # AppBootstrapAI
 
-A drop-in bundle of **AI agent steering** — rules, skills (Claude), and MCP recipes — for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) and Android in one bundle, so single-platform and mixed-stack teams can share one source of truth. Works with **Claude Code, GitHub Copilot, Cursor, Gemini CLI, and Codex CLI** out of the box (`./install.sh --agents <name>` writes the right files per agent).
+A drop-in bundle of **AI agent steering** — rules, skills (Claude), and MCP recipes — for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) and Android in one bundle, so single-platform and mixed-stack teams can share one source of truth. Works with **Claude Code, GitHub Copilot, Cursor, Gemini CLI, Codex CLI, and Amazon Kiro** out of the box (`./install.sh --agents <name>` writes the right files per agent).
 
 One `install.sh` bootstraps modern review, testing, style, accessibility, and localization guidance into any new or existing app repo — and keeps it up to date with `--upgrade`. Day-one consistency without writing the rules yourself; day-N reproducibility without drifting from upstream.
 
-**Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex` (or `all`) and `install.sh` drops the right file shape per agent: `.github/copilot-instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`. Skills stay Claude-only. For Kiro / Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) below.
+**Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex,kiro` (or `all`) and `install.sh` drops the right file shape per agent: `.github/copilot-instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`. Skills stay Claude-only. For Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) below.
 
 **Get started in one line:** `./install.sh setup` runs a guided flow that detects whether you're creating, adopting, or updating — and walks you through the rest. Prefer flags? See [Getting started](#getting-started).
 
@@ -21,7 +21,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 | **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · accessibility · testing · DocC · localization · SPM · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
 | **Android rules** | Kotlin/Compose/MVVM/Hilt · coroutines · accessibility · testing · KDoc · localization · Gradle · linting · logging · Play beta |
 | **Skills (Claude)** | 8 Apple + 3 Android on-demand deep-review agents |
-| **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex |
+| **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
@@ -98,7 +98,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
   - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
   - `--with-mcps <csv>` writes one `mcpServers.<name>` entry per recipe into `.claude/settings.local.json`. Existing entries are never overwritten. Setup notes (auth, env vars) print after install. See [`mcp-recipes/`](mcp-recipes/) for the available recipes.
-  - `--agents <csv>` picks which AI agents to install for. Default `claude`; additive options: `copilot` (writes `.github/copilot-instructions.md`), `cursor` (writes `.cursor/rules/*.mdc`), `gemini` (writes `GEMINI.md`), `codex` (writes `AGENTS.md`), or `all`. Same rule content, per-agent file shape. Skills are Claude-only.
+  - `--agents <csv>` picks which AI agents to install for. Default `claude`; additive options: `copilot` (writes `.github/copilot-instructions.md`), `cursor` (writes `.cursor/rules/*.mdc`), `gemini` (writes `GEMINI.md`), `codex` (writes `AGENTS.md`), `kiro` (writes `.kiro/steering/*.md`), or `all`. Same rule content, per-agent file shape. Skills are Claude-only.
   - `--dry-run` shows what an install would do without writing any files
   - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope / rename. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. The header prints a GitHub compare URL when commits differ. See [Upgrading an existing install](#upgrading-an-existing-install).
   - `--uninstall` reverses install: deletes every tracked file whose current hash matches what was installed (locally-edited files kept unless `--force-conflicts`; `CLAUDE.md` / `settings.json` kept unless `--purge`). MCP entries are removed if unchanged, unless `--keep-mcps`. Strips the `.gitignore` block and the manifest itself. See [Removing the install](#removing-the-install).
@@ -138,7 +138,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 
 #### Cross-tool rule sync
 
-- **Multi-agent support** — pass `--agents copilot,cursor,gemini,codex` to `install.sh` and the bundle writes the right file shape for each agent (in addition to or instead of Claude). For agents not in that built-in set (Kiro, Cline, Goose, Roo, Windsurf, etc.), point a sync tool at `.claude/`. See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents).
+- **Multi-agent support** — pass `--agents copilot,cursor,gemini,codex,kiro` to `install.sh` and the bundle writes the right file shape for each agent (in addition to or instead of Claude). For agents not in that built-in set (Cline, Goose, Roo, Windsurf, etc.), point a sync tool at `.claude/`. See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents).
 
 </details>
 
@@ -265,6 +265,7 @@ repo:
 /path/to/AppBootstrapAI/install.sh . --agents cursor    # → .cursor/rules/*.mdc
 /path/to/AppBootstrapAI/install.sh . --agents gemini    # → GEMINI.md
 /path/to/AppBootstrapAI/install.sh . --agents codex     # → AGENTS.md
+/path/to/AppBootstrapAI/install.sh . --agents kiro      # → .kiro/steering/*.md
 
 # Mixed team — install for several agents in one run
 /path/to/AppBootstrapAI/install.sh . --agents claude,copilot,cursor
@@ -284,7 +285,7 @@ Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` li
 
 **The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint). Specialized opt-ins not in `recommended`: `persistence` (Core Data), `ai` (Foundation Models, iOS 26+), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas).
 
-**The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|all` (additive CSV) and the installer also drops the matching file shape for those agents (one concat file for Copilot/Gemini/Codex; per-rule `.mdc` files for Cursor). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
+**The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|kiro|all` (additive CSV) and the installer also drops the matching file shape for those agents (one concat file for Copilot/Gemini/Codex; per-rule files for Cursor `.mdc` and Kiro `.kiro/steering/*.md`). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
 
 The installer:
 
@@ -302,7 +303,7 @@ It never overwrites an existing `CLAUDE.md`, `settings.json`, or any agent file 
 
 After install, edit the new `CLAUDE.md` (or your agent's equivalent) and fill in the `<PLACEHOLDER>` sections. Keep the bundled rules and skills as-is unless you need to extend them.
 
-> **Using a different agent?** `install.sh --agents copilot|cursor|gemini|codex|all` writes the right files natively. See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent file layout. For agents not in that built-in set, point a sync tool like [`ruler`](https://github.com/intellectronica/ruler) at `.claude/`.
+> **Using a different agent?** `install.sh --agents copilot|cursor|gemini|codex|kiro|all` writes the right files natively. See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent file layout. For agents not in that built-in set, point a sync tool like [`ruler`](https://github.com/intellectronica/ruler) at `.claude/`.
 
 ## How it fires
 
@@ -518,10 +519,13 @@ To set expectations honestly: scoping the install down won't dramatically cut yo
 # Cursor — writes per-rule .cursor/rules/<name>.mdc files
 /path/to/AppBootstrapAI/install.sh . --agents cursor
 
+# Amazon Kiro — writes per-rule .kiro/steering/<name>.md files
+/path/to/AppBootstrapAI/install.sh . --agents kiro
+
 # Mixed team — install for Claude + Copilot + Cursor in one go
 /path/to/AppBootstrapAI/install.sh . --agents claude,copilot,cursor
 
-# Everything — claude + copilot + cursor + gemini + codex
+# Everything — claude + copilot + cursor + gemini + codex + kiro
 /path/to/AppBootstrapAI/install.sh . --agents all
 ```
 
@@ -534,10 +538,11 @@ Per-agent file shape:
 | Cursor | `cursor`  | `.cursor/rules/<name>.mdc`             | Per-rule files (1:1 with `.claude/rules/*.md`, just renamed) |
 | Gemini CLI | `gemini`  | `GEMINI.md`                         | One concatenated markdown file |
 | Codex CLI / `AGENTS.md`-aware tools | `codex`   | `AGENTS.md`                          | One concatenated markdown file |
+| Amazon Kiro | `kiro`    | `.kiro/steering/<name>.md`           | Per-rule [steering files](https://kiro.dev/docs/steering/); each rule's `globs` becomes `inclusion: fileMatch` + `fileMatchPattern`, so a rule loads only when a matching file is open |
 
 **How it works:**
 
-- **Same source, multiple targets.** Every agent gets content derived from the same `.claude/rules/*.md` source-of-truth (gated by `--platform` / `--apple-language` / `--features`). For concat agents (Copilot/Gemini/Codex), the output is deterministic — same rules in, same bytes out — so `--upgrade` can diff cleanly.
+- **Same source, multiple targets.** Every agent gets content derived from the same `.claude/rules/*.md` source-of-truth (gated by `--platform` / `--apple-language` / `--features`). Output is deterministic — concat agents (Copilot/Gemini/Codex) and per-rule agents (Cursor `.mdc`, Kiro steering with its rewritten `inclusion`/`fileMatchPattern` frontmatter) all produce the same bytes given the same inputs — so `--upgrade` can diff cleanly.
 - **Skills are Claude-only.** Skills are procedural sub-agents that only run inside Claude Code. Non-Claude agents get rules only. If you want a skill's checklist in another agent's context, copy it into the relevant rule manually.
 - **Existing files are never overwritten on install.** If you already have `.github/copilot-instructions.md` or `GEMINI.md`, install skips and prints a notice. `--upgrade` does the 3-way diff like any other tracked file.
 - **`--upgrade --apply` opts in / out of agents.** Pass `--agents` on the command line to opt into a new agent (its files show up as additions). Pass `--agents <fewer>` + `--prune` to drop an agent (its files appear as orphans and get deleted).
@@ -545,7 +550,7 @@ Per-agent file shape:
 
 ### Alternative: external sync tools
 
-If you'd rather keep a single source-of-truth and let another tool fan out to a wider set of agents (Kiro, Cline, Goose, Roo, Windsurf, Amp, Antigravity, Factory Droid, etc.), point one of these at `.claude/`:
+If you'd rather keep a single source-of-truth and let another tool fan out to a wider set of agents (Cline, Goose, Roo, Windsurf, Amp, Antigravity, Factory Droid, etc.), point one of these at `.claude/`:
 
 | Tool | Approach |
 |------|----------|

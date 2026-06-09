@@ -195,6 +195,8 @@ def detect_agents(target: str):
         found.append("gemini")
     if os.path.isfile(os.path.join(target, "AGENTS.md")):
         found.append("codex")
+    if os.path.isdir(os.path.join(target, ".kiro", "steering")):
+        found.append("kiro")
     return found
 
 

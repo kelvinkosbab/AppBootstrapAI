@@ -22,9 +22,18 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
 - **`--features` categories** with a `recommended` preset (the 9 day-one
   categories) and `all`. Composable CSV (`recommended,ai,spatial`).
 - **Multi-agent installs (`--agents`)** — `claude` (default), `copilot`,
-  `cursor`, `gemini`, `codex`, or `all`. Generates each agent's native file
-  shape (`.github/copilot-instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`,
-  `AGENTS.md`) from the same rule source. Skills stay Claude-only.
+  `cursor`, `gemini`, `codex`, `kiro`, or `all`. Generates each agent's native
+  file shape (`.github/copilot-instructions.md`, `.cursor/rules/*.mdc`,
+  `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`) from the same rule source.
+  Skills stay Claude-only.
+- **Amazon Kiro support (`--agents kiro`)** — writes per-rule
+  [steering files](https://kiro.dev/docs/steering/) to `.kiro/steering/<name>.md`,
+  rewriting each rule's `globs` frontmatter into Kiro's
+  `inclusion: fileMatch` + `fileMatchPattern` (single glob, or an inline array
+  for multi-pattern rules) so a rule only enters Kiro's context when a matching
+  file is open. Generation is shared between install and the upgrade overlay, so
+  the 3-way diff round-trips; `--upgrade`/`--uninstall` track it like any other
+  agent file.
 - **`--upgrade`** — a per-file 3-way diff (installed hash vs. current disk vs.
   bundle) that classifies every tracked file as up-to-date / safe-update /
   locally-edited / conflict / orphan / addition / rename, plus the same diff

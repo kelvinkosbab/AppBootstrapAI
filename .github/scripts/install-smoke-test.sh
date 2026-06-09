@@ -1276,14 +1276,56 @@ else
 fi
 rm -rf "$t"
 
-bold "==> --agents all → every agent's file lands"
+bold "==> --agents kiro → .kiro/steering/<name>.md with Kiro fileMatch frontmatter"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --agents kiro > /dev/null
+kiro_count="$(ls "$t/.kiro/steering" 2>/dev/null | wc -l | tr -d ' ')"
+swift_fm="$t/.kiro/steering/apple-swift6-strict-concurrency.md"
+if [[ "$kiro_count" -gt 0 ]] \
+    && grep -q "inclusion: fileMatch" "$swift_fm" 2>/dev/null \
+    && grep -q "fileMatchPattern: '\*\*/\*.swift'" "$swift_fm" 2>/dev/null \
+    && ! grep -q "^description:" "$swift_fm" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --agents kiro didn't produce .kiro/steering with rewritten fileMatch frontmatter"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --agents kiro: multi-pattern globs become a YAML array"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features core --agents kiro > /dev/null
+# project-documentation.md globs is a 4-pattern comma list → inline array.
+if grep -q "fileMatchPattern: \['README.md'," "$t/.kiro/steering/project-documentation.md" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: kiro multi-pattern globs should render as an inline YAML array"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --agents kiro: manifest tracks agent-file-kiro + round-trips on upgrade"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --agents kiro > /dev/null
+kiro_manifest="$(python3 -c "import json;m=json.load(open('$t/.claude/.appbootstrap-manifest.json'));print(sum(1 for f in m['files'] if f.get('type')=='agent-file-kiro'))")"
+up="$("$INSTALL" upgrade "$t" 2>&1)"
+if [[ "$kiro_manifest" -gt 0 ]] && grep -q "0 safe update" <<<"$up" && grep -q "0 addition" <<<"$up"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: kiro files should be manifest-tracked and round-trip clean on upgrade"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --agents all → every agent's file lands (incl. kiro)"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform apple --features recommended --agents all > /dev/null
 if [[ -f "$t/CLAUDE.md" \
     && -f "$t/.github/copilot-instructions.md" \
     && -d "$t/.cursor/rules" \
     && -f "$t/GEMINI.md" \
-    && -f "$t/AGENTS.md" ]]; then
+    && -f "$t/AGENTS.md" \
+    && -d "$t/.kiro/steering" ]]; then
     PASS=$((PASS + 1))
 else
     red "FAIL: --agents all didn't install every agent"

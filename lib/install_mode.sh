@@ -268,6 +268,39 @@ if agents_has cursor; then
     done
 fi
 
+if agents_has kiro; then
+    # Amazon Kiro uses per-rule steering files under .kiro/steering/*.md, with
+    # `inclusion: fileMatch` + `fileMatchPattern` frontmatter (see
+    # kiro_steering_from_rule in lib/predicates.sh). The frontmatter is rewritten
+    # from each rule's globs, so the file is generated — we hash the generated
+    # output (like the concat agents), not the source rule.
+    echo "--> Installing for Kiro (.kiro/steering/*.md)"
+    act "create $TARGET/.kiro/steering" mkdir -p "$TARGET/.kiro/steering"
+    shopt -s nullglob
+    for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
+        name="$(basename "$f")"
+        if should_install_rule "$name"; then
+            dst="$TARGET/.kiro/steering/$name"
+            if [[ -f "$dst" ]]; then
+                echo "    skipping $name (already exists)"
+                continue
+            fi
+            cat="$(file_category "$name")"
+            [[ -z "$cat" ]] && cat="-"
+            if [[ "$DRY_RUN" == "true" ]]; then
+                tmp="$(mktemp)"
+                kiro_steering_from_rule "$f" > "$tmp"
+                echo "[dry-run] would write .kiro/steering/$name"
+                record_install ".kiro/steering/$name" "agent-file-kiro" "$cat" "$tmp"
+                rm -f "$tmp"
+            else
+                kiro_steering_from_rule "$f" > "$dst"
+                record_install ".kiro/steering/$name" "agent-file-kiro" "$cat" "$dst"
+            fi
+        fi
+    done
+fi
+
 # .gitignore — append platform entries, deduped by marker.
 GITIGNORE="$TARGET/.gitignore"
 MARKER="# --- AppBootstrapAI ($PLATFORM) ---"

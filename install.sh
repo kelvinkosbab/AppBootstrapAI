@@ -228,7 +228,7 @@ fi
 # Defined here (before upgrade-inherit) because upgrade-inherit needs to call
 # resolve_agents() on the manifest-recorded agents_input. The SELECTED_AGENTS
 # value and validation happen later in the script alongside --features.
-ALL_AGENTS="claude copilot cursor gemini codex"
+ALL_AGENTS="claude copilot cursor gemini codex kiro"
 
 resolve_agents() {
     local input="$1"

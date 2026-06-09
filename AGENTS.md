@@ -41,7 +41,7 @@ call replaces grepping the tree yourself.** Trust its `command` / `preview_comma
 
 Key `install` flags: `--platform apple|android|both` (auto-detected if omitted),
 `--apple-language swift|objc|both`, `--features recommended|all|<csv>`,
-`--agents claude,copilot,cursor,gemini,codex|all`, `--with-mcps <csv>`,
+`--agents claude,copilot,cursor,gemini,codex,kiro|all`, `--with-mcps <csv>`,
 `--new` (create the dir + `git init`), `--dry-run`.
 
 ## The three situations `recommend` resolves
