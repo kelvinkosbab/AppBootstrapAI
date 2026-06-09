@@ -80,7 +80,7 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
   upgrade/uninstall flows.
 - **`RENAMES.md`** — rule + skill-directory rename tracking honored by
   `--upgrade` so renames show as a single row, not delete + add.
-- **Apple rules** — Swift 6.2 strict concurrency, SwiftUI MVVM, Foundation
+- **Apple rules** — Swift 6.4 strict concurrency, SwiftUI MVVM, Foundation
   Models, accessibility, Objective-C + ObjC accessibility, SPM conventions,
   DocC strategy, testing strategy, localization, **linting** (SwiftLint +
   formatter), **logging** (os.Logger / privacy markers / levels), **visionOS**
@@ -115,6 +115,14 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
 
 ### Changed
 
+- **Apple rules refreshed for Xcode 27 / Swift 6.4.** Version labels bumped from
+  Swift 6.2 → 6.4 (language mode stays `.v6` — unchanged since 6.0); testing
+  strategy gains `swift test --repeat-until` flaky-test hunting + the new
+  XCTest ↔ Swift Testing interop warning; TestFlight deployment notes the
+  Apple-silicon-only toolchain (macOS Tahoe 26.4), the `x86_64`/`ARCHS_STANDARD`
+  drop at deployment target ≥ 27, and the `ld64`/`-ld_classic` removal (also a
+  new SPM `unsafeFlags` caveat). Skill feature-attribution stays at 6.2 (those
+  features shipped in 6.2).
 - **`install.sh` modularized** from a ~2,800-line monolith into a ~460-line CLI
   dispatcher plus `lib/` modules: six sourced bash files
   (`predicates.sh`, `detect_platform.sh`, `list_modes.sh`, `install_mode.sh`,

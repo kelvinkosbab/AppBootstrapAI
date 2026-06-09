@@ -166,6 +166,14 @@ For TestFlight builds you'll have to debug later, make the build reproducible:
 - **Pin Ruby / Bundler / fastlane.** A `Gemfile.lock` + `Bundler` in CI keeps fastlane stable across runs.
 - **Stamp the commit SHA into the build.** Easy: a `Bundle short version` or `Info.plist` custom key set from `${GITHUB_SHA}`. Lets you correlate TestFlight builds to source.
 
+### Xcode 27 toolchain notes (Apple silicon, Intel sunset, linker)
+
+Xcode 27 (Swift 6.4) changes the CI baseline — plan for these when you bump the pinned Xcode:
+
+- **Xcode 27 is Apple-silicon-only** and requires **macOS Tahoe 26.4+**. CI runners must be Apple silicon (e.g. GitHub's `macos-15`/`macos-26` ARM images) — an Intel runner can't install it. Pin the runner image, not just the Xcode version.
+- **Universal builds drop `x86_64` by default at deployment target ≥ 27.** `ARCHS_STANDARD` no longer includes `x86_64` when `MACOSX_DEPLOYMENT_TARGET` (or `DRIVERKIT_DEPLOYMENT_TARGET`) is `27.0`+. Apple-silicon-only apps get a smaller binary for free; if you still ship Intel, add `x86_64` to `ARCHS` explicitly.
+- **`ld64` (the classic linker) is removed; `-ld_classic` is no longer accepted.** Strip any `-ld_classic` from `OTHER_LDFLAGS` / SPM `unsafeFlags` before moving to Xcode 27 — a leftover flag fails the link. The modern linker is the only option.
+
 ## CI Patterns — Tool-Agnostic
 
 The deploy-to-TestFlight CI workflow has the same shape regardless of tool:

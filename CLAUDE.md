@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.2 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) currently exist for the Apple side only; Android is covered by steering rules until production patterns surface enough to harden a skill against.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) currently exist for the Apple side only; Android is covered by steering rules until production patterns surface enough to harden a skill against.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -31,7 +31,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-objc-accessibility-best-practices.md # Apple: UIKit a11y in Objective-C
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
 │   ├── apple-spm-package-conventions.md           # Apple: Package.swift authoring
-│   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.2 strict concurrency
+│   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.4 strict concurrency
 │   ├── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
 │   ├── apple-testflight-deployment.md             # Apple: TestFlight, ASC API, signing, CI
 │   ├── apple-testing-strategy.md                  # Apple: test strategy + coverage
@@ -164,7 +164,7 @@ The principle: **commits and pushes are user-driven actions**. Edits to the work
 
 The rules in `.claude/rules/` are loaded automatically for every Swift file in the target repo. They encode:
 
-### Swift 6.2 strict concurrency (`apple-swift6-strict-concurrency.md`)
+### Swift 6.4 strict concurrency (`apple-swift6-strict-concurrency.md`)
 
 - Strict concurrency is a compile error, not a warning.
 - Prefer `@MainActor` at the **type** level over per-method annotations.

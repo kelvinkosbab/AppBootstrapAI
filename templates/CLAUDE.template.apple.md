@@ -15,7 +15,7 @@
 
 - Platforms: <iOS | macOS | tvOS | watchOS | visionOS — list what you ship>
 - Minimum OS: <iOS 18 / macOS 15 / ...>
-- Language: Swift 6.2 with strict concurrency
+- Language: Swift 6.4 with strict concurrency
 - Mixed-language: <yes — Objective-C in Legacy/ | no>
 
 ## Build & Run
@@ -62,7 +62,7 @@ swift test --package-path <PackagePath>
 - All user-facing strings must use <YourLocalizationModule>.Strings.* — never hardcode English in views.
 - <Other project-specific conventions>
 
-## Swift 6.2 Strict Concurrency
+## Swift 6.4 Strict Concurrency
 
 (Enforced via `.claude/rules/apple-swift6-strict-concurrency.md`. Project specifics:)
 

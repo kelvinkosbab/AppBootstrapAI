@@ -15,7 +15,7 @@
 
 - Platform(s): <apple | android | both>
 - Minimum OS: <iOS 18 / Android 14 / ...>
-- Language: <Swift 6.2 / Kotlin 2.x>
+- Language: <Swift 6.4 / Kotlin 2.x>
 
 ## Build & Run
 

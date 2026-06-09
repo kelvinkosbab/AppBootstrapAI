@@ -28,7 +28,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 <details>
 <summary><strong>Apple — 14 rules + 8 skills</strong> (click to expand)</summary>
 
-- **`apple-swift6-strict-concurrency.md`** — Swift 6.2 strict concurrency, enforced on every `.swift` file.
+- **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text).
 - **`apple-foundation-models.md`** — Apple Foundation Models patterns: session ownership, two-level availability gating, streaming placeholder-then-mutate, `Task.isCancelled` discipline, protocol + mock + simulator testability.
 - **`apple-swiftui-mvvm.md`** — SwiftUI MVVM conventions: when to extract a view model, `@State` vs `@Bindable` ownership, dependency plumbing, what stays on the View vs the view model, splitting large VMs across extension files.
@@ -581,7 +581,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-objc-accessibility-best-practices.md # UIKit a11y in ObjC
 │   │   ├── apple-objc-best-practices.md               # Modern Objective-C
 │   │   ├── apple-spm-package-conventions.md           # Package.swift authoring
-│   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.2 strict concurrency
+│   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.4 strict concurrency (Xcode 27)
 │   │   ├── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
 │   │   ├── apple-testflight-deployment.md             # TestFlight, ASC API, signing, CI (deployment)
 │   │   ├── apple-testing-strategy.md                  # Apple test strategy + coverage
