@@ -123,6 +123,21 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
   drop at deployment target ≥ 27, and the `ld64`/`-ld_classic` removal (also a
   new SPM `unsafeFlags` caveat). Skill feature-attribution stays at 6.2 (those
   features shipped in 6.2).
+- **Foundation Models modernized for the 2026 SDKs** — the rule now covers the
+  pluggable-model surface (`LanguageModel` protocol; `SystemLanguageModel`
+  on-device; `PrivateCloudComputeLanguageModel`; `LanguageModelExecutor` to
+  bridge external providers like Claude/Gemini), image input
+  (`Attachment` / `ImageAttachmentContent` / `ImageReference`), the Foundation
+  Models Instrument, and `LanguageModelError`. New symbols are flagged **Beta /
+  verify against the iOS 27 SDK**; the stable lifecycle/streaming patterns are
+  unchanged.
+- **README Apple MCP tooling refreshed** for Xcode 27's native Xcode MCP server
+  (debug tools, Preview Snapshot, simulator control), `lldb-mcp`, and **agent
+  plug-ins** (skills / MCP / ACP / slash commands) — superseding the Xcode 26.3
+  `mcpbridge` framing.
+- **Localization rule** notes Xcode 27's `NSLocalizedString`-from-headers
+  extraction, the "do not translate" / `translate="no"` convention, and String
+  Catalog "Generate Translations" (draft-only; review before shipping).
 - **`install.sh` modularized** from a ~2,800-line monolith into a ~460-line CLI
   dispatcher plus `lib/` modules: six sourced bash files
   (`predicates.sh`, `detect_platform.sh`, `list_modes.sh`, `install_mode.sh`,
