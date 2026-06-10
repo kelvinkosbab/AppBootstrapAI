@@ -4,6 +4,7 @@
 #   ./install.sh setup                               # guided: create / adopt / update
 #   ./install.sh install [TARGET_DIR] [--platform apple|android|both]
 #                                     [--apple-language swift|objc|both]
+#                                     [--apple-platforms ios,macos,tvos,watchos,visionos|all]
 #                                     [--features all|recommended|<csv>]
 #                                     [--agents claude,copilot,cursor,gemini,codex,kiro|all]
 #                                     [--with-mcps <csv>] [--new] [--force] [--dry-run]
@@ -63,6 +64,17 @@
 #                                            + Apple skills (skills are Swift-tied)
 #                        - objc            → apple-objc-* only, no Apple skills
 #                        - both            → all apple- rules + Apple skills
+#
+#   --apple-platforms    Which Apple sub-platforms you target, CSV of:
+#                          ios, macos, tvos, watchos, visionos   (or `all`)
+#                        Default: ios,macos,tvos,watchos (every platform except
+#                        visionOS — the lean default for typical app projects).
+#                        Only meaningful when Apple is in scope. Today the only
+#                        platform-specific rule is visionOS, so this is kept in
+#                        sync with the `spatial` feature: naming `visionos`
+#                        installs the visionOS rule; omitting it keeps it out.
+#                        (`--features ...,spatial` is the equivalent older form.)
+#                        Other tokens are recorded for the manifest + future use.
 #
 #   --features           Comma-separated list of feature categories, or one of:
 #                        - recommended (default) → curated subset for most apps:

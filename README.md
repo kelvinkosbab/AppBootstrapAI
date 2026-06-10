@@ -93,6 +93,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--force` — allow a plain `install` over a directory that's already a managed AppBootstrapAI install. Without it, re-installing over a managed repo is refused with guidance to use `--upgrade` (which preserves the manifest baseline). Install-only.
   - `--platform apple|android|both` — optional; if omitted, the installer auto-detects from the target dir (`Package.swift` / `*.xcodeproj` → apple; `build.gradle*` / `gradlew` → android; both present → both; neither → falls back to `both`). Detection result + matched signals print in the install header. Explicit `--platform` always wins.
   - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
+  - `--apple-platforms ios,macos,tvos,watchos,visionos|all` — which Apple sub-platforms you target. Default `ios,macos,tvos,watchos` (every platform **except** visionOS — the lean default for typical app projects). Only meaningful when Apple is in scope. Today the one platform-specific rule is visionOS, so this stays in sync with the `spatial` feature: naming `visionos` installs the visionOS rule, omitting it keeps it out. Recorded in the manifest; a forward-looking framework for future platform-specific rules.
   - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`); custom CSVs like `core,testing,docs` give fine-grained control
   - `--list` previews the catalog with one-line descriptions + category tags
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
@@ -245,9 +246,14 @@ repo:
 # Compose recommended + specific opt-ins (instead of writing the CSV by hand)
 /path/to/AppBootstrapAI/install.sh . --platform apple --features recommended,ai,persistence
 
-# visionOS app — add the spatial category (scene types, immersion styles,
-# RealityKit conventions, head-mounted-display accessibility, USDZ pipeline)
+# visionOS app — pull in the visionOS rule (scene types, immersion styles,
+# RealityKit conventions, head-mounted-display accessibility, USDZ pipeline).
+# Either name the platform, or add the spatial feature — they're equivalent:
+/path/to/AppBootstrapAI/install.sh . --platform apple --apple-platforms ios,visionos
 /path/to/AppBootstrapAI/install.sh . --platform apple --features recommended,spatial
+
+# Target specific Apple platforms (default is everything except visionOS)
+/path/to/AppBootstrapAI/install.sh . --platform apple --apple-platforms ios,macos
 
 # Shipping to testers — add the deployment category for TestFlight (Apple) +
 # Play beta (Android): versioning, signing, CI patterns, common gotchas
@@ -484,6 +490,7 @@ AI agents pay for every token of context they load. This bundle has a few levers
 - **Override `--platform` only when detection is wrong.** Auto-detect picks based on what's in the target dir today; an explicit `--platform apple|android|both` always wins. Use this when bootstrapping a fresh empty repo (otherwise the fallback is `both`, which is too broad if you know it's iOS-only).
 - **Stick to `--features recommended` (default).** Specialized categories — `persistence` (Core Data), `ai` (Foundation Models), `migration` (XML→Compose), `shrinking` (R8) — only load when you opt in. If your app doesn't use Core Data, the `coredata-swift6-pro` skill is wasted catalog space.
 - **Pure-Swift project? Keep `--apple-language swift` (the default).** That skips the two `apple-objc-*` rules. Only switch to `both` if you have genuine `.h`/`.m`/`.mm` files; switch to `objc` for legacy ObjC-only codebases.
+- **Not a visionOS app? The default already excludes it.** `--apple-platforms` defaults to `ios,macos,tvos,watchos` — so the visionOS rule (the one sub-platform-specific Apple rule) stays out unless you name `visionos` (or pass `--features …,spatial`). Building for visionOS? `--apple-platforms ios,visionos` pulls it in. Every *other* Apple rule is universal across iOS/macOS/tvOS/watchOS, so there's nothing else to trim per-platform — Apple installs are already lean by design.
 - **`--with-mcps` only what you'll use this week.** Each MCP entry adds tool metadata to the agent's catalog. If you're not actively using Firebase MCP, don't install it.
 
 When you over-broaden any of these, `install.sh` prints a "Token-saving tips" block at the end suggesting the tighter flag. That's the install-time feedback loop.

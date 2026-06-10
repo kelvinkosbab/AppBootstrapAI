@@ -21,6 +21,14 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
   signals. Explicit `--platform` always wins.
 - **`--features` categories** with a `recommended` preset (the 9 day-one
   categories) and `all`. Composable CSV (`recommended,ai,spatial`).
+- **`--apple-platforms` selector** — CSV of `ios,macos,tvos,watchos,visionos`
+  (or `all`); default `ios,macos,tvos,watchos` (every Apple platform except
+  visionOS, the lean default for typical app projects). Only the visionOS rule
+  is sub-platform-specific today, so the selector stays in sync with the
+  `spatial` feature category (naming `visionos` ⇔ installing the visionOS rule;
+  `--features …,spatial` remains the equivalent older form). Recorded in the
+  manifest (`apple_platforms_input` / `_resolved`) and inherited on `--upgrade`.
+  A forward-looking framework for future platform-specific rules.
 - **Multi-agent installs (`--agents`)** — `claude` (default), `copilot`,
   `cursor`, `gemini`, `codex`, `kiro`, or `all`. Generates each agent's native
   file shape (`.github/copilot-instructions.md`, `.cursor/rules/*.mdc`,

@@ -1785,7 +1785,7 @@ if "$INSTALL" /tmp/x --upgrade --force > /dev/null 2>&1; then red "FAIL: --force
 bold "==> --interactive: ADOPT into an existing repo (piped answers)"
 t="$(mktemp -d)"
 # answers: target, platform=apple, apple-lang(Enter), features(Enter), agents(Enter), mcps? n, proceed? y
-printf '%s\napple\n\n\n\nn\ny\n' "$t" | "$INSTALL" --interactive > /dev/null 2>&1
+printf '%s\napple\n\n\n\n\nn\ny\n' "$t" | "$INSTALL" --interactive > /dev/null 2>&1
 if [[ -f "$t/CLAUDE.md" && -f "$t/.claude/rules/apple-swift6-strict-concurrency.md" ]]; then
     PASS=$((PASS + 1))
 else
@@ -1963,7 +1963,7 @@ rm -rf "$t"
 
 bold "==> verb: 'setup' routes to the interactive flow (piped adopt answers)"
 t="$(mktemp -d)"
-printf '%s\napple\n\n\n\nn\ny\n' "$t" | "$INSTALL" setup > /dev/null 2>&1
+printf '%s\napple\n\n\n\n\nn\ny\n' "$t" | "$INSTALL" setup > /dev/null 2>&1
 [[ -f "$t/.claude/rules/apple-swift6-strict-concurrency.md" ]] && PASS=$((PASS + 1)) \
     || { red "FAIL: 'setup' verb should run interactive + install"; FAIL=$((FAIL + 1)); }
 rm -rf "$t"
@@ -2227,6 +2227,80 @@ assert matches[0]['category'] == 'spatial', f'wrong category: {matches[0]}'
     PASS=$((PASS + 1))
 else
     red "FAIL: manifest should categorize visionOS rule as 'spatial'"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+# --- --apple-platforms selector ----------------------------------------------
+
+bold "==> --apple-platforms default omits visionOS; records resolved set"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+if [[ ! -f "$t/.claude/rules/apple-visionos-best-practices.md" ]] && python3 -c "
+import json
+s = json.load(open('$t/.claude/.appbootstrap-manifest.json'))['selection']
+assert s['apple_platforms_resolved'] == ['ios','macos','tvos','watchos'], s['apple_platforms_resolved']
+assert 'spatial' not in s['features_resolved']
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: default --apple-platforms should be the four non-visionOS platforms, no visionOS rule"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apple-platforms ios,visionos → visionOS rule installs (spatial synced)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --apple-platforms ios,visionos > /dev/null
+if [[ -f "$t/.claude/rules/apple-visionos-best-practices.md" ]] && python3 -c "
+import json
+s = json.load(open('$t/.claude/.appbootstrap-manifest.json'))['selection']
+assert 'visionos' in s['apple_platforms_resolved']
+assert 'spatial' in s['features_resolved']
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --apple-platforms ...,visionos should install the visionOS rule and sync spatial"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --apple-platforms all → visionOS included"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --apple-platforms all > /dev/null
+[[ -f "$t/.claude/rules/apple-visionos-best-practices.md" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: --apple-platforms all should include visionOS"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
+bold "==> --features ...,spatial back-syncs visionos into apple_platforms_resolved"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended,spatial > /dev/null
+python3 -c "
+import json
+s = json.load(open('$t/.claude/.appbootstrap-manifest.json'))['selection']
+assert 'visionos' in s['apple_platforms_resolved'], s['apple_platforms_resolved']
+" 2>/dev/null && PASS=$((PASS + 1)) \
+    || { red "FAIL: --features spatial should back-sync visionos into apple_platforms_resolved"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
+bold "==> --apple-platforms rejects an unknown token"
+if "$INSTALL" /tmp/x --platform apple --apple-platforms ios,carplay > /tmp/ap.out 2>&1; then
+    red "FAIL: unknown apple platform should error"; FAIL=$((FAIL + 1))
+else
+    grep -q "unknown apple platform" /tmp/ap.out && PASS=$((PASS + 1)) \
+        || { red "FAIL: bad apple-platform error message changed"; FAIL=$((FAIL + 1)); }
+fi
+rm -f /tmp/ap.out
+
+bold "==> --apple-platforms inherited on upgrade; round-trips clean"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --apple-platforms ios,visionos > /dev/null
+up="$("$INSTALL" upgrade "$t" 2>&1)"
+inherited="$(python3 -c "import json;print(json.load(open('$t/.claude/.appbootstrap-manifest.json'))['selection']['apple_platforms_input'])")"
+if grep -q "0 safe update" <<<"$up" && grep -q "0 addition" <<<"$up" && [[ "$inherited" == "ios,visionos" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --apple-platforms should be recorded + inherited + round-trip clean on upgrade"
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$t"

@@ -917,6 +917,12 @@ new_manifest = {
     "selection": {
         "platform": platform,
         "apple_language": apple_lang,
+        # Carried forward from the existing manifest — --apple-platforms only
+        # affects the visionOS rule via the `spatial` feature category, whose
+        # effect is already captured in features_resolved, so re-running upgrade
+        # preserves the recorded targets. Re-install to change them.
+        "apple_platforms_input": manifest.get("selection", {}).get("apple_platforms_input", ""),
+        "apple_platforms_resolved": manifest.get("selection", {}).get("apple_platforms_resolved", []),
         "features_input": features,
         "features_resolved": manifest.get("selection", {}).get("features_resolved", []),
         "agents_input": agents_input,

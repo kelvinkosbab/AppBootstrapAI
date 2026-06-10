@@ -24,6 +24,11 @@ TARGET="${1:-.}"
 # Explicit --platform <value> sets it and bypasses detection.
 PLATFORM=""
 APPLE_LANG="swift"
+# Which Apple sub-platforms you target (ios/macos/tvos/watchos/visionos). Only
+# meaningful when Apple is in scope. Empty → the lean default (all except
+# visionOS); see resolve_apple_platforms. visionOS is the one platform-specific
+# rule, kept in sync with the `spatial` feature category below.
+APPLE_PLATFORMS_INPUT=""
 FEATURES_INPUT="recommended"
 WITH_MCPS=""
 AGENTS_INPUT="claude"
@@ -47,6 +52,7 @@ INTERACTIVE="false"     # -i / --interactive: prompt-driven create/adopt/update 
 # Track whether the user explicitly passed each flag. Used by --upgrade to
 # inherit selection from the manifest when the user didn't override.
 APPLE_LANG_EXPLICIT="false"
+APPLE_PLATFORMS_EXPLICIT="false"
 FEATURES_EXPLICIT="false"
 AGENTS_EXPLICIT="false"
 
@@ -82,6 +88,11 @@ while [[ $# -gt 0 ]]; do
         --apple-language)
             APPLE_LANG="$2"
             APPLE_LANG_EXPLICIT="true"
+            shift 2
+            ;;
+        --apple-platforms)
+            APPLE_PLATFORMS_INPUT="$2"
+            APPLE_PLATFORMS_EXPLICIT="true"
             shift 2
             ;;
         --features)
@@ -264,7 +275,7 @@ if [[ "$ACTION" == "upgrade" ]]; then
         # Read selection fields; tolerant of v1 manifests (which still have the
         # same selection shape, just no per-file hashes). See lib/inherit_selection.py.
         if inherited="$(python3 "$SCRIPT_DIR/lib/inherit_selection.py" "$upgrade_manifest_path" 2>/dev/null)"; then
-            IFS='|' read -r m_platform m_apple m_features m_agents <<<"$inherited"
+            IFS='|' read -r m_platform m_apple m_features m_agents m_appleplatforms <<<"$inherited"
             if [[ -z "$PLATFORM" && -n "$m_platform" ]]; then
                 PLATFORM="$m_platform"
                 # shellcheck disable=SC2034   # read by lib/upgrade_mode.sh
@@ -284,6 +295,11 @@ if [[ "$ACTION" == "upgrade" ]]; then
                 AGENTS_INPUT="$m_agents"
                 # Re-resolve SELECTED_AGENTS from the inherited value.
                 SELECTED_AGENTS="$(resolve_agents "$AGENTS_INPUT")"
+                # shellcheck disable=SC2034
+                UPGRADE_INHERITED_FROM_MANIFEST="true"
+            fi
+            if [[ "$APPLE_PLATFORMS_EXPLICIT" != "true" && -n "$m_appleplatforms" ]]; then
+                APPLE_PLATFORMS_INPUT="$m_appleplatforms"
                 # shellcheck disable=SC2034
                 UPGRADE_INHERITED_FROM_MANIFEST="true"
             fi
@@ -358,6 +374,70 @@ for f in $SELECTED_FEATURES; do
         exit 1
     fi
 done
+
+# --- --apple-platforms resolution + spatial sync ------------------------------
+#
+# Apple sub-platforms you target. Only the visionOS rule is platform-specific
+# today, so the selector is kept consistent with the `spatial` feature category:
+# targeting `visionos` pulls in the visionOS rule; the default (everything except
+# visionOS) keeps it out — which is the lean default for typical iOS/macOS apps.
+# Other tokens (ios/macos/tvos/watchos) are recorded but don't change today's
+# (universal) Apple rules; they're a forward-looking framework + documentation.
+ALL_APPLE_PLATFORMS="ios macos tvos watchos visionos"
+# The lean default: every Apple platform EXCEPT visionOS (opt in by naming it).
+DEFAULT_APPLE_PLATFORMS="ios macos tvos watchos"
+
+resolve_apple_platforms() {
+    local input="$1" out="" token expanded p
+    for token in $(echo "$input" | tr ',' ' '); do
+        case "$token" in
+            all) expanded="$ALL_APPLE_PLATFORMS" ;;
+            *)   expanded="$token" ;;
+        esac
+        for p in $expanded; do
+            case " $out " in *" $p "*) ;; *) out="$out $p" ;; esac
+        done
+    done
+    echo "${out# }"
+}
+
+if [[ -n "$APPLE_PLATFORMS_INPUT" ]]; then
+    SELECTED_APPLE_PLATFORMS="$(resolve_apple_platforms "$APPLE_PLATFORMS_INPUT")"
+else
+    SELECTED_APPLE_PLATFORMS="$DEFAULT_APPLE_PLATFORMS"
+fi
+
+# Validate tokens.
+for p in $SELECTED_APPLE_PLATFORMS; do
+    valid=0
+    for known in $ALL_APPLE_PLATFORMS; do
+        if [[ "$p" == "$known" ]]; then valid=1; break; fi
+    done
+    if [[ "$valid" != "1" ]]; then
+        echo "error: unknown apple platform: $p" >&2
+        echo "       valid: $ALL_APPLE_PLATFORMS" >&2
+        echo "       preset: all" >&2
+        exit 1
+    fi
+done
+
+# Keep `visionos` (platform) and `spatial` (feature) in sync — they name the same
+# visionOS rule. Only when Apple is in scope (no-op for android-only installs).
+_set_has() { case " $1 " in *" $2 "*) return 0 ;; *) return 1 ;; esac; }
+if [[ "$PLATFORM" != "android" ]]; then
+    if _set_has "$SELECTED_APPLE_PLATFORMS" "visionos" && ! _set_has "$SELECTED_FEATURES" "spatial"; then
+        SELECTED_FEATURES="$SELECTED_FEATURES spatial"
+    fi
+    if _set_has "$SELECTED_FEATURES" "spatial" && ! _set_has "$SELECTED_APPLE_PLATFORMS" "visionos"; then
+        SELECTED_APPLE_PLATFORMS="$SELECTED_APPLE_PLATFORMS visionos"
+    fi
+fi
+
+# Canonicalize the input string for the manifest record + upgrade-inherit (so an
+# unset flag still round-trips as the explicit default).
+if [[ -z "$APPLE_PLATFORMS_INPUT" ]]; then
+    APPLE_PLATFORMS_INPUT="$(echo "$DEFAULT_APPLE_PLATFORMS" | tr ' ' ',')"
+fi
 
 # --- --agents resolution ------------------------------------------------------
 #

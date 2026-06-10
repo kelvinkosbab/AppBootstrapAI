@@ -102,11 +102,20 @@ run_interactive() {
     _iask plat "Platform (apple / android / both)" "$plat_default"
     PLATFORM="$plat"
 
-    # --- 4. Apple language (only if apple in scope) ---------------------------
+    # --- 4. Apple language + sub-platforms (only if apple in scope) -----------
     if [[ "$PLATFORM" != "android" ]]; then
         local lang
         _iask lang "Apple language (swift / objc / both)" "swift"
         if [[ "$lang" != "swift" ]]; then APPLE_LANG="$lang"; APPLE_LANG_EXPLICIT="true"; fi
+
+        echo ""
+        echo "    Apple platforms you target (CSV: ios, macos, tvos, watchos, visionos | all)."
+        echo "    Default covers everything except visionOS — name 'visionos' to add the visionOS rule."
+        local aplats
+        _iask aplats "Apple platforms" "ios,macos,tvos,watchos"
+        if [[ "$aplats" != "ios,macos,tvos,watchos" ]]; then
+            APPLE_PLATFORMS_INPUT="$aplats"; APPLE_PLATFORMS_EXPLICIT="true"
+        fi
     fi
 
     # --- 5. Features ----------------------------------------------------------
