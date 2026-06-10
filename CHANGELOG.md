@@ -29,6 +29,13 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
   `--features …,spatial` remains the equivalent older form). Recorded in the
   manifest (`apple_platforms_input` / `_resolved`) and inherited on `--upgrade`.
   A forward-looking framework for future platform-specific rules.
+- **`--android-platforms` selector** — CSV of `phone,tablet,wear,tv,auto` (or
+  `all`); default `phone,tablet`. The Android counterpart to `--apple-platforms`,
+  but purely a forward-looking framework: **no Android rule is form-factor-specific
+  today**, so it doesn't change what installs — it's validated, recorded in the
+  manifest (`android_platforms_input` / `_resolved`), inherited on `--upgrade`,
+  and surfaced in `--list`/`--json`. A Wear OS / Android TV / Auto rule would gate
+  by these tokens.
 - **Multi-agent installs (`--agents`)** — `claude` (default), `copilot`,
   `cursor`, `gemini`, `codex`, `kiro`, or `all`. Generates each agent's native
   file shape (`.github/copilot-instructions.md`, `.cursor/rules/*.mdc`,

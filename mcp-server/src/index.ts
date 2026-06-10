@@ -216,7 +216,7 @@ async function toolListSkills() {
     };
 }
 
-async function toolPreviewInstall(args: { platform?: string; apple_language?: string; features?: string; apple_platforms?: string }) {
+async function toolPreviewInstall(args: { platform?: string; apple_language?: string; features?: string; apple_platforms?: string; android_platforms?: string }) {
     const platform = args.platform ?? "both";
     const appleLanguage = args.apple_language ?? "swift";
     const features = args.features ?? "recommended";
@@ -232,6 +232,7 @@ async function toolPreviewInstall(args: { platform?: string; apple_language?: st
 
     const baseArgs = [INSTALL_SH, "--list", "--platform", platform, "--apple-language", appleLanguage, "--features", features];
     if (args.apple_platforms) baseArgs.push("--apple-platforms", args.apple_platforms);
+    if (args.android_platforms) baseArgs.push("--android-platforms", args.android_platforms);
     const result = await runCommand(
         "bash",
         baseArgs
@@ -247,6 +248,7 @@ async function toolInstall(args: {
     platform?: string;
     apple_language?: string;
     apple_platforms?: string;
+    android_platforms?: string;
     features?: string;
     agents?: string;
     with_mcps?: string;
@@ -276,6 +278,7 @@ async function toolInstall(args: {
         "--features", features,
     ];
     if (args.apple_platforms) installArgs.push("--apple-platforms", args.apple_platforms);
+    if (args.android_platforms) installArgs.push("--android-platforms", args.android_platforms);
     if (args.agents) installArgs.push("--agents", args.agents);
     if (args.with_mcps) installArgs.push("--with-mcps", args.with_mcps);
 
@@ -434,6 +437,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     platform: { type: "string", enum: ["apple", "android", "both"], description: "Default: both" },
                     apple_language: { type: "string", enum: ["swift", "objc", "both"], description: "Default: swift. Only relevant when platform includes apple." },
                     apple_platforms: { type: "string", description: "Comma-separated Apple sub-platforms (ios, macos, tvos, watchos, visionos) or 'all'. Default: ios,macos,tvos,watchos (no visionOS). Naming 'visionos' adds the visionOS rule. Only relevant when platform includes apple." },
+                    android_platforms: { type: "string", description: "Comma-separated Android form factors (phone, tablet, wear, tv, auto) or 'all'. Default: phone,tablet. Recorded in the manifest; no Android rule is form-factor-specific yet, so this does not change what installs. Only relevant when platform includes android." },
                     features: { type: "string", description: "Comma-separated category list, or one of: 'recommended' (default), 'all'." },
                 },
                 additionalProperties: false
@@ -449,6 +453,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     platform: { type: "string", enum: ["apple", "android", "both"], description: "Default: both" },
                     apple_language: { type: "string", enum: ["swift", "objc", "both"], description: "Default: swift. Only relevant when platform includes apple." },
                     apple_platforms: { type: "string", description: "Comma-separated Apple sub-platforms (ios, macos, tvos, watchos, visionos) or 'all'. Default: ios,macos,tvos,watchos (no visionOS). Naming 'visionos' adds the visionOS rule. Only relevant when platform includes apple." },
+                    android_platforms: { type: "string", description: "Comma-separated Android form factors (phone, tablet, wear, tv, auto) or 'all'. Default: phone,tablet. Recorded in the manifest; no Android rule is form-factor-specific yet, so this does not change what installs. Only relevant when platform includes android." },
                     features: { type: "string", description: "Comma-separated category list, or one of: 'recommended' (default), 'all'." },
                     agents: { type: "string", description: "Comma-separated AI agents to install for: claude (default), copilot, cursor, gemini, codex, kiro, or 'all'. Additive." },
                     with_mcps: { type: "string", description: "Comma-separated MCP recipe names to add to .claude/settings.local.json (e.g. 'xcodebuildmcp,sentry'). See list-mcps in the bundle for available recipes." },

@@ -5,6 +5,7 @@
 #   ./install.sh install [TARGET_DIR] [--platform apple|android|both]
 #                                     [--apple-language swift|objc|both]
 #                                     [--apple-platforms ios,macos,tvos,watchos,visionos|all]
+#                                     [--android-platforms phone,tablet,wear,tv,auto|all]
 #                                     [--features all|recommended|<csv>]
 #                                     [--agents claude,copilot,cursor,gemini,codex,kiro|all]
 #                                     [--with-mcps <csv>] [--new] [--force] [--dry-run]
@@ -75,6 +76,14 @@
 #                        installs the visionOS rule; omitting it keeps it out.
 #                        (`--features ...,spatial` is the equivalent older form.)
 #                        Other tokens are recorded for the manifest + future use.
+#
+#   --android-platforms  Which Android form factors you target, CSV of:
+#                          phone, tablet, wear, tv, auto   (or `all`)
+#                        Default: phone,tablet. Only meaningful when Android is
+#                        in scope. NO Android rule is form-factor-specific today,
+#                        so this DOESN'T change what installs — it's recorded in
+#                        the manifest and is a forward-looking framework (a Wear
+#                        OS / Android TV / Auto rule would gate by these tokens).
 #
 #   --features           Comma-separated list of feature categories, or one of:
 #                        - recommended (default) → curated subset for most apps:

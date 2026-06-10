@@ -118,6 +118,19 @@ run_interactive() {
         fi
     fi
 
+    # Android form factors (only if android in scope). Recorded for the manifest;
+    # no Android rule is form-factor-specific yet, so it doesn't change installs.
+    if [[ "$PLATFORM" != "apple" ]]; then
+        echo ""
+        echo "    Android form factors you target (CSV: phone, tablet, wear, tv, auto | all)."
+        echo "    Recorded for the manifest — no Android rule is form-factor-specific yet."
+        local anplats
+        _iask anplats "Android platforms" "phone,tablet"
+        if [[ "$anplats" != "phone,tablet" ]]; then
+            ANDROID_PLATFORMS_INPUT="$anplats"; ANDROID_PLATFORMS_EXPLICIT="true"
+        fi
+    fi
+
     # --- 5. Features ----------------------------------------------------------
     echo ""
     echo "    Feature presets: 'recommended' (most apps) | 'all' (everything) | custom CSV"

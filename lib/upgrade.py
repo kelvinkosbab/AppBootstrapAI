@@ -923,6 +923,8 @@ new_manifest = {
         # preserves the recorded targets. Re-install to change them.
         "apple_platforms_input": manifest.get("selection", {}).get("apple_platforms_input", ""),
         "apple_platforms_resolved": manifest.get("selection", {}).get("apple_platforms_resolved", []),
+        "android_platforms_input": manifest.get("selection", {}).get("android_platforms_input", ""),
+        "android_platforms_resolved": manifest.get("selection", {}).get("android_platforms_resolved", []),
         "features_input": features,
         "features_resolved": manifest.get("selection", {}).get("features_resolved", []),
         "agents_input": agents_input,

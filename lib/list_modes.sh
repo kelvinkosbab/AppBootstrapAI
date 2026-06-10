@@ -54,6 +54,9 @@ if [[ "$ACTION" == "list" ]]; then
         printf '    "apple_platforms_resolved": '
         json_string_array "$SELECTED_APPLE_PLATFORMS"
         printf ',\n'
+        printf '    "android_platforms_resolved": '
+        json_string_array "$SELECTED_ANDROID_PLATFORMS"
+        printf ',\n'
         printf '    "features_input": "%s",\n' "$FEATURES_INPUT"
         printf '    "features_resolved": '
         json_string_array "$SELECTED_FEATURES"
@@ -114,6 +117,7 @@ if [[ "$ACTION" == "list" ]]; then
     echo "AppBootstrapAI catalog"
     echo "  current selection: --platform $PLATFORM --apple-language $APPLE_LANG --features $FEATURES_INPUT"
     [[ "$PLATFORM" != "android" ]] && echo "  apple platforms:   $SELECTED_APPLE_PLATFORMS"
+    [[ "$PLATFORM" != "apple"   ]] && echo "  android platforms: $SELECTED_ANDROID_PLATFORMS"
     echo "  resolved features: $SELECTED_FEATURES"
     echo ""
     echo "Rules:"

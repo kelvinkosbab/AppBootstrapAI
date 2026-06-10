@@ -86,7 +86,8 @@ elif [[ "$PLATFORM_AUTODETECT_FALLBACK" == "true" ]]; then
 else
     echo "    platform: $PLATFORM   apple-language: $APPLE_LANG"
 fi
-[[ "$PLATFORM" != "android" ]] && echo "    apple platforms: $SELECTED_APPLE_PLATFORMS"
+[[ "$PLATFORM" != "android" ]] && echo "    apple platforms:   $SELECTED_APPLE_PLATFORMS"
+[[ "$PLATFORM" != "apple"   ]] && echo "    android platforms: $SELECTED_ANDROID_PLATFORMS"
 echo "    features: $FEATURES_INPUT  ($SELECTED_FEATURES)"
 echo "    agents:   $SELECTED_AGENTS"
 if [[ "$DRY_RUN" == "true" ]]; then
@@ -386,6 +387,10 @@ write_manifest() {
         printf '    "apple_platforms_input": "%s",\n' "$APPLE_PLATFORMS_INPUT"
         printf '    "apple_platforms_resolved": '
         json_string_array "$SELECTED_APPLE_PLATFORMS"
+        printf ',\n'
+        printf '    "android_platforms_input": "%s",\n' "$ANDROID_PLATFORMS_INPUT"
+        printf '    "android_platforms_resolved": '
+        json_string_array "$SELECTED_ANDROID_PLATFORMS"
         printf ',\n'
         printf '    "features_input": "%s",\n' "$FEATURES_INPUT"
         printf '    "features_resolved": '

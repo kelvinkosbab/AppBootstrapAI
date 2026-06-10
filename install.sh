@@ -29,6 +29,11 @@ APPLE_LANG="swift"
 # visionOS); see resolve_apple_platforms. visionOS is the one platform-specific
 # rule, kept in sync with the `spatial` feature category below.
 APPLE_PLATFORMS_INPUT=""
+# Which Android form factors you target (phone/tablet/wear/tv/auto). Only
+# meaningful when Android is in scope. No Android rule is form-factor-specific
+# today, so this is recorded for the manifest + a forward-looking framework —
+# it doesn't change what installs. Empty → the default (phone,tablet).
+ANDROID_PLATFORMS_INPUT=""
 FEATURES_INPUT="recommended"
 WITH_MCPS=""
 AGENTS_INPUT="claude"
@@ -53,6 +58,7 @@ INTERACTIVE="false"     # -i / --interactive: prompt-driven create/adopt/update 
 # inherit selection from the manifest when the user didn't override.
 APPLE_LANG_EXPLICIT="false"
 APPLE_PLATFORMS_EXPLICIT="false"
+ANDROID_PLATFORMS_EXPLICIT="false"
 FEATURES_EXPLICIT="false"
 AGENTS_EXPLICIT="false"
 
@@ -93,6 +99,11 @@ while [[ $# -gt 0 ]]; do
         --apple-platforms)
             APPLE_PLATFORMS_INPUT="$2"
             APPLE_PLATFORMS_EXPLICIT="true"
+            shift 2
+            ;;
+        --android-platforms)
+            ANDROID_PLATFORMS_INPUT="$2"
+            ANDROID_PLATFORMS_EXPLICIT="true"
             shift 2
             ;;
         --features)
@@ -275,7 +286,7 @@ if [[ "$ACTION" == "upgrade" ]]; then
         # Read selection fields; tolerant of v1 manifests (which still have the
         # same selection shape, just no per-file hashes). See lib/inherit_selection.py.
         if inherited="$(python3 "$SCRIPT_DIR/lib/inherit_selection.py" "$upgrade_manifest_path" 2>/dev/null)"; then
-            IFS='|' read -r m_platform m_apple m_features m_agents m_appleplatforms <<<"$inherited"
+            IFS='|' read -r m_platform m_apple m_features m_agents m_appleplatforms m_androidplatforms <<<"$inherited"
             if [[ -z "$PLATFORM" && -n "$m_platform" ]]; then
                 PLATFORM="$m_platform"
                 # shellcheck disable=SC2034   # read by lib/upgrade_mode.sh
@@ -300,6 +311,11 @@ if [[ "$ACTION" == "upgrade" ]]; then
             fi
             if [[ "$APPLE_PLATFORMS_EXPLICIT" != "true" && -n "$m_appleplatforms" ]]; then
                 APPLE_PLATFORMS_INPUT="$m_appleplatforms"
+                # shellcheck disable=SC2034
+                UPGRADE_INHERITED_FROM_MANIFEST="true"
+            fi
+            if [[ "$ANDROID_PLATFORMS_EXPLICIT" != "true" && -n "$m_androidplatforms" ]]; then
+                ANDROID_PLATFORMS_INPUT="$m_androidplatforms"
                 # shellcheck disable=SC2034
                 UPGRADE_INHERITED_FROM_MANIFEST="true"
             fi
@@ -437,6 +453,54 @@ fi
 # unset flag still round-trips as the explicit default).
 if [[ -z "$APPLE_PLATFORMS_INPUT" ]]; then
     APPLE_PLATFORMS_INPUT="$(echo "$DEFAULT_APPLE_PLATFORMS" | tr ' ' ',')"
+fi
+
+# --- --android-platforms resolution -------------------------------------------
+#
+# The Android form factors you target. NO Android rule is form-factor-specific
+# today, so — unlike --apple-platforms (which gates the visionOS rule via the
+# `spatial` category) — this changes nothing about what installs. It's recorded
+# in the manifest and is a forward-looking framework: when a form-factor rule
+# (Wear OS, Android TV, Auto) is added, it will gate by these tokens.
+ALL_ANDROID_PLATFORMS="phone tablet wear tv auto"
+DEFAULT_ANDROID_PLATFORMS="phone tablet"
+
+resolve_android_platforms() {
+    local input="$1" out="" token expanded p
+    for token in $(echo "$input" | tr ',' ' '); do
+        case "$token" in
+            all) expanded="$ALL_ANDROID_PLATFORMS" ;;
+            *)   expanded="$token" ;;
+        esac
+        for p in $expanded; do
+            case " $out " in *" $p "*) ;; *) out="$out $p" ;; esac
+        done
+    done
+    echo "${out# }"
+}
+
+if [[ -n "$ANDROID_PLATFORMS_INPUT" ]]; then
+    SELECTED_ANDROID_PLATFORMS="$(resolve_android_platforms "$ANDROID_PLATFORMS_INPUT")"
+else
+    SELECTED_ANDROID_PLATFORMS="$DEFAULT_ANDROID_PLATFORMS"
+fi
+
+for p in $SELECTED_ANDROID_PLATFORMS; do
+    valid=0
+    for known in $ALL_ANDROID_PLATFORMS; do
+        if [[ "$p" == "$known" ]]; then valid=1; break; fi
+    done
+    if [[ "$valid" != "1" ]]; then
+        echo "error: unknown android platform: $p" >&2
+        echo "       valid: $ALL_ANDROID_PLATFORMS" >&2
+        echo "       preset: all" >&2
+        exit 1
+    fi
+done
+
+# Canonicalize for the manifest record + upgrade-inherit.
+if [[ -z "$ANDROID_PLATFORMS_INPUT" ]]; then
+    ANDROID_PLATFORMS_INPUT="$(echo "$DEFAULT_ANDROID_PLATFORMS" | tr ' ' ',')"
 fi
 
 # --- --agents resolution ------------------------------------------------------

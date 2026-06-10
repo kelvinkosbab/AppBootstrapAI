@@ -1797,7 +1797,7 @@ rm -rf "$t"
 bold "==> --interactive: CREATE a new project (piped answers)"
 t="$(mktemp -d)/inew"
 # answers: target, create? y, platform=android, features(Enter), agents(Enter), mcps? n, proceed? y
-printf '%s\ny\nandroid\n\n\nn\ny\n' "$t" | "$INSTALL" --interactive > /dev/null 2>&1
+printf '%s\ny\nandroid\n\n\n\nn\ny\n' "$t" | "$INSTALL" --interactive > /dev/null 2>&1
 if [[ -d "$t" && -f "$t/.claude/rules/android-project-rules.md" ]]; then
     PASS=$((PASS + 1))
 else
@@ -2301,6 +2301,62 @@ if grep -q "0 safe update" <<<"$up" && grep -q "0 addition" <<<"$up" && [[ "$inh
     PASS=$((PASS + 1))
 else
     red "FAIL: --apple-platforms should be recorded + inherited + round-trip clean on upgrade"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+# --- --android-platforms selector (forward-looking framework; no gating today) -
+
+bold "==> --android-platforms default records phone,tablet; doesn't change install"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended > /dev/null
+base_count="$(ls "$t/.claude/rules" | wc -l | tr -d ' ')"
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended --android-platforms wear,tv > /dev/null
+wear_count="$(ls "$t/.claude/rules" | wc -l | tr -d ' ')"
+if [[ "$base_count" == "$wear_count" ]] && python3 -c "
+import json
+s = json.load(open('$t/.claude/.appbootstrap-manifest.json'))['selection']
+assert s['android_platforms_resolved'] == ['wear','tv'], s['android_platforms_resolved']
+" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --android-platforms should record the set without changing the installed rules"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --android-platforms default + 'all' resolve correctly"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended > /dev/null
+def_ok="$(python3 -c "import json;print(json.load(open('$t/.claude/.appbootstrap-manifest.json'))['selection']['android_platforms_resolved'] == ['phone','tablet'])")"
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended --android-platforms all > /dev/null
+all_ok="$(python3 -c "import json;print(json.load(open('$t/.claude/.appbootstrap-manifest.json'))['selection']['android_platforms_resolved'] == ['phone','tablet','wear','tv','auto'])")"
+rm -rf "$t"
+[[ "$def_ok" == "True" && "$all_ok" == "True" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: android-platforms default/all resolution wrong (def=$def_ok all=$all_ok)"; FAIL=$((FAIL + 1)); }
+
+bold "==> --android-platforms rejects an unknown token"
+if "$INSTALL" /tmp/x --platform android --android-platforms phone,fridge > /tmp/anp.out 2>&1; then
+    red "FAIL: unknown android platform should error"; FAIL=$((FAIL + 1))
+else
+    grep -q "unknown android platform" /tmp/anp.out && PASS=$((PASS + 1)) \
+        || { red "FAIL: bad android-platform error message changed"; FAIL=$((FAIL + 1)); }
+fi
+rm -f /tmp/anp.out
+
+bold "==> --android-platforms inherited on upgrade; round-trips clean"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended --android-platforms wear > /dev/null
+up="$("$INSTALL" upgrade "$t" 2>&1)"
+inh="$(python3 -c "import json;print(json.load(open('$t/.claude/.appbootstrap-manifest.json'))['selection']['android_platforms_input'])")"
+if grep -q "0 safe update" <<<"$up" && grep -q "0 addition" <<<"$up" && [[ "$inh" == "wear" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --android-platforms should be recorded + inherited + round-trip clean"
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$t"

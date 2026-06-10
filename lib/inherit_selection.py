@@ -10,7 +10,7 @@ Args:
     sys.argv[1] — absolute path to the target's manifest.json.
 
 Output (stdout, single line):
-    platform|apple_language|features_input|agents_input|apple_platforms_input
+    platform|apple_language|features_input|agents_input|apple_platforms_input|android_platforms_input
 
 Empty fields are emitted as empty strings; the bash caller decides whether
 to use them based on which CLI flags the user passed. (apple_platforms_input
@@ -38,6 +38,7 @@ def main() -> int:
         f"|{selection.get('features_input', '')}"
         f"|{selection.get('agents_input', '')}"
         f"|{selection.get('apple_platforms_input', '')}"
+        f"|{selection.get('android_platforms_input', '')}"
     )
     return 0
 
