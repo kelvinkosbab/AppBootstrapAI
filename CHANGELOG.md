@@ -2,12 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-This project does not yet cut tagged releases — everything below lives under
-`[Unreleased]` and reconstructs the bundle's current capabilities from history.
-When the first tag is cut, `[Unreleased]` is promoted to a dated version section.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+and this project adheres to [Semantic Versioning](https://semver.org).
+The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-06-11
 
 ### Added
 
