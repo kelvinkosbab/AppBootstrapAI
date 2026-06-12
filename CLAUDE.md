@@ -37,6 +37,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-testflight-deployment.md             # Apple: TestFlight, ASC API, signing, CI
 │   ├── apple-testing-strategy.md                  # Apple: test strategy + coverage
 │   ├── apple-visionos-best-practices.md           # Apple: visionOS / RealityKit / spatial UX
+│   ├── concise-comments-and-commits.md            # Cross-platform: terse comments + commits
 │   └── project-documentation.md                   # Cross-platform: README/CHANGELOG/ADR
 ├── skills/                        # On-demand Claude Code skills
 │   ├── android-compose-pro/                # Android: Compose deep review

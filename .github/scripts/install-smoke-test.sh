@@ -1956,6 +1956,22 @@ else
 fi
 rm -rf "$t"
 
+bold "==> core: concise-comments-and-commits rule lands on BOTH platforms"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features core > /dev/null
+a_ok=$([[ -f "$t/.claude/rules/concise-comments-and-commits.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features core > /dev/null
+b_ok=$([[ -f "$t/.claude/rules/concise-comments-and-commits.md" ]] && echo y)
+rm -rf "$t"
+if [[ "$a_ok" == "y" && "$b_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: concise-comments-and-commits should install under core for apple AND android"
+    FAIL=$((FAIL + 1))
+fi
+
 # --- subcommand verbs (backward-compatible with the --flag forms) ------------
 
 bold "==> verb: 'list' equals '--list'"

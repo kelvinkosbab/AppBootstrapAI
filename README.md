@@ -78,8 +78,9 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Cross-platform — 1 rule</strong> (click to expand)</summary>
+<summary><strong>Cross-platform — 2 rules</strong> (click to expand)</summary>
 
+- **`concise-comments-and-commits.md`** *(core)* — fires on all Swift/Kotlin/ObjC source: in-code comments default to *none* (write only what code can't express — why, traps, ticket refs; never narration, diff commentary, or commented-out code), and commit messages stay short (imperative ≤72-char subject; body only when the why isn't in the diff — never file-by-file inventories or process reports). Aimed squarely at AI-assistant verbosity.
 - **`project-documentation.md`** — README structure, [Keep a Changelog](https://keepachangelog.com) format, `CONTRIBUTING.md` essentials, ADR conventions (`docs/adr/####-title.md`, immutable once accepted), inline-comment philosophy (*why* not *what*), and link-rot defenses (pinned versions, permalinked source). Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`.
 
 </details>
@@ -604,6 +605,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-testflight-deployment.md             # TestFlight, ASC API, signing, CI (deployment)
 │   │   ├── apple-testing-strategy.md                  # Apple test strategy + coverage
 │   │   ├── apple-visionos-best-practices.md           # visionOS / RealityKit / spatial UX (spatial)
+│   │   ├── concise-comments-and-commits.md            # terse comments + commit messages (core)
 │   │   └── project-documentation.md                   # README/CHANGELOG/ADR/inline comments
 │   ├── skills/                        # On-demand skills
 │   │   ├── android-compose-pro/                # Compose stability / effects / lazy perf (ui)

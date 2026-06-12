@@ -8,6 +8,14 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ## [Unreleased]
 
+### Added
+
+- **`concise-comments-and-commits.md`** (core, cross-platform) — fires on all
+  Swift/Kotlin/ObjC source. Comments default to none (why-not-what, no diff
+  commentary or narration); commit messages get a short imperative subject and
+  a body only when the why isn't visible in the diff. Targets the verbosity AI
+  assistants produce that stops teammates reading either.
+
 ## [1.0.0] - 2026-06-11
 
 ### Added
