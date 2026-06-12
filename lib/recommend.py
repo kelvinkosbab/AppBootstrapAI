@@ -42,7 +42,7 @@ MAX_READ_BYTES = 2_000_000  # skip absurdly large files
 # Which opt-in categories are meaningful per platform. Recommended categories
 # install regardless; these are the extras `recommend` may suggest on top.
 APPLE_OPT_INS = {"ai", "spatial", "persistence", "deployment"}
-ANDROID_OPT_INS = {"migration", "shrinking", "persistence", "deployment"}
+ANDROID_OPT_INS = {"ai", "migration", "shrinking", "persistence", "deployment"}
 
 
 def detect_state(target: str) -> str:
@@ -167,6 +167,9 @@ def _scan_text(ext: str, text: str, add) -> None:
             add("persistence", "Room database")
         if ": Fragment(" in text or "extends Fragment" in text or "androidx.fragment" in text:
             add("migration", "Fragment / legacy View usage")
+        if ("com.google.mlkit.genai" in text or "com.google.firebase.ai" in text
+                or "GenerativeModel" in text or "generateContentStream" in text):
+            add("ai", "Gemini / ML Kit GenAI / Firebase AI usage")
     if ext in (".gradle", ".kts"):
         if "isMinifyEnabled = true" in text or "minifyEnabled true" in text:
             add("shrinking", "R8/ProGuard (minify enabled)")

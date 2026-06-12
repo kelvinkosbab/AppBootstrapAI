@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) currently exist for the Apple side only; Android is covered by steering rules until production patterns surface enough to harden a skill against.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 9 Apple, 5 Android — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -12,6 +12,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 .claude/
 ├── rules/                         # Always-loaded AI steering (Cursor-style rule files)
 │   ├── android-accessibility-best-practices.md    # Android: TalkBack / Compose semantics
+│   ├── android-ai-best-practices.md               # Android: Gemini Nano / ML Kit GenAI / Firebase AI Logic
 │   ├── android-compose-best-practices.md          # Android: Jetpack Compose patterns
 │   ├── android-coroutines-best-practices.md       # Android: Kotlin coroutines / structured concurrency
 │   ├── android-documentation-strategy.md          # Android: KDoc strategy + Dokka
@@ -38,6 +39,8 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-visionos-best-practices.md           # Apple: visionOS / RealityKit / spatial UX
 │   └── project-documentation.md                   # Cross-platform: README/CHANGELOG/ADR
 ├── skills/                        # On-demand Claude Code skills
+│   ├── android-compose-pro/                # Android: Compose deep review
+│   ├── android-coroutines-pro/             # Android: coroutines/Flow deep review
 │   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
@@ -47,6 +50,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── swift-logging-pro/                  # Apple: os.Logger review
 │   ├── swift-package-pro/                  # Apple: SPM library design
 │   ├── swift-testing-pro/                  # Apple: Swift Testing code
+│   ├── swiftdata-pro/                      # Apple: SwiftData review
 │   ├── swiftui-pro/                        # Apple: SwiftUI review
 │   └── xml-to-compose-migration-pro/       # Android: XML/Fragment → Compose
 └── settings.json                  # Baseline Claude Code permissions (git, xcodebuild, gradlew, etc.)
@@ -140,6 +144,9 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `swift-error-handling-pro` to review error types and throwing functions."
 - "Use `swift-logging-pro` to audit Logger usage."
 - "Use `swift-package-pro` to review `Package.swift` and the public API."
+- "Use `swiftdata-pro` to review the SwiftData models and queries."
+- "Use `android-compose-pro` to review `FeedScreen.kt` for recomposition and effect bugs."
+- "Use `android-coroutines-pro` to review cancellation and Flow usage in the data layer."
 - "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
 - "Use `xml-to-compose-migration-pro` to migrate `SettingsFragment` to Compose."
 - "Use `r8-shrink-pro` to audit my ProGuard rules before release."

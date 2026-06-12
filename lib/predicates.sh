@@ -27,9 +27,9 @@ file_category() {
     case "$1" in
         project-documentation.md)
             echo "core" ;;
-        apple-swift6-strict-concurrency.md|swift-concurrency-pro|android-coroutines-best-practices.md)
+        apple-swift6-strict-concurrency.md|swift-concurrency-pro|android-coroutines-best-practices.md|android-coroutines-pro)
             echo "concurrency" ;;
-        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|swiftui-pro|android-compose-best-practices.md|android-accessibility-best-practices.md)
+        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|swiftui-pro|android-compose-best-practices.md|android-accessibility-best-practices.md|android-compose-pro)
             echo "ui" ;;
         apple-testing-strategy.md|swift-testing-pro|android-testing-strategy.md)
             echo "testing" ;;
@@ -45,9 +45,9 @@ file_category() {
             echo "localization" ;;
         apple-linting-strategy.md|android-linting-strategy.md)
             echo "linting" ;;
-        coredata-swift6-pro)
+        coredata-swift6-pro|swiftdata-pro)
             echo "persistence" ;;
-        apple-foundation-models.md)
+        apple-foundation-models.md|android-ai-best-practices.md)
             echo "ai" ;;
         xml-to-compose-migration-pro)
             echo "migration" ;;

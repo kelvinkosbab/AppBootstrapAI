@@ -223,6 +223,16 @@ android {
 
 See the bundle's `r8-shrink-pro` skill for in-depth ProGuard rule review.
 
+## Data Safety Form — Keep It True
+
+Play Console's Data safety form (App content → Data safety) is the Android counterpart to Apple's privacy manifest, and the same failure mode applies to AI-assisted teams: code (or an SDK) starts collecting something the form never declared.
+
+- **Declare every data type collected or shared**, whether it's encrypted in transit, whether users can request deletion, and the purpose. "Collected" includes data sent to *your* servers AND to third-party endpoints the app calls.
+- **SDKs collect on your behalf.** Analytics, ads, crash reporting, and cloud AI SDKs all have data-safety implications — check each SDK's published data-safety guidance (Google's SDK Index links it) and fold it into your form.
+- **Mismatch = enforcement.** Play compares declarations against observed behavior; discrepancies lead to rejected updates or removal. Treat a new SDK in `libs.versions.toml` as a trigger to re-review the form.
+- **Adding a cloud AI feature changes your answers** — prompts and attached content sent to a model API are collected user data (see `android-ai-best-practices.md`). On-device inference (Gemini Nano) generally is not, which is worth stating in your privacy policy.
+- **Keep the form in the release checklist** alongside `versionCode` and `mapping.txt` — it's versioned with the listing, not the artifact, so it's easy to forget.
+
 ## Build Reproducibility
 
 For Play beta builds you'll have to debug later:

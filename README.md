@@ -20,13 +20,13 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 |------|---------------|
 | **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · accessibility · testing · DocC · localization · SPM · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
 | **Android rules** | Kotlin/Compose/MVVM/Hilt · coroutines · accessibility · testing · KDoc · localization · Gradle · linting · logging · Play beta |
-| **Skills (Claude)** | 8 Apple + 3 Android on-demand deep-review agents |
+| **Skills (Claude)** | 9 Apple + 5 Android on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
 <details>
-<summary><strong>Apple — 14 rules + 8 skills</strong> (click to expand)</summary>
+<summary><strong>Apple — 14 rules + 9 skills</strong> (click to expand)</summary>
 
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text).
@@ -46,6 +46,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
 - **`coredata-swift6-pro` skill** — Core Data under Swift 6 strict concurrency, `viewContext`/`@MainActor`, SPM `.xcdatamodeld` caveats.
+- **`swiftdata-pro` skill** — SwiftData review: core model/context rules, safe `#Predicate` usage, CloudKit constraints, iOS 18+ indexing, iOS 26+ class inheritance.
 - **`swift-docc-pro` skill** — DocC comment review: parameter/return/throws tags, double-backtick symbol linking, Topics organization.
 - **`swift-error-handling-pro` skill** — typed throws, Result vs throws, `LocalizedError`, Sendable errors, async propagation.
 - **`swift-logging-pro` skill** — `os.Logger` review: subsystem/category conventions, privacy markers, log-level semantics.
@@ -54,7 +55,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Android — 11 rules + 3 skills</strong> (click to expand)</summary>
+<summary><strong>Android — 12 rules + 5 skills</strong> (click to expand)</summary>
 
 - **`android-project-rules.md`** — Kotlin, Jetpack Compose, MVVM, Hilt, StateFlow, Retrofit/Moshi, ktlint.
 - **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
@@ -66,7 +67,10 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`android-gradle-conventions.md`** — Kotlin DSL only, version catalogs (`gradle/libs.versions.toml`) as single source of truth, AGP/Kotlin/Compose-compiler co-versioning, `jvmToolchain`, `api` vs `implementation`, multi-module graph patterns (`:app` + `:feature:*` + `:data:*` + `:core:*`), library publishing with `consumer-rules.pro`, KSP over kapt. **Now includes** an inline-strings → catalog migration walkthrough for legacy projects.
 - **`android-linting-strategy.md`** *(linting)* — three linters, three jobs: ktlint (`.editorconfig`, formatting), detekt (`detekt.yml` tuning, `buildUponDefaultConfig`, type resolution, baselines), and Android Lint (`lint {}`, `lint.xml`, `warningsAsErrors`, baselines). `@Suppress` / `@SuppressLint` hygiene, CI placement (`ktlintCheck detekt lintDebug`), version pinning, plus a triage decision-order.
 - **`android-logging-strategy.md`** *(logging)* — Timber over `android.util.Log` (plant a tree in `Application.onCreate`), log levels (V/D/I/W/E/WTF) and passing the `Throwable`, **stripping debug logs from release** (DebugTree-in-debug-only + R8 `assumenosideeffects`), no PII/secrets, crash-reporter integration (Crashlytics/Sentry breadcrumbs + non-fatals via a `CrashReportingTree`), Logcat hygiene.
+- **`android-ai-best-practices.md`** *(ai)* — in-app AI models on Android, the counterpart to the Apple Foundation Models rule: on-device Gemini Nano via ML Kit GenAI / AICore vs cloud Gemini via Firebase AI Logic, **never ship a raw model API key** (App Check / backend proxy), two-level availability gating (feature download + user preference), streaming into Compose with placeholder-then-mutate, structural cancellation, interface + fake testability, consent + Data-safety implications.
 - **`android-play-beta-deployment.md`** *(deployment)* — shipping to Play beta tracks: `versionCode` monotonicity, Play App Signing (upload key vs app signing key), AAB-not-APK, service-account JSON for CI, internal/closed/open tracks, Triple-T / fastlane upload, `mapping.txt` upload, ranked gotchas.
+- **`android-compose-pro` skill** — deep Compose review: recomposition stability + skippability (incl. strong-skipping-mode awareness), side-effect audit (`LaunchedEffect` keys, `rememberUpdatedState`, `DisposableEffect` teardown), lazy-list performance (keys, `contentType`, `derivedStateOf` for scroll), state modeling and hoisting.
+- **`android-coroutines-pro` skill** — deep coroutines/Flow review: scope-to-lifecycle mapping, cooperative cancellation (`CancellationException` discipline, `runCatching` traps), `launch` vs `async` exception propagation, supervisor boundaries, `stateIn`/`shareIn` configuration, `callbackFlow` teardown, coroutine testing (virtual time, Turbine).
 - **`android-gradle-architecture-pro` skill** — reviews multi-module Android builds against the **Now in Android** convention-plugin pattern: `build-logic/convention/` factoring, version-catalog depth, AGP co-versioning, KSP-over-kapt migration.
 - **`xml-to-compose-migration-pro` skill** — reviews and assists XML/Fragment → Compose migration: incremental interop via `ComposeView` / `AndroidView`, layout translation (LinearLayout/ConstraintLayout/FrameLayout → Modifier), RecyclerView → `LazyColumn` with stable keys, Fragment → Composable, Navigation Component → Navigation-Compose, ViewModel bridging, themes/styles → `MaterialTheme`.
 - **`r8-shrink-pro` skill** — reviews R8 / ProGuard configuration: `-keep` rule discipline, `consumer-rules.pro` contract for libraries, common reflection-library rules (Moshi, Room, Retrofit, Hilt, Glide, kotlinx-serialization), mapping-file workflow, debugging release-build crashes.
@@ -290,7 +294,7 @@ repo:
 
 Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. The manifest is what powers `--upgrade`'s 3-way diff against future bundle versions.
 
-**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint). Specialized opt-ins not in `recommended`: `persistence` (Core Data), `ai` (Foundation Models, iOS 26+), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas).
+**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas).
 
 **The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|kiro|all` (additive CSV) and the installer also drops the matching file shape for those agents (one concat file for Copilot/Gemini/Codex; per-rule files for Cursor `.mdc` and Kiro `.kiro/steering/*.md`). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
 
@@ -575,6 +579,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 ├── .claude/
 │   ├── rules/
 │   │   ├── android-accessibility-best-practices.md    # Android a11y
+│   │   ├── android-ai-best-practices.md               # Gemini Nano / Firebase AI Logic (ai)
 │   │   ├── android-compose-best-practices.md          # Jetpack Compose patterns
 │   │   ├── android-coroutines-best-practices.md       # Structured concurrency
 │   │   ├── android-documentation-strategy.md          # KDoc strategy + Dokka
@@ -601,6 +606,8 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-visionos-best-practices.md           # visionOS / RealityKit / spatial UX (spatial)
 │   │   └── project-documentation.md                   # README/CHANGELOG/ADR/inline comments
 │   ├── skills/                        # On-demand skills
+│   │   ├── android-compose-pro/                # Compose stability / effects / lazy perf (ui)
+│   │   ├── android-coroutines-pro/             # Coroutines & Flow correctness (concurrency)
 │   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs
 │   │   ├── coredata-swift6-pro/
 │   │   ├── r8-shrink-pro/                      # ProGuard/R8 rules
@@ -610,6 +617,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── swift-logging-pro/
 │   │   ├── swift-package-pro/
 │   │   ├── swift-testing-pro/
+│   │   ├── swiftdata-pro/                      # SwiftData review (persistence)
 │   │   ├── swiftui-pro/
 │   │   └── xml-to-compose-migration-pro/       # XML/Fragment → Compose migration
 │   └── settings.json                  # Baseline permissions
@@ -660,7 +668,7 @@ See [CLAUDE.md](CLAUDE.md) for:
 
 ## Roadmap
 
-- **Skills exist for both Apple and Android.** Apple has 8 skills (concurrency, testing, SwiftUI, Core Data, DocC, error handling, logging, SPM); Android has 3 (Gradle architecture, XML-to-Compose migration, R8/ProGuard). Android skill coverage will grow as production patterns surface — Compose-pro and coroutines-pro equivalents of the Apple skills are on the roadmap.
+- **Skills exist for both Apple and Android.** Apple has 9 skills (concurrency, testing, SwiftUI, Core Data, SwiftData, DocC, error handling, logging, SPM); Android has 5 (Compose, coroutines/Flow, Gradle architecture, XML-to-Compose migration, R8/ProGuard) — the Compose-pro and coroutines-pro roadmap items shipped.
 - All rules (Apple + Android) are loaded automatically by `globs` and apply equally; there is no "primary" / "secondary" platform in the bundle's design.
 
 ## Changelog

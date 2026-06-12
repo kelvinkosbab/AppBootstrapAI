@@ -106,7 +106,8 @@
 #                          localization     String Catalogs / strings.xml / RTL
 #                          linting          SwiftLint+formatter / ktlint+detekt+Android Lint
 #                          persistence      Core Data under Swift 6
-#                          ai               Apple Foundation Models (iOS 26+)
+#                          ai               In-app AI models: Apple Foundation Models (iOS 26+)
+#                                           + Android Gemini Nano / ML Kit GenAI / Firebase AI Logic
 #                          migration        XML/Fragment → Compose migration
 #                          shrinking        R8 / ProGuard
 #                          spatial          visionOS: scene types, immersion styles,

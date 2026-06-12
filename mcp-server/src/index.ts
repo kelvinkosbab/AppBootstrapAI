@@ -75,7 +75,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     localization:     "String Catalogs / strings.xml / plurals / RTL.",
     linting:          "SwiftLint + formatter (Apple) / ktlint + detekt + Android Lint (Android): config, suppression hygiene, baselines, triage decision-order, CI placement.",
     persistence:      "Core Data under Swift 6 strict concurrency.",
-    ai:               "Apple Foundation Models (iOS 26+).",
+    ai:               "In-app AI models: Apple Foundation Models (iOS 26+) + Android Gemini Nano / ML Kit GenAI / Firebase AI Logic.",
     migration:        "Android XML/Fragment → Compose migration.",
     shrinking:        "R8 / ProGuard configuration and keep-rule discipline.",
     spatial:          "visionOS: scene types, immersion styles, spatial gestures, RealityKit/ECS, USDZ pipeline.",

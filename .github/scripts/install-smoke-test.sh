@@ -1906,6 +1906,56 @@ b="$("$INSTALL" --recommend "$t" 2>&1)"
     || { red "FAIL: --recommend alias should match the recommend verb"; FAIL=$((FAIL + 1)); }
 rm -rf "$t"
 
+# --- ai category is cross-platform; new skills land (v1.0 additions) ---------
+
+bold "==> ai: --platform android --features ai installs the android AI rule (was empty)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features ai > /dev/null
+if [[ -f "$t/.claude/rules/android-ai-best-practices.md" \
+   && ! -f "$t/.claude/rules/apple-foundation-models.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: android+ai should install android-ai-best-practices.md only"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> ai: --platform both --features ai installs both AI rules"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features ai > /dev/null
+if [[ -f "$t/.claude/rules/android-ai-best-practices.md" \
+   && -f "$t/.claude/rules/apple-foundation-models.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: both+ai should install Apple AND Android AI rules"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> persistence: apple install includes swiftdata-pro alongside coredata-swift6-pro"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features persistence > /dev/null
+if [[ -f "$t/.claude/skills/swiftdata-pro/SKILL.md" \
+   && -f "$t/.claude/skills/coredata-swift6-pro/SKILL.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: persistence should install swiftdata-pro + coredata-swift6-pro"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> android recommended includes the new compose/coroutines skills"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended > /dev/null
+if [[ -f "$t/.claude/skills/android-compose-pro/SKILL.md" \
+   && -f "$t/.claude/skills/android-coroutines-pro/SKILL.md" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: android recommended should install android-compose-pro + android-coroutines-pro"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
 # --- subcommand verbs (backward-compatible with the --flag forms) ------------
 
 bold "==> verb: 'list' equals '--list'"

@@ -11,6 +11,35 @@ When the first tag is cut, `[Unreleased]` is promoted to a dated version section
 
 ### Added
 
+- **`android-ai-best-practices.md`** — the `ai` category is now cross-platform.
+  The Android counterpart to the Apple Foundation Models rule: on-device Gemini
+  Nano via ML Kit GenAI / AICore vs cloud Gemini via Firebase AI Logic, never
+  ship a raw model API key (App Check / backend proxy), two-level availability
+  gating, streaming into Compose with placeholder-then-mutate, structural
+  cancellation, interface + fake testability, consent + Data-safety hooks.
+  Previously `--platform android --features ai` installed nothing.
+- **`swiftdata-pro` skill** (persistence) — Paul Hudson's MIT
+  [`swiftdata-agent-skill`](https://github.com/twostraws/swiftdata-agent-skill),
+  bundled alongside `coredata-swift6-pro`: core model/context rules, safe
+  `#Predicate` usage, CloudKit constraints, iOS 18+ indexing, iOS 26+ class
+  inheritance.
+- **`android-compose-pro` skill** (ui) — deep Compose review: recomposition
+  stability + skippability (strong-skipping aware), side-effect audit
+  (`LaunchedEffect` keys, `rememberUpdatedState`, `DisposableEffect` teardown),
+  lazy-list performance (keys, `contentType`, `derivedStateOf`), state modeling.
+- **`android-coroutines-pro` skill** (concurrency) — deep coroutines/Flow
+  review: scope-to-lifecycle mapping, cooperative cancellation
+  (`CancellationException` / `runCatching` traps), `launch` vs `async`
+  exception propagation, supervisor boundaries, `stateIn`/`shareIn`
+  configuration, `callbackFlow` teardown, coroutine testing (virtual time,
+  Turbine). Android skill parity: 5 Android skills alongside 9 Apple.
+- **Privacy-manifest / Data-safety guidance in the deployment rules** —
+  `apple-testflight-deployment.md` gains a `PrivacyInfo.xcprivacy` section
+  (required-reason APIs, collected-data types, tracking domains, third-party
+  SDK manifests, ITMS-91053/91061 — the upload gate AI-generated code trips
+  most often); `android-play-beta-deployment.md` gains the Play Data safety
+  form discipline (SDK-sourced data, mismatch enforcement, AI-SDK triggers).
+
 - **One-command installer (`install.sh`)** that copies the matching rules,
   skills, settings, `CLAUDE.md` template, and `.gitignore` entries into a
   target repo. Never overwrites an existing `CLAUDE.md`, `settings.json`, or
