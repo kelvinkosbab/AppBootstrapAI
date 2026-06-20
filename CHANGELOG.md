@@ -16,6 +16,19 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   a body only when the why isn't visible in the diff. Targets the verbosity AI
   assistants produce that stops teammates reading either.
 
+### Changed
+
+- **README — new "Building with AI agents (after install)" section.** The docs
+  covered installing via an agent but not building with the bundle day-to-day;
+  added guidance on naming rules when correcting the agent, invoking the
+  deep-review skills explicitly, the Claude-only skills caveat for other agents,
+  scoped sessions, and staying current via `upgrade`.
+- **CLAUDE templates — richer "AI Rules and Skills" guidance.** All three
+  starter templates now coach explicit skill invocation, rule-citation when the
+  agent slips, and the upgrade pointer. Fixed the stale Android note claiming
+  Android skills don't exist yet (they do — `android-compose-pro`,
+  `android-coroutines-pro`).
+
 ## [1.0.0] - 2026-06-11
 
 ### Added

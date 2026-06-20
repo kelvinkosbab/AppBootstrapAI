@@ -104,10 +104,10 @@ The principle: commits and pushes are user-driven. Edits are AI-driven.
 
 ## AI Rules and Skills
 
-This repo uses the AppBootstrapAI bundle in `.claude/`:
+This repo carries the AppBootstrapAI bundle in `.claude/`:
 
-- **Rules** (`.claude/rules/`) are auto-applied to matching files. See each file's frontmatter `globs:` for scope.
-- **Skills** (`.claude/skills/`) are invoked on demand — e.g., *"Use `swift-concurrency-pro` to review `NetworkClient.swift`."*
+- **Rules** (`.claude/rules/`) auto-apply to files matching each rule's `globs:`. They steer what the agent writes, but most are review-time conventions, not compiler-enforced — review the output, and when the agent slips, name the rule (*"this violates `apple-swiftui-mvvm.md` — fix the ownership"*) so it corrects against the exact text.
+- **Skills** (`.claude/skills/`) are on-demand deep-review agents — invoke them explicitly after writing a feature: *"Use `swiftui-pro` to review `SettingsView.swift`"* / *"Use `android-coroutines-pro` to review the data layer."* Don't wait for auto-fire. (Skills are Claude-specific; other agents get the rules as steering — ask them to review against the relevant `.claude/rules/<name>.md` instead.)
 - Local permission overrides go in `.claude/settings.local.json` (git-ignored).
 
-When you discover a new pattern that should be enforced project-wide, add it to `.claude/rules/<name>.md` with `description:` and `globs:` frontmatter. Keep rules short and prescriptive.
+Keep this file current — it's the first thing the agent reads. When you discover a pattern that should be enforced project-wide, add `.claude/rules/<name>.md` with `description:` and `globs:` frontmatter; keep rules short and prescriptive. Refresh the bundle as it evolves with `install.sh upgrade . --apply`.

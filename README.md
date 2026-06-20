@@ -367,6 +367,17 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 
 Agents that run in a terminal context (Claude Code, Cursor's agent mode, Gemini CLI, Kiro, Codex CLI) execute the shell command directly. Agents without shell access (Copilot Chat, web Claude.ai) can produce the command for you to run.
 
+## Building with AI agents (after install)
+
+Installing the bundle is step one; the payoff is how your agent behaves while you build. A few habits get the most out of it:
+
+1. **Rules steer the agent's output — but most are review-time conventions, not compiler-enforced.** The agent writes to the rules automatically, yet several say so outright (*"enforced by review, not the compiler"*). Review what lands, and when the agent slips, *name the rule*: *"this violates `apple-swiftui-mvvm.md` — fix the ownership."* Citing the file points the agent at the exact text and it self-corrects.
+2. **Invoke the deep-review skills explicitly — don't wait for auto-fire.** Skills (`.claude/skills/`) are on-demand review agents that load only when asked. After the agent writes a feature, request the matching review: *"Use `swiftui-pro` to review `SettingsView.swift`"*, *"Use `android-compose-pro` to check `FeedScreen.kt` for recomposition bugs."* Each produces a file-by-file findings report with before/after fixes.
+3. **Skills are Claude-only; other agents get the rules as steering.** Cursor, Copilot, Gemini, Codex, and Kiro receive the rules in their native format (see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents)) but not the deep-review skills. With those agents, ask for a manual pass instead: *"Review this against `.claude/rules/android-coroutines-best-practices.md`."*
+4. **Keep sessions scoped — it's correctness *and* token economy.** Rules are glob-scoped, so only the ones matching the files you're touching load into context. A focused session (one subsystem, its relevant rules) gives sharper steering and a smaller bill than a sprawling one. More in [Saving AI tokens](#saving-ai-tokens).
+5. **Put project-specifics in `CLAUDE.md`.** The agent reads it first. The module graph, build commands, and gotchas you record there compound with the bundle's rules — and a pattern you catch yourself correcting twice belongs in a new `.claude/rules/<name>.md`.
+6. **Stay current.** New platform APIs land in the rules each Xcode / AGP cycle. Run `upgrade` periodically so the steering reflects them — see [Upgrading an existing install](#upgrading-an-existing-install).
+
 ## Upgrading an existing install
 
 Once a repo has run `install.sh`, the bundle keeps evolving — new rules ship, existing rules get tightened, skills gain references. The `--upgrade` flow lets you see what would change and apply it surgically, without ever touching files you've customized.
