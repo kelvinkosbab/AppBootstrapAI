@@ -59,6 +59,22 @@ A plain `install` over a **managed** dir is refused (use `upgrade`; `--force` ov
 R8 / ProGuard → `shrinking` · XML layouts / Fragments → `migration` ·
 fastlane / CI → `deployment`. The `recommended` set is always included.
 
+## Scaffolding a local Swift package (separate tool)
+
+To help an Apple app modularize — move logic out of the `.xcodeproj` into a
+local package, KozBon-style — use the standalone scaffolder (not an `install.sh`
+verb):
+
+```bash
+./scripts/scaffold-spm-package.sh <repo> --modules Core,Models,UI,AppCore [--dry-run]
+```
+
+It generates `<repo>/<Name>Packages/` with a `makeTargets()` `Package.swift` plus
+a compiling source + passing test per module; a module named `AppCore` becomes
+the umbrella the app target links. Non-destructive (never overwrites; `--force`
+fills only missing files). It does **not** move existing code — that's the
+incremental, leaf-first step (see `.claude/rules/apple-modular-architecture.md`).
+
 ## Guardrails (respect these)
 
 - The installer **never overwrites** `CLAUDE.md`, `settings.json`, or existing

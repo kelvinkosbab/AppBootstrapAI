@@ -9,6 +9,11 @@
 // is a *two-line* change: one line in `products:` (to expose it) and one
 // `+ makeTargets(name: ..., ...)` line in `targets:`.
 //
+// Prefer to generate this rather than hand-copy it? Run the bundle's
+// `scripts/scaffold-spm-package.sh <repo> --modules Core,...,AppCore` — it emits
+// this manifest plus compiling module skeletons. See apple-modular-architecture.md
+// for the thin-app-shell + local-package architecture this assumes.
+//
 // Conventions assumed:
 //   - One directory per module at the package root.
 //   - Inside each module: `Sources/` for source, `Tests/` for tests, optional

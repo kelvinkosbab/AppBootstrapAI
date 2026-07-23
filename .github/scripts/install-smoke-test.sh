@@ -1956,6 +1956,52 @@ else
 fi
 rm -rf "$t"
 
+bold "==> packaging: apple-modular-architecture lands for apple (recommended), not android"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+a_ok=$([[ -f "$t/.claude/rules/apple-modular-architecture.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features all > /dev/null
+b_ok=$([[ ! -f "$t/.claude/rules/apple-modular-architecture.md" ]] && echo y)
+rm -rf "$t"
+if [[ "$a_ok" == "y" && "$b_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: apple-modular-architecture should install for apple recommended and be absent for android"
+    FAIL=$((FAIL + 1))
+fi
+
+bold "==> scaffold-spm-package.sh generates a valid KozBon-style package skeleton"
+t="$(mktemp -d)"; mkdir -p "$t/MyApp"
+"$REPO_ROOT/scripts/scaffold-spm-package.sh" "$t/MyApp" --modules Core,Models,AppCore > /dev/null
+pkg="$t/MyApp/MyAppPackages"
+scaffold_ok=y
+for f in "$pkg/Package.swift" "$pkg/.gitignore" \
+         "$pkg/Core/Sources/Core.swift" "$pkg/Core/Tests/CoreTests.swift" \
+         "$pkg/Models/Sources/Models.swift" "$pkg/Models/Tests/ModelsTests.swift" \
+         "$pkg/AppCore/Sources/AppCore.swift" "$pkg/AppCore/Tests/AppCoreTests.swift"; do
+    [[ -f "$f" ]] || scaffold_ok=n
+done
+# AppCore umbrella must depend on the other two modules; products must be emitted.
+grep -q 'makeTargets(' "$pkg/Package.swift" || scaffold_ok=n
+grep -q '.library(name: "AppCore", targets: \["AppCore"\])' "$pkg/Package.swift" || scaffold_ok=n
+grep -q '"Models"' "$pkg/Package.swift" || scaffold_ok=n
+if [[ "$scaffold_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: scaffold-spm-package.sh did not produce the expected package skeleton"
+    FAIL=$((FAIL + 1))
+fi
+# Non-destructive: a second run without --force must refuse.
+if "$REPO_ROOT/scripts/scaffold-spm-package.sh" "$t/MyApp" --modules Core,Models,AppCore >/dev/null 2>&1; then
+    red "FAIL: scaffold-spm-package.sh should refuse to overwrite an existing package without --force"
+    FAIL=$((FAIL + 1))
+else
+    PASS=$((PASS + 1))
+fi
+rm -rf "$t"
+
 bold "==> core: concise-comments-and-commits rule lands on BOTH platforms"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform apple --features core > /dev/null

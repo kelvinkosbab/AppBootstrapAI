@@ -37,7 +37,7 @@ file_category() {
             echo "docs" ;;
         swift-error-handling-pro)
             echo "error-handling" ;;
-        apple-spm-package-conventions.md|swift-package-pro|android-gradle-conventions.md|android-project-rules.md|android-gradle-architecture-pro)
+        apple-spm-package-conventions.md|apple-modular-architecture.md|swift-package-pro|android-gradle-conventions.md|android-project-rules.md|android-gradle-architecture-pro)
             echo "packaging" ;;
         swift-logging-pro|apple-logging-strategy.md|android-logging-strategy.md)
             echo "logging" ;;

@@ -113,6 +113,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (schema v2 — records per-file SHA-256 hashes so `--upgrade` can diff 3-way: installed vs. current disk vs. bundle)
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 - **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
+- **`scripts/scaffold-spm-package.sh`** — generates a KozBon-style local package (`<App>Packages/`) so an existing app can move its logic out of the `.xcodeproj` and into modules. Emits a `makeTargets()`-based `Package.swift` from `--modules Core,…,AppCore` plus a compiling source + passing test placeholder per module; a module named `AppCore` becomes the umbrella the app links. Non-destructive (never overwrites; `--dry-run` / `--force`). Pairs with the `apple-modular-architecture.md` rule.
 
 </details>
 
@@ -608,6 +609,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-linting-strategy.md                  # SwiftLint + formatter (linting)
 │   │   ├── apple-localization-best-practices.md       # String Catalogs, plurals, RTL
 │   │   ├── apple-logging-strategy.md                  # os.Logger, privacy markers, levels (logging)
+│   │   ├── apple-modular-architecture.md              # Thin app shell + fat local SPM package
 │   │   ├── apple-objc-accessibility-best-practices.md # UIKit a11y in ObjC
 │   │   ├── apple-objc-best-practices.md               # Modern Objective-C
 │   │   ├── apple-spm-package-conventions.md           # Package.swift authoring
@@ -639,6 +641,8 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   ├── CLAUDE.template.android.md     # Starter for Android-only projects
 │   ├── CLAUDE.template.md             # Starter for cross-platform projects
 │   └── Package.template.swift         # Starter Package.swift with makeTargets() helper
+├── scripts/                           # Standalone repo tools (run from the bundle, not installed)
+│   └── scaffold-spm-package.sh        # Generate a KozBon-style local SPM package skeleton
 ├── mcp-recipes/                       # Recipes for --with-mcps (one JSON per supported MCP)
 │   ├── xcodebuildmcp.json             # Apple
 │   ├── xcode-native.json              # Apple (Xcode 26.3+ first-party)

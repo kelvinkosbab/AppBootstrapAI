@@ -6,12 +6,14 @@ on:
     paths:
       - 'install.sh'
       - 'lib/**.sh'
+      - 'scripts/**.sh'
       - '.github/scripts/**.sh'
       - '.github/workflows/shellcheck.yml'
   pull_request:
     paths:
       - 'install.sh'
       - 'lib/**.sh'
+      - 'scripts/**.sh'
       - '.github/scripts/**.sh'
       - '.github/workflows/shellcheck.yml'
 

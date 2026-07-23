@@ -10,6 +10,21 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **`apple-modular-architecture.md`** (packaging, in `recommended`) — steers
+  Apple apps toward a thin Xcode app target over a fat local Swift package split
+  into many small modules (the KozBon / BasicSwiftUtilities shape). Covers why
+  it wins, the layered dependency graph (Core → domain → features → UI →
+  `AppCore` umbrella), the incremental migration playbook, and the
+  `Bundle.module` / `.xcdatamodeld` caveats. Complements the existing
+  `apple-spm-package-conventions.md` (manifest mechanics).
+- **`scripts/scaffold-spm-package.sh`** — generates a KozBon-style local package
+  (`<App>Packages/`) so an existing app can modularize: a `makeTargets()`-based
+  `Package.swift` from `--modules Core,…,AppCore` plus a compiling source +
+  passing Swift Testing placeholder per module, with an `AppCore` umbrella the
+  app links. Non-destructive (`--dry-run` / `--force`, never overwrites). The
+  generated manifest `swift build`s and `swift test`s clean out of the box.
+  Shellcheck CI now covers `scripts/**.sh`.
+
 - **`concise-comments-and-commits.md`** (core, cross-platform) — fires on all
   Swift/Kotlin/ObjC source. Comments default to none (why-not-what, no diff
   commentary or narration); commit messages get a short imperative subject and

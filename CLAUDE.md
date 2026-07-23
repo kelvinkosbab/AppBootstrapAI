@@ -29,6 +29,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-linting-strategy.md                  # Apple: SwiftLint + formatter discipline
 │   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
 │   ├── apple-logging-strategy.md                  # Apple: os.Logger, privacy markers, levels
+│   ├── apple-modular-architecture.md              # Apple: thin app shell + fat local SPM package
 │   ├── apple-objc-accessibility-best-practices.md # Apple: UIKit a11y in Objective-C
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
 │   ├── apple-spm-package-conventions.md           # Apple: Package.swift authoring
@@ -64,8 +65,9 @@ Plus, at the repo root:
 - `templates/CLAUDE.template.android.md` — starter `CLAUDE.md` for Android-only projects.
 - `templates/CLAUDE.template.md` — starter `CLAUDE.md` for cross-platform projects.
 - `templates/Package.template.swift` — starter `Package.swift` with a `makeTargets()` helper that collapses per-module boilerplate; adding a new module is a two-line change (one in `products:`, one `+ makeTargets(...)` block).
+- `scripts/scaffold-spm-package.sh` — generates a KozBon-style local SPM package (`<App>Packages/`) from `--modules Core,…,AppCore`: a `makeTargets()`-based `Package.swift` plus a compiling source + passing test placeholder per module, with an `AppCore` umbrella the app target links. Non-destructive (`--dry-run` / `--force`, never overwrites). Run from the bundle against a target repo; it's not copied in. Pairs with the `apple-modular-architecture.md` rule.
 
-The installer picks the right `CLAUDE.md` template based on `--platform`. The `Package.template.swift` is copied manually into new SPM packages — `install.sh` doesn't drop it because the bundle target is usually an existing app, not a fresh package.
+The installer picks the right `CLAUDE.md` template based on `--platform`. The `Package.template.swift` is copied manually into new SPM packages — `install.sh` doesn't drop it because the bundle target is usually an existing app, not a fresh package. The `scaffold-spm-package.sh` script is a one-shot generator, separate from `install.sh`'s steering content.
 
 Each skill ships with:
 
