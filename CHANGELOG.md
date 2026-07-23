@@ -33,6 +33,20 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Changed
 
+- **Accessibility rules — Bluetooth assistive tech + latest-practice refresh**
+  across all three a11y rules. New coverage: Full Keyboard Access / Switch
+  Control / braille-display discipline (SwiftUI `.focusable()` +
+  `@AccessibilityFocusState`; UIKit `canBecomeFocused` +
+  `accessibilityRespondsToUserInteraction`; Compose focus + visible indicators),
+  audio/hearing (no sound-only cues, system captions), and App Store
+  Accessibility Nutrition Label honesty (a VoiceOver claim = all common tasks
+  work under VoiceOver). Verified-current API guidance: SwiftUI
+  `AccessibilityNotification.Announcement` + priority, UIKit
+  `UIAccessibilitySpeechAttributeAnnouncementPriority`, and Android 16's
+  `announceForAccessibility` deprecation → `liveRegion` / `paneTitle` /
+  `stateDescription` semantics (braille over Bluetooth HID is OS-level since
+  Android 15 / TalkBack 15).
+
 - **README — new "Building with AI agents (after install)" section.** The docs
   covered installing via an agent but not building with the bundle day-to-day;
   added guidance on naming rules when correcting the agent, invoking the

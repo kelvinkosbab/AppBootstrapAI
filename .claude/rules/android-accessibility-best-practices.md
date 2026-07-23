@@ -1,11 +1,11 @@
 ---
-description: Enforce Android accessibility best practices for TalkBack, Compose semantics, touch targets, dynamic text, and contrast
+description: Enforce Android accessibility best practices for TalkBack, Compose semantics, touch targets, dynamic text, contrast, and Bluetooth assistive tech (keyboards, switch access, braille displays)
 globs: "**/*.{kt,kts}"
 ---
 
 # Android Accessibility Best Practices
 
-All Composables must be fully accessible. TalkBack, dynamic text scaling, and sufficient touch targets are required, not optional.
+All Composables must be fully accessible. TalkBack, dynamic text scaling, and sufficient touch targets are required, not optional — and the same semantics tree must hold up under the Bluetooth assistive hardware TalkBack users pair: external keyboards, switches, and braille displays (HID braille is OS-level since Android 15 / TalkBack 15).
 
 ## Content Descriptions
 
@@ -41,10 +41,31 @@ All Composables must be fully accessible. TalkBack, dynamic text scaling, and su
 - Respect the system "Remove animations" setting by checking `LocalAccessibilityManager.current?.isReduceMotionEnabled` (API 33+) or `Settings.Global.ANIMATOR_DURATION_SCALE == 0f` and skip or shorten non-essential animations.
 - Use `animateContentSize()` and `AnimatedVisibility` with a duration guard — `tween(if (reduceMotion) 0 else 300)`.
 
-## Focus & Navigation
+## Focus & Navigation (Bluetooth Keyboards, Switch Access, D-pad)
 
 - Ensure logical focus order with `Modifier.focusProperties { next = ... ; previous = ... }` when the default traversal is wrong (e.g., floating overlays).
-- Make non-default interactive elements `Modifier.focusable()` so physical-keyboard, D-pad, and switch-access users can reach them.
+- Make non-default interactive elements `Modifier.focusable()` so physical-keyboard, D-pad, and switch-access users can reach them. A `Modifier.clickable` is focusable automatically; a bare `pointerInput` gesture handler is not — pair it with `focusable()` + a semantics `onClick`, or use `clickable`.
+- **Test with a paired Bluetooth keyboard**: Tab/arrow through every screen; every interactive element must show focus and activate via Enter/Space. Switch Access scans the same tree — a screen that keyboard-navigates cleanly usually scans cleanly.
+- Never remove the focus indicator; if you restyle it, keep ≥ 3:1 contrast against the surface.
+
+## Announcements — Semantics, Not `announceForAccessibility`
+
+- **`View.announceForAccessibility()` and `TYPE_ANNOUNCEMENT` events are deprecated in Android 16** — they produce inconsistent behavior across TalkBack, braille, and other assistive tech. AI-generated code still reaches for them; don't.
+- Use the semantic replacements, which all assistive tech consumes consistently:
+  - **In-place critical updates** → `Modifier.semantics { liveRegion = LiveRegionMode.Polite }` (or `.Assertive` for must-interrupt errors).
+  - **Pane/screen changes** → `Modifier.semantics { paneTitle = "..." }` (or `setAccessibilityPaneTitle` in View-land).
+  - **Control state changes** → `stateDescription` (already the rule for values above).
+- Announce sparingly: live regions fire on every recomposed change to their text — scope them to the message container, not a whole screen.
+
+## Braille Displays (TalkBack + Bluetooth HID)
+
+- Braille displays connect over Bluetooth via OS-level HID braille (Android 15+); TalkBack drives them from the same semantics you already provide — `contentDescription` *is* the braille output.
+- Front-load labels with the meaningful words (displays show 14–40 cells), keep them short, and keep emoji/decoration out of `contentDescription` and `stateDescription` — they render as literal braille noise.
+
+## Audio & Hearing
+
+- **Never convey information through sound alone.** Pair audio cues with a visual change and haptics — Bluetooth hearing devices (LE Audio) and muted phones both make audio an unreliable channel.
+- Media playback must offer captions; honor the system caption preferences (`CaptioningManager`) rather than inventing a parallel toggle.
 
 ## Color & Contrast
 

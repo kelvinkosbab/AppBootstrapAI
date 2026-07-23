@@ -354,6 +354,7 @@ Scoped to `**/*.{h,m,mm}`. UIKit-side mirror of `apple-accessibility-best-practi
 - VoiceOver announcements via `UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, ...)`; use sparingly.
 - Modal overlays: `accessibilityViewIsModal = YES` so VoiceOver focus doesn't escape.
 - Custom long-press / swipe actions: expose via `accessibilityCustomActions` so they're reachable from the VoiceOver rotor.
+- Bluetooth assistive tech: custom actionable views override `canBecomeFocused` (Full Keyboard Access) and `accessibilityRespondsToUserInteraction` (Switch Control); braille-friendly short labels; announcement priority via `UIAccessibilitySpeechAttributeAnnouncementPriority`.
 
 ### Modern Objective-C (`apple-objc-best-practices.md`)
 
@@ -425,6 +426,8 @@ Scoped to `**/*.{kt,kts}`. Encodes:
 - Always check `@Environment(\.accessibilityReduceMotion)` before animating.
 - Use semantic fonts (`.font(.headline)`), never `.font(.system(size:))`.
 - Never hardcode English in accessibility strings — localize everything.
+- Bluetooth assistive tech: custom tap-targets get `.focusable()` (Full Keyboard Access), gesture affordances mirror into `.accessibilityActions` (Switch Control), labels stay short/front-loaded/no-emoji (braille displays).
+- Announce via `AccessibilityNotification.Announcement` (iOS 17+), sparingly; no sound-only cues; App Store Accessibility Nutrition Label claims must be re-audited per release.
 
 ### Android accessibility (`android-accessibility-best-practices.md`)
 
@@ -438,6 +441,8 @@ Scoped to `**/*.{kt,kts}`. Encodes:
 - Respect `LocalAccessibilityManager.current?.isReduceMotionEnabled` in animations.
 - WCAG AA contrast (4.5:1 body / 3:1 large text); never convey state by color alone.
 - All user-facing strings via `stringResource(R.string.…)` — including a11y attributes.
+- Bluetooth keyboards/switch access: everything interactive is focusable with visible focus; braille displays (HID, Android 15+) read your `contentDescription` — keep it short and emoji-free.
+- `announceForAccessibility()` is deprecated (Android 16) — use `liveRegion` / `paneTitle` / `stateDescription` semantics instead.
 
 ## Guidance for adopting teams
 
