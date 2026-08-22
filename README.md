@@ -18,8 +18,8 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 
 | Area | What's inside |
 |------|---------------|
-| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · accessibility · testing · DocC · localization · SPM · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
-| **Android rules** | Kotlin/Compose/MVVM/Hilt · coroutines · accessibility · testing · KDoc · localization · Gradle · linting · logging · Play beta |
+| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · accessibility · testing · DocC · localization · SPM + modular architecture · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
+| **Android rules** | Kotlin/Compose/MVVM/Hilt · coroutines · accessibility · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta |
 | **Skills (Claude)** | 10 Apple + 6 Android on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
@@ -33,7 +33,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`apple-foundation-models.md`** — Apple Foundation Models patterns: session ownership, two-level availability gating, streaming placeholder-then-mutate, `Task.isCancelled` discipline, protocol + mock + simulator testability.
 - **`apple-swiftui-mvvm.md`** — SwiftUI MVVM conventions: when to extract a view model, `@State` vs `@Bindable` ownership, dependency plumbing, what stays on the View vs the view model, splitting large VMs across extension files.
 - **`apple-objc-best-practices.md`** — Modern Objective-C for legacy / mixed-language codebases: ARC discipline, nullability, lightweight generics, `instancetype`, designated initializers, modern literals/blocks, Swift bridging-header conventions.
-- **`apple-objc-accessibility-best-practices.md`** — UIKit accessibility in Objective-C: `accessibilityLabel` / `accessibilityHint` / `accessibilityTraits` discipline, `accessibilityIdentifier` vs `accessibilityLabel`, Dynamic Type via `preferredFontForTextStyle:`, `UIAccessibilityIsReduceMotionEnabled()`, VoiceOver announcements (`UIAccessibilityPostNotification`), modal-focus management (`accessibilityViewIsModal`), custom-action support, Full Keyboard Access + Switch Control via the focus system (`canBecomeFocused`, `accessibilityRespondsToUserInteraction`), braille-friendly labels, and announcement priority (`UIAccessibilitySpeechAttributeAnnouncementPriority`).
+- **`apple-objc-accessibility-best-practices.md`** — UIKit accessibility in Objective-C: `accessibilityLabel` / `accessibilityHint` / `accessibilityTraits` discipline, `accessibilityIdentifier` vs `accessibilityLabel`, Dynamic Type via `preferredFontForTextStyle:`, `UIAccessibilityIsReduceMotionEnabled()`, VoiceOver announcements (`UIAccessibilityPostNotification`), modal-focus management (`accessibilityViewIsModal`), custom-action support, Full Keyboard Access + Switch Control via the focus system (`canBecomeFocused`, `accessibilityRespondsToUserInteraction`), braille-friendly labels, announcement priority (`UIAccessibilitySpeechAttributeAnnouncementPriority`), and WCAG AA color/contrast (semantic colors, Darker System Colors, `shouldDifferentiateWithoutColor`, Smart Invert).
 - **`apple-testing-strategy.md`** — what to test (and what not), Given/When/Then naming, determinism (inject clocks/UUIDs/network), Swift Testing vs XCTest split, XCUITest discipline, CI coverage gates with sensible exclusions.
 - **`apple-documentation-strategy.md`** — what to document (and what not), DocC discipline (summary line, `- Parameter`/`- Returns`/`- Throws`, double-backtick symbol linking, `## Topics` organization), deprecation discipline with mandatory migration paths, when to write a DocC Article vs. a doc comment.
 - **`apple-localization-best-practices.md`** — String Catalogs (`.xcstrings`) as the modern format, type-safe `Strings` enum facade pattern, `LocalizedStringResource` over `NSLocalizedString`, plurals, locale-aware `.formatted()` for numbers/dates/currency, RTL via leading/trailing modifiers, translator-context comments.
@@ -376,7 +376,7 @@ Agents that run in a terminal context (Claude Code, Cursor's agent mode, Gemini 
 Installing the bundle is step one; the payoff is how your agent behaves while you build. A few habits get the most out of it:
 
 1. **Rules steer the agent's output — but most are review-time conventions, not compiler-enforced.** The agent writes to the rules automatically, yet several say so outright (*"enforced by review, not the compiler"*). Review what lands, and when the agent slips, *name the rule*: *"this violates `apple-swiftui-mvvm.md` — fix the ownership."* Citing the file points the agent at the exact text and it self-corrects.
-2. **Invoke the deep-review skills explicitly — don't wait for auto-fire.** Skills (`.claude/skills/`) are on-demand review agents that load only when asked. After the agent writes a feature, request the matching review: *"Use `swiftui-pro` to review `SettingsView.swift`"*, *"Use `android-compose-pro` to check `FeedScreen.kt` for recomposition bugs."* Each produces a file-by-file findings report with before/after fixes.
+2. **Invoke the deep-review skills explicitly — don't wait for auto-fire.** Skills (`.claude/skills/`) are on-demand review agents that load only when asked. After the agent writes a feature, request the matching review: *"Use `swiftui-pro` to review `SettingsView.swift`"*, *"Use `android-compose-pro` to check `FeedScreen.kt` for recomposition bugs"*, *"Use `swift-accessibility-pro` to audit the onboarding screens before we claim VoiceOver support on the App Store."* Each produces a file-by-file findings report with before/after fixes.
 3. **Skills are Claude-only; other agents get the rules as steering.** Cursor, Copilot, Gemini, Codex, and Kiro receive the rules in their native format (see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents)) but not the deep-review skills. With those agents, ask for a manual pass instead: *"Review this against `.claude/rules/android-coroutines-best-practices.md`."*
 4. **Keep sessions scoped — it's correctness *and* token economy.** Rules are glob-scoped, so only the ones matching the files you're touching load into context. A focused session (one subsystem, its relevant rules) gives sharper steering and a smaller bill than a sprawling one. More in [Saving AI tokens](#saving-ai-tokens).
 5. **Put project-specifics in `CLAUDE.md`.** The agent reads it first. The module graph, build commands, and gotchas you record there compound with the bundle's rules — and a pattern you catch yourself correcting twice belongs in a new `.claude/rules/<name>.md`.
@@ -690,8 +690,15 @@ See [CLAUDE.md](CLAUDE.md) for:
 
 ## Roadmap
 
-- **Skills exist for both Apple and Android.** Apple has 9 skills (concurrency, testing, SwiftUI, Core Data, SwiftData, DocC, error handling, logging, SPM); Android has 5 (Compose, coroutines/Flow, Gradle architecture, XML-to-Compose migration, R8/ProGuard) — the Compose-pro and coroutines-pro roadmap items shipped.
-- All rules (Apple + Android) are loaded automatically by `globs` and apply equally; there is no "primary" / "secondary" platform in the bundle's design.
+**Shipped:** 10 Apple skills (concurrency, testing, SwiftUI, accessibility, Core Data, SwiftData, DocC, error handling, logging, SPM) and 6 Android skills (Compose, coroutines/Flow, accessibility, Gradle architecture, XML-to-Compose migration, R8/ProGuard); 30 rules loaded equally by `globs` — there is no "primary" platform in the bundle's design.
+
+**Next — closing the day-one gaps for new app developers:**
+
+- Navigation rules for both platforms (`NavigationStack` / Navigation-Compose) — the first architectural decision a new app makes, and where AI agents still emit deprecated patterns.
+- Apple app-target hygiene (usage-description keys, dev signing, simulator-vs-device) and Android permissions/manifest + persistence (Room / DataStore) rules.
+- `android-testing-pro` (JUnit/MockK/Turbine/Compose-test review) to match `swift-testing-pro`.
+- Networking and release-readiness review skills; a day-one walkthrough from empty directory to first build.
+- Git task-switching + merged-branch cleanup shortcuts (rule + `scripts/` installer).
 
 ## Changelog
 
