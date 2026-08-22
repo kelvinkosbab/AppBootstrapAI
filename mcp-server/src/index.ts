@@ -437,7 +437,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     platform: { type: "string", enum: ["apple", "android", "both"], description: "Default: both" },
                     apple_language: { type: "string", enum: ["swift", "objc", "both"], description: "Default: swift. Only relevant when platform includes apple." },
                     apple_platforms: { type: "string", description: "Comma-separated Apple sub-platforms (ios, macos, tvos, watchos, visionos) or 'all'. Default: ios,macos,tvos,watchos (no visionOS). Naming 'visionos' adds the visionOS rule. Only relevant when platform includes apple." },
-                    android_platforms: { type: "string", description: "Comma-separated Android form factors (phone, tablet, wear, tv, auto) or 'all'. Default: phone,tablet. Recorded in the manifest; no Android rule is form-factor-specific yet, so this does not change what installs. Only relevant when platform includes android." },
+                    android_platforms: { type: "string", description: "Comma-separated Android form factors (phone, tablet, wear, tv, auto) or 'all'. Default: phone,tablet. 'tablet' gates the large-screen / foldable rule (android-large-screen-best-practices.md) and the android-adaptive-layout-pro skill; other tokens are recorded in the manifest for future form-factor rules. Only relevant when platform includes android." },
                     features: { type: "string", description: "Comma-separated category list, or one of: 'recommended' (default), 'all'." },
                 },
                 additionalProperties: false
@@ -453,7 +453,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     platform: { type: "string", enum: ["apple", "android", "both"], description: "Default: both" },
                     apple_language: { type: "string", enum: ["swift", "objc", "both"], description: "Default: swift. Only relevant when platform includes apple." },
                     apple_platforms: { type: "string", description: "Comma-separated Apple sub-platforms (ios, macos, tvos, watchos, visionos) or 'all'. Default: ios,macos,tvos,watchos (no visionOS). Naming 'visionos' adds the visionOS rule. Only relevant when platform includes apple." },
-                    android_platforms: { type: "string", description: "Comma-separated Android form factors (phone, tablet, wear, tv, auto) or 'all'. Default: phone,tablet. Recorded in the manifest; no Android rule is form-factor-specific yet, so this does not change what installs. Only relevant when platform includes android." },
+                    android_platforms: { type: "string", description: "Comma-separated Android form factors (phone, tablet, wear, tv, auto) or 'all'. Default: phone,tablet. 'tablet' gates the large-screen / foldable rule (android-large-screen-best-practices.md) and the android-adaptive-layout-pro skill; other tokens are recorded in the manifest for future form-factor rules. Only relevant when platform includes android." },
                     features: { type: "string", description: "Comma-separated category list, or one of: 'recommended' (default), 'all'." },
                     agents: { type: "string", description: "Comma-separated AI agents to install for: claude (default), copilot, cursor, gemini, codex, kiro, or 'all'. Additive." },
                     with_mcps: { type: "string", description: "Comma-separated MCP recipe names to add to .claude/settings.local.json (e.g. 'xcodebuildmcp,sentry'). See list-mcps in the bundle for available recipes." },

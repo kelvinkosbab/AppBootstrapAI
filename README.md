@@ -19,8 +19,8 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 | Area | What's inside |
 |------|---------------|
 | **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · accessibility · testing · DocC · localization · SPM + modular architecture · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
-| **Android rules** | Kotlin/Compose/MVVM/Hilt · coroutines · accessibility · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta |
-| **Skills (Claude)** | 10 Apple + 6 Android on-demand deep-review agents |
+| **Android rules** | Kotlin/Compose/MVVM/Hilt · coroutines · accessibility · large screens / foldables · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta |
+| **Skills (Claude)** | 10 Apple + 7 Android on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
@@ -57,7 +57,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Android — 12 rules + 6 skills</strong> (click to expand)</summary>
+<summary><strong>Android — 13 rules + 7 skills</strong> (click to expand)</summary>
 
 - **`android-project-rules.md`** — Kotlin, Jetpack Compose, MVVM, Hilt, StateFlow, Retrofit/Moshi, ktlint.
 - **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
@@ -70,8 +70,10 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`android-linting-strategy.md`** *(linting)* — three linters, three jobs: ktlint (`.editorconfig`, formatting), detekt (`detekt.yml` tuning, `buildUponDefaultConfig`, type resolution, baselines), and Android Lint (`lint {}`, `lint.xml`, `warningsAsErrors`, baselines). `@Suppress` / `@SuppressLint` hygiene, CI placement (`ktlintCheck detekt lintDebug`), version pinning, plus a triage decision-order.
 - **`android-logging-strategy.md`** *(logging)* — Timber over `android.util.Log` (plant a tree in `Application.onCreate`), log levels (V/D/I/W/E/WTF) and passing the `Throwable`, **stripping debug logs from release** (DebugTree-in-debug-only + R8 `assumenosideeffects`), no PII/secrets, crash-reporter integration (Crashlytics/Sentry breadcrumbs + non-fatals via a `CrashReportingTree`), Logcat hygiene.
 - **`android-ai-best-practices.md`** *(ai)* — in-app AI models on Android, the counterpart to the Apple Foundation Models rule: on-device Gemini Nano via ML Kit GenAI / AICore vs cloud Gemini via Firebase AI Logic, **never ship a raw model API key** (App Check / backend proxy), two-level availability gating (feature download + user preference), streaming into Compose with placeholder-then-mutate, structural cancellation, interface + fake testability, consent + Data-safety implications.
+- **`android-large-screen-best-practices.md`** *(ui; gated by the `tablet` form factor)* — tablets, foldables, and desktop windows: window size classes over device heuristics (`isWidthAtLeastBreakpoint`, `BREAKPOINTS_V2`), Material 3 adaptive canonical layouts (`NavigationSuiteScaffold`, `ListDetailPaneScaffold`, `SupportingPaneScaffold`), `FoldingFeature` posture (tabletop / book), state survival across fold/unfold, and the **Android 16 change that ignores orientation / resizability restrictions on ≥ 600dp screens**; large-screen input (keyboard, mouse, stylus, drag-and-drop).
 - **`android-play-beta-deployment.md`** *(deployment)* — shipping to Play beta tracks: `versionCode` monotonicity, Play App Signing (upload key vs app signing key), AAB-not-APK, service-account JSON for CI, internal/closed/open tracks, Triple-T / fastlane upload, `mapping.txt` upload, ranked gotchas.
 - **`android-accessibility-pro` skill** — deep accessibility audit: the TalkBack semantics tree (descriptions/roles/merging/state/custom actions/live regions incl. the Android 16 announcement migration), Bluetooth input (keyboard/Switch Access/braille), visual accessibility (contrast in both themes, sp scaling at 200%, 48dp targets, reduce motion).
+- **`android-adaptive-layout-pro` skill** *(gated by `tablet`)* — large-screen / foldable readiness audit: size-class usage and deprecated device heuristics, canonical-layout fit, `FoldingFeature` posture handling and outer→inner continuity, state across fold/unfold, manifest restrictions under Android 16, window-vs-display math, camera orientation, hardware input, Play quality-tier mapping.
 - **`android-compose-pro` skill** — deep Compose review: recomposition stability + skippability (incl. strong-skipping-mode awareness), side-effect audit (`LaunchedEffect` keys, `rememberUpdatedState`, `DisposableEffect` teardown), lazy-list performance (keys, `contentType`, `derivedStateOf` for scroll), state modeling and hoisting.
 - **`android-coroutines-pro` skill** — deep coroutines/Flow review: scope-to-lifecycle mapping, cooperative cancellation (`CancellationException` discipline, `runCatching` traps), `launch` vs `async` exception propagation, supervisor boundaries, `stateIn`/`shareIn` configuration, `callbackFlow` teardown, coroutine testing (virtual time, Turbine).
 - **`android-gradle-architecture-pro` skill** — reviews multi-module Android builds against the **Now in Android** convention-plugin pattern: `build-logic/convention/` factoring, version-catalog depth, AGP co-versioning, KSP-over-kapt migration.
@@ -102,7 +104,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--platform apple|android|both` — optional; if omitted, the installer auto-detects from the target dir (`Package.swift` / `*.xcodeproj` → apple; `build.gradle*` / `gradlew` → android; both present → both; neither → falls back to `both`). Detection result + matched signals print in the install header. Explicit `--platform` always wins.
   - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
   - `--apple-platforms ios,macos,tvos,watchos,visionos|all` — which Apple sub-platforms you target. Default `ios,macos,tvos,watchos` (every platform **except** visionOS — the lean default for typical app projects). Only meaningful when Apple is in scope. Today the one platform-specific rule is visionOS, so this stays in sync with the `spatial` feature: naming `visionos` installs the visionOS rule, omitting it keeps it out. Recorded in the manifest; a forward-looking framework for future platform-specific rules.
-  - `--android-platforms phone,tablet,wear,tv,auto|all` — which Android form factors you target. Default `phone,tablet`. Only meaningful when Android is in scope. **No Android rule is form-factor-specific today**, so unlike `--apple-platforms` this does **not** change what installs — it's recorded in the manifest and is a forward-looking framework (a Wear OS / Android TV / Auto rule would gate by these tokens).
+  - `--android-platforms phone,tablet,wear,tv,auto|all` — which Android form factors you target. Default `phone,tablet`. Only meaningful when Android is in scope. **`tablet` gates the large-screen / foldable rule** (`android-large-screen-best-practices.md`) **and the `android-adaptive-layout-pro` skill** — drop it for a phone-only app. Other tokens are recorded in the manifest for future form-factor rules (Wear OS / Android TV / Auto would gate the same way).
   - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`); custom CSVs like `core,testing,docs` give fine-grained control
   - `--list` previews the catalog with one-line descriptions + category tags
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
@@ -600,6 +602,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-coroutines-best-practices.md       # Structured concurrency
 │   │   ├── android-documentation-strategy.md          # KDoc strategy + Dokka
 │   │   ├── android-gradle-conventions.md              # Gradle DSL, version catalogs, modules
+│   │   ├── android-large-screen-best-practices.md     # Tablets / foldables / desktop windows (ui, tablet-gated)
 │   │   ├── android-linting-strategy.md                # ktlint + detekt + Android Lint (linting)
 │   │   ├── android-localization-best-practices.md     # strings.xml, plurals, RTL
 │   │   ├── android-logging-strategy.md                # Timber, level discipline, release-stripping (logging)
@@ -625,6 +628,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   └── project-documentation.md                   # README/CHANGELOG/ADR/inline comments
 │   ├── skills/                        # On-demand skills
 │   │   ├── android-accessibility-pro/          # TalkBack / keyboard / contrast audit (ui)
+│   │   ├── android-adaptive-layout-pro/        # Large-screen / foldable readiness audit (ui, tablet-gated)
 │   │   ├── android-compose-pro/                # Compose stability / effects / lazy perf (ui)
 │   │   ├── android-coroutines-pro/             # Coroutines & Flow correctness (concurrency)
 │   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs

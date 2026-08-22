@@ -29,7 +29,7 @@ file_category() {
             echo "core" ;;
         apple-swift6-strict-concurrency.md|swift-concurrency-pro|android-coroutines-best-practices.md|android-coroutines-pro)
             echo "concurrency" ;;
-        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|swiftui-pro|swift-accessibility-pro|android-compose-best-practices.md|android-accessibility-best-practices.md|android-compose-pro|android-accessibility-pro)
+        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|swiftui-pro|swift-accessibility-pro|android-compose-best-practices.md|android-accessibility-best-practices.md|android-compose-pro|android-accessibility-pro|android-large-screen-best-practices.md|android-adaptive-layout-pro)
             echo "ui" ;;
         apple-testing-strategy.md|swift-testing-pro|android-testing-strategy.md)
             echo "testing" ;;
@@ -76,6 +76,17 @@ is_in_features() {
     return 1
 }
 
+# Whether an Android form-factor token (phone/tablet/wear/tv/auto) is in the
+# resolved --android-platforms set. The first consumer is the large-screen /
+# foldable rule + skill, gated by `tablet`.
+android_platform_selected() {
+    local p
+    for p in $SELECTED_ANDROID_PLATFORMS; do
+        [[ "$p" == "$1" ]] && return 0
+    done
+    return 1
+}
+
 # --- Inclusion predicates -----------------------------------------------------
 # Decide whether a given rule file should be installed for the current
 # (PLATFORM, APPLE_LANG, FEATURES) combination.
@@ -98,6 +109,11 @@ should_install_rule() {
             # language is swift or both AND the rule's category is selected.
             [[ "$PLATFORM" != "android" ]] && [[ "$APPLE_LANG" != "objc" ]] && is_in_features "$name"
             ;;
+        android-large-screen-*)
+            # Form-factor rule: gated by --features (ui) AND the `tablet` token
+            # in --android-platforms (the default includes it).
+            [[ "$PLATFORM" != "apple" ]] && is_in_features "$name" && android_platform_selected tablet
+            ;;
         android-*)
             [[ "$PLATFORM" != "apple" ]] && is_in_features "$name"
             ;;
@@ -112,6 +128,10 @@ should_install_rule() {
 should_install_skill() {
     local name="$1"
     case "$name" in
+        android-adaptive-layout-pro)
+            # Form-factor skill — also needs `tablet` in --android-platforms.
+            [[ "$PLATFORM" != "apple" ]] && is_in_features "$name" && android_platform_selected tablet
+            ;;
         android-*|xml-to-compose-*|r8-shrink-*)
             # Android skill — install when Android is in scope AND feature selected.
             [[ "$PLATFORM" != "apple" ]] && is_in_features "$name"

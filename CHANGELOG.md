@@ -10,6 +10,21 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Android large screens & foldables — rule + skill, the first form-factor
+  gate.** `android-large-screen-best-practices.md` (ui) steers toward window
+  size classes over device heuristics (`isWidthAtLeastBreakpoint`,
+  `BREAKPOINTS_V2`), Material 3 adaptive canonical layouts, `FoldingFeature`
+  posture (tabletop / book), state survival across fold/unfold, large-screen
+  input, and the **Android 16 change that ignores orientation / resizability
+  restrictions on ≥ 600dp screens** (opt-out removed at targetSdk 37).
+  `android-adaptive-layout-pro` audits size-class usage, canonical-layout fit,
+  posture handling, manifest restrictions, window-vs-display math, camera
+  orientation, hardware input, and maps findings to Play's large-screen quality
+  tiers. Both install only when `tablet` is in `--android-platforms` (the
+  default) — `--android-platforms` now gates content, as `--apple-platforms`
+  does for visionOS. `--help`, the guided setup, the MCP tool descriptions, and
+  README no longer describe the selector as a no-op.
+
 - **`swift-accessibility-pro` + `android-accessibility-pro` skills** (ui, in
   `recommended`) — the first accessibility deep-review skills, one per
   platform. Each audits three surfaces with per-surface references: the screen

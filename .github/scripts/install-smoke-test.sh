@@ -2435,24 +2435,27 @@ else
 fi
 rm -rf "$t"
 
-# --- --android-platforms selector (forward-looking framework; no gating today) -
+# --- --android-platforms selector (tablet gates the large-screen rule + skill) -
 
-bold "==> --android-platforms default records phone,tablet; doesn't change install"
+bold "==> --android-platforms: default (phone,tablet) installs large-screen rule + skill; wear,tv excludes them"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform android --features recommended > /dev/null
-base_count="$(ls "$t/.claude/rules" | wc -l | tr -d ' ')"
+def_ok=$([[ -f "$t/.claude/rules/android-large-screen-best-practices.md" \
+         && -f "$t/.claude/skills/android-adaptive-layout-pro/SKILL.md" ]] && echo y)
 rm -rf "$t"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform android --features recommended --android-platforms wear,tv > /dev/null
-wear_count="$(ls "$t/.claude/rules" | wc -l | tr -d ' ')"
-if [[ "$base_count" == "$wear_count" ]] && python3 -c "
+gate_ok=$([[ ! -f "$t/.claude/rules/android-large-screen-best-practices.md" \
+          && ! -d "$t/.claude/skills/android-adaptive-layout-pro" \
+          && -f "$t/.claude/rules/android-compose-best-practices.md" ]] && echo y)
+if [[ "$def_ok" == "y" && "$gate_ok" == "y" ]] && python3 -c "
 import json
 s = json.load(open('$t/.claude/.appbootstrap-manifest.json'))['selection']
 assert s['android_platforms_resolved'] == ['wear','tv'], s['android_platforms_resolved']
 " 2>/dev/null; then
     PASS=$((PASS + 1))
 else
-    red "FAIL: --android-platforms should record the set without changing the installed rules"
+    red "FAIL: tablet token should gate the large-screen rule + adaptive-layout skill (def=$def_ok gate=$gate_ok)"
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$t"

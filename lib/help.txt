@@ -80,10 +80,11 @@
 #   --android-platforms  Which Android form factors you target, CSV of:
 #                          phone, tablet, wear, tv, auto   (or `all`)
 #                        Default: phone,tablet. Only meaningful when Android is
-#                        in scope. NO Android rule is form-factor-specific today,
-#                        so this DOESN'T change what installs — it's recorded in
-#                        the manifest and is a forward-looking framework (a Wear
-#                        OS / Android TV / Auto rule would gate by these tokens).
+#                        in scope. `tablet` gates the large-screen / foldable
+#                        rule (android-large-screen-best-practices.md) and the
+#                        android-adaptive-layout-pro skill — drop it for a
+#                        phone-only app. Other tokens are recorded in the
+#                        manifest for future form-factor rules (Wear OS / TV / Auto).
 #
 #   --features           Comma-separated list of feature categories, or one of:
 #                        - recommended (default) → curated subset for most apps:

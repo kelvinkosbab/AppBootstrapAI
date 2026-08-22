@@ -118,12 +118,12 @@ run_interactive() {
         fi
     fi
 
-    # Android form factors (only if android in scope). Recorded for the manifest;
-    # no Android rule is form-factor-specific yet, so it doesn't change installs.
+    # Android form factors (only if android in scope). `tablet` gates the
+    # large-screen / foldable rule + skill; other tokens are recorded for the manifest.
     if [[ "$PLATFORM" != "apple" ]]; then
         echo ""
         echo "    Android form factors you target (CSV: phone, tablet, wear, tv, auto | all)."
-        echo "    Recorded for the manifest — no Android rule is form-factor-specific yet."
+        echo "    'tablet' adds the large-screen / foldable rule + skill; others are recorded for future rules."
         local anplats
         _iask anplats "Android platforms" "phone,tablet"
         if [[ "$anplats" != "phone,tablet" ]]; then

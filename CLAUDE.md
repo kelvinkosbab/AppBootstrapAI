@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 10 Apple, 6 Android — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 10 Apple, 7 Android — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -17,6 +17,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-coroutines-best-practices.md       # Android: Kotlin coroutines / structured concurrency
 │   ├── android-documentation-strategy.md          # Android: KDoc strategy + Dokka
 │   ├── android-gradle-conventions.md              # Android: Gradle DSL / version catalogs / modules
+│   ├── android-large-screen-best-practices.md     # Android: tablets / foldables (tablet-gated)
 │   ├── android-linting-strategy.md                # Android: ktlint + detekt + Android Lint
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
 │   ├── android-logging-strategy.md                # Android: Timber, levels, release-stripping
@@ -42,6 +43,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   └── project-documentation.md                   # Cross-platform: README/CHANGELOG/ADR
 ├── skills/                        # On-demand Claude Code skills
 │   ├── android-accessibility-pro/          # Android: TalkBack / keyboard / contrast audit
+│   ├── android-adaptive-layout-pro/        # Android: large-screen / foldable audit (tablet-gated)
 │   ├── android-compose-pro/                # Android: Compose deep review
 │   ├── android-coroutines-pro/             # Android: coroutines/Flow deep review
 │   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
@@ -131,7 +133,7 @@ Use the installer from the target repo. It takes a **command verb** —
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; every other Apple rule is cross-sub-platform). `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter.
 
 The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
@@ -152,6 +154,7 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `swift-package-pro` to review `Package.swift` and the public API."
 - "Use `swiftdata-pro` to review the SwiftData models and queries."
 - "Use `android-accessibility-pro` to audit `FeedScreen.kt` for TalkBack and contrast."
+- "Use `android-adaptive-layout-pro` to make the app tablet- and foldable-ready."
 - "Use `android-compose-pro` to review `FeedScreen.kt` for recomposition and effect bugs."
 - "Use `android-coroutines-pro` to review cancellation and Flow usage in the data layer."
 - "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
