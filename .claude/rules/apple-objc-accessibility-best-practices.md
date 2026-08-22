@@ -221,6 +221,14 @@ NSAttributedString *msg =
 UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, msg);
 ```
 
+## Color & Contrast
+
+- WCAG AA contrast for text: **4.5:1** body, **3:1** large (≥ 18pt regular / 14pt bold). Check both light and dark appearance with the Accessibility Inspector.
+- **Semantic colors only** for text and backgrounds — `UIColor.labelColor` / `secondaryLabelColor` / `systemBackgroundColor` families adapt to dark mode and Increase Contrast; hardcoded `colorWithRed:green:blue:` values do neither.
+- Honor **Darker System Colors / Increase Contrast**: check `UIAccessibilityDarkerSystemColorsEnabled()` and observe `UIAccessibilityDarkerSystemColorsStatusDidChangeNotification` where custom drawing needs stronger strokes.
+- **Never convey state by color alone** — pair with an icon, text, or shape. Check `UIAccessibility.shouldDifferentiateWithoutColor` (iOS 13+) for color-only affordances.
+- Photos/media that must not invert under Smart Invert: `imageView.accessibilityIgnoresInvertColors = YES;`.
+
 ## VoiceOver Detection
 
 Sometimes you want to behave differently when VoiceOver is on (e.g., disable a hover-style affordance):

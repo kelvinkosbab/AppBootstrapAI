@@ -10,6 +10,22 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **`swift-accessibility-pro` + `android-accessibility-pro` skills** (ui, in
+  `recommended`) — the first accessibility deep-review skills, one per
+  platform. Each audits three surfaces with per-surface references: the screen
+  reader tree (VoiceOver labels/traits/merging/rotor/announcements; TalkBack
+  semantics/roles/live regions incl. the Android 16 announcement migration),
+  Bluetooth assistive input (Full Keyboard Access / external keyboards, Switch
+  Control / Switch Access scan order, braille-display label quality), and
+  visual accessibility (WCAG AA contrast in both themes, Dynamic Type / sp
+  scaling, color-independence, reduce motion). Findings are tagged with the
+  affected assistive tech and severity by user impact; the Apple skill also
+  verifies App Store Accessibility Nutrition Label claims.
+- **Color & Contrast sections in both Apple a11y rules** — closes the gap where
+  only the Android rule had contrast guidance: WCAG AA ratios, both-theme
+  auditing, semantic colors over hex, Increase Contrast /
+  `shouldDifferentiateWithoutColor`, and Smart Invert (`accessibilityIgnoresInvertColors`).
+
 - **`apple-modular-architecture.md`** (packaging, in `recommended`) — steers
   Apple apps toward a thin Xcode app target over a fat local Swift package split
   into many small modules (the KozBon / BasicSwiftUtilities shape). Covers why

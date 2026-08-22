@@ -2002,6 +2002,24 @@ else
 fi
 rm -rf "$t"
 
+bold "==> ui: a11y skills land per-platform (swift- for apple, android- for android, no cross-leak)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+a_ok=$([[ -f "$t/.claude/skills/swift-accessibility-pro/SKILL.md" \
+       && ! -d "$t/.claude/skills/android-accessibility-pro" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended > /dev/null
+b_ok=$([[ -f "$t/.claude/skills/android-accessibility-pro/SKILL.md" \
+       && ! -d "$t/.claude/skills/swift-accessibility-pro" ]] && echo y)
+rm -rf "$t"
+if [[ "$a_ok" == "y" && "$b_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: a11y skills should install under ui for their own platform only"
+    FAIL=$((FAIL + 1))
+fi
+
 bold "==> core: concise-comments-and-commits rule lands on BOTH platforms"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform apple --features core > /dev/null

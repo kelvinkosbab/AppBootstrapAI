@@ -20,16 +20,16 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 |------|---------------|
 | **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · accessibility · testing · DocC · localization · SPM · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
 | **Android rules** | Kotlin/Compose/MVVM/Hilt · coroutines · accessibility · testing · KDoc · localization · Gradle · linting · logging · Play beta |
-| **Skills (Claude)** | 9 Apple + 5 Android on-demand deep-review agents |
+| **Skills (Claude)** | 10 Apple + 6 Android on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
 <details>
-<summary><strong>Apple — 15 rules + 9 skills</strong> (click to expand)</summary>
+<summary><strong>Apple — 15 rules + 10 skills</strong> (click to expand)</summary>
 
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
-- **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text), plus Bluetooth assistive tech: Full Keyboard Access (`.focusable()`, focus rings), Switch Control scan order, braille-display label discipline, focus management (`@AccessibilityFocusState`), modern announcements (`AccessibilityNotification`), audio/hearing (no sound-only cues, captions), and App Store Accessibility Nutrition Label honesty.
+- **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text), plus Bluetooth assistive tech: Full Keyboard Access (`.focusable()`, focus rings), Switch Control scan order, braille-display label discipline, focus management (`@AccessibilityFocusState`), modern announcements (`AccessibilityNotification`), audio/hearing (no sound-only cues, captions), WCAG AA color/contrast (both themes, Increase Contrast, Smart Invert), and App Store Accessibility Nutrition Label honesty.
 - **`apple-foundation-models.md`** — Apple Foundation Models patterns: session ownership, two-level availability gating, streaming placeholder-then-mutate, `Task.isCancelled` discipline, protocol + mock + simulator testability.
 - **`apple-swiftui-mvvm.md`** — SwiftUI MVVM conventions: when to extract a view model, `@State` vs `@Bindable` ownership, dependency plumbing, what stays on the View vs the view model, splitting large VMs across extension files.
 - **`apple-objc-best-practices.md`** — Modern Objective-C for legacy / mixed-language codebases: ARC discipline, nullability, lightweight generics, `instancetype`, designated initializers, modern literals/blocks, Swift bridging-header conventions.
@@ -47,6 +47,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
 - **`coredata-swift6-pro` skill** — Core Data under Swift 6 strict concurrency, `viewContext`/`@MainActor`, SPM `.xcdatamodeld` caveats.
+- **`swift-accessibility-pro` skill** — deep accessibility audit: the VoiceOver surface (labels/traits/merging/rotor/announcements), Bluetooth assistive input (Full Keyboard Access reachability, Switch Control scan order, braille label quality), visual accessibility (WCAG AA contrast in both themes, Dynamic Type at AX sizes, color-independence, Reduce Motion), and Nutrition-Label claim verification.
 - **`swiftdata-pro` skill** — SwiftData review: core model/context rules, safe `#Predicate` usage, CloudKit constraints, iOS 18+ indexing, iOS 26+ class inheritance.
 - **`swift-docc-pro` skill** — DocC comment review: parameter/return/throws tags, double-backtick symbol linking, Topics organization.
 - **`swift-error-handling-pro` skill** — typed throws, Result vs throws, `LocalizedError`, Sendable errors, async propagation.
@@ -56,7 +57,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Android — 12 rules + 5 skills</strong> (click to expand)</summary>
+<summary><strong>Android — 12 rules + 6 skills</strong> (click to expand)</summary>
 
 - **`android-project-rules.md`** — Kotlin, Jetpack Compose, MVVM, Hilt, StateFlow, Retrofit/Moshi, ktlint.
 - **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
@@ -70,6 +71,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`android-logging-strategy.md`** *(logging)* — Timber over `android.util.Log` (plant a tree in `Application.onCreate`), log levels (V/D/I/W/E/WTF) and passing the `Throwable`, **stripping debug logs from release** (DebugTree-in-debug-only + R8 `assumenosideeffects`), no PII/secrets, crash-reporter integration (Crashlytics/Sentry breadcrumbs + non-fatals via a `CrashReportingTree`), Logcat hygiene.
 - **`android-ai-best-practices.md`** *(ai)* — in-app AI models on Android, the counterpart to the Apple Foundation Models rule: on-device Gemini Nano via ML Kit GenAI / AICore vs cloud Gemini via Firebase AI Logic, **never ship a raw model API key** (App Check / backend proxy), two-level availability gating (feature download + user preference), streaming into Compose with placeholder-then-mutate, structural cancellation, interface + fake testability, consent + Data-safety implications.
 - **`android-play-beta-deployment.md`** *(deployment)* — shipping to Play beta tracks: `versionCode` monotonicity, Play App Signing (upload key vs app signing key), AAB-not-APK, service-account JSON for CI, internal/closed/open tracks, Triple-T / fastlane upload, `mapping.txt` upload, ranked gotchas.
+- **`android-accessibility-pro` skill** — deep accessibility audit: the TalkBack semantics tree (descriptions/roles/merging/state/custom actions/live regions incl. the Android 16 announcement migration), Bluetooth input (keyboard/Switch Access/braille), visual accessibility (contrast in both themes, sp scaling at 200%, 48dp targets, reduce motion).
 - **`android-compose-pro` skill** — deep Compose review: recomposition stability + skippability (incl. strong-skipping-mode awareness), side-effect audit (`LaunchedEffect` keys, `rememberUpdatedState`, `DisposableEffect` teardown), lazy-list performance (keys, `contentType`, `derivedStateOf` for scroll), state modeling and hoisting.
 - **`android-coroutines-pro` skill** — deep coroutines/Flow review: scope-to-lifecycle mapping, cooperative cancellation (`CancellationException` discipline, `runCatching` traps), `launch` vs `async` exception propagation, supervisor boundaries, `stateIn`/`shareIn` configuration, `callbackFlow` teardown, coroutine testing (virtual time, Turbine).
 - **`android-gradle-architecture-pro` skill** — reviews multi-module Android builds against the **Now in Android** convention-plugin pattern: `build-logic/convention/` factoring, version-catalog depth, AGP co-versioning, KSP-over-kapt migration.
@@ -622,6 +624,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── concise-comments-and-commits.md            # terse comments + commit messages (core)
 │   │   └── project-documentation.md                   # README/CHANGELOG/ADR/inline comments
 │   ├── skills/                        # On-demand skills
+│   │   ├── android-accessibility-pro/          # TalkBack / keyboard / contrast audit (ui)
 │   │   ├── android-compose-pro/                # Compose stability / effects / lazy perf (ui)
 │   │   ├── android-coroutines-pro/             # Coroutines & Flow correctness (concurrency)
 │   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs
@@ -633,6 +636,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── swift-logging-pro/
 │   │   ├── swift-package-pro/
 │   │   ├── swift-testing-pro/
+│   │   ├── swift-accessibility-pro/            # VoiceOver / keyboard / contrast audit (ui)
 │   │   ├── swiftdata-pro/                      # SwiftData review (persistence)
 │   │   ├── swiftui-pro/
 │   │   └── xml-to-compose-migration-pro/       # XML/Fragment → Compose migration

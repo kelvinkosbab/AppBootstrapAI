@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 9 Apple, 5 Android — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 10 Apple, 6 Android — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -41,11 +41,13 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── concise-comments-and-commits.md            # Cross-platform: terse comments + commits
 │   └── project-documentation.md                   # Cross-platform: README/CHANGELOG/ADR
 ├── skills/                        # On-demand Claude Code skills
+│   ├── android-accessibility-pro/          # Android: TalkBack / keyboard / contrast audit
 │   ├── android-compose-pro/                # Android: Compose deep review
 │   ├── android-coroutines-pro/             # Android: coroutines/Flow deep review
 │   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
+│   ├── swift-accessibility-pro/            # Apple: VoiceOver / keyboard / contrast audit
 │   ├── swift-concurrency-pro/              # Apple: Swift concurrency review
 │   ├── swift-docc-pro/                     # Apple: DocC documentation
 │   ├── swift-error-handling-pro/           # Apple: typed throws, Result
@@ -141,6 +143,7 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 
 - "Use `swift-concurrency-pro` to review the changes in `NetworkClient.swift`."
 - "Use `swiftui-pro` to review `SettingsView.swift` for modern API and a11y."
+- "Use `swift-accessibility-pro` to audit the scan screens for VoiceOver and keyboard access."
 - "Use `swift-testing-pro` to write tests for `UserSession`."
 - "Use `coredata-swift6-pro` to review the persistence layer."
 - "Use `swift-docc-pro` to review documentation in this package."
@@ -148,6 +151,7 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `swift-logging-pro` to audit Logger usage."
 - "Use `swift-package-pro` to review `Package.swift` and the public API."
 - "Use `swiftdata-pro` to review the SwiftData models and queries."
+- "Use `android-accessibility-pro` to audit `FeedScreen.kt` for TalkBack and contrast."
 - "Use `android-compose-pro` to review `FeedScreen.kt` for recomposition and effect bugs."
 - "Use `android-coroutines-pro` to review cancellation and Flow usage in the data layer."
 - "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."

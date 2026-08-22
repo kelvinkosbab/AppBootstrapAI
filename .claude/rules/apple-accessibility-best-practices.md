@@ -76,6 +76,14 @@ VoiceOver users routinely pair Bluetooth hardware. Supporting it is mostly *not*
 - **Never convey information through sound alone.** Pair every audio cue with a visual change and, where it matters, a haptic (`.sensoryFeedback`). Bluetooth hearing devices and muted phones both make audio an unreliable channel.
 - Media playback must support captions/subtitles. `AVPlayer` honors the system Closed Captions + SDH setting automatically; custom players must check `UIAccessibility.isClosedCaptioningEnabled` rather than inventing a parallel toggle.
 
+## Color & Contrast
+
+- Text contrast must meet WCAG AA: **4.5:1** for body text, **3:1** for large text (≥ 18pt regular or ≥ 14pt bold). Audit with Xcode's Accessibility Inspector color-contrast calculator — and audit **both** light and dark mode; failures hide in the theme you don't develop in.
+- **Never rely on color alone to convey state** (error = red, success = green). Pair color with an icon, text, or shape change — and honor `@Environment(\.accessibilityDifferentiateWithoutColor)` for affordances that are color-only by design.
+- Honor **Increase Contrast**: `@Environment(\.colorSchemeContrast) == .increased` → strengthen borders, replace hairlines, drop low-opacity text.
+- Prefer **system semantic colors** (`Color.primary`, `.secondary`, `UIColor.label` family) — they adapt to dark mode and Increase Contrast automatically; hardcoded hex values do neither.
+- Photos and media that must not invert under Smart Invert get `.accessibilityIgnoresInvertColors()`.
+
 ## Accessibility Nutrition Labels (App Store)
 
 - App Store product pages now show which accessibility features an app supports (VoiceOver, Voice Control, Larger Text, Sufficient Contrast, Reduced Motion, captions). **Declare only what's true**: claiming VoiceOver support means *all common tasks* complete with VoiceOver on — Apple defines the criteria per feature.
