@@ -168,6 +168,18 @@ Since spring 2024, App Store uploads are validated against privacy manifests. Th
 - **Audit with Xcode's privacy report** — archive → Generate Privacy Report — which aggregates your manifest + every SDK's. Review it on each release branch, and re-check whenever a new dependency (especially an analytics or AI SDK) lands.
 - **Cloud AI calls are data collection.** Sending user content to a model API typically counts as collected data — update the manifest and the privacy label when you adopt one (see `apple-foundation-models.md`).
 
+## Age Declaration & Age Assurance — a Submission Gate
+
+Alongside the privacy manifest, App Store submissions now carry age-related obligations. These are **submission-blocking and deadline-driven**, and they're easy to miss because nothing in the build fails — the rejection arrives at review time.
+
+- **Declare social-media capabilities.** As of **September 2026**, answering the social-media capability question is **required when submitting a new app or an update**. "Social features" is broader than a social network: user-to-user messaging, comments, profiles, and user-generated content feeds all count. Answer it truthfully — the declaration is compared against observed behavior.
+- **Gate social features behind the `DeclaredAgeRange` API.** Apps offering social features are expected to check the user's age range *before* enabling them, and to deliver only age-appropriate user-generated content. The API returns a **range/category**, not a birth date — request the minimum you need and don't persist more than the gate requires.
+- **Regional rules already in force.** Age-assurance requirements cover **Brazil, Australia, Singapore**, plus **Utah** and **Louisiana** in the US, each with its own enforcement date. Since **24 February 2026**, users in Australia, Brazil, and Singapore are blocked from downloading 18+-rated apps unless confirmed as adults. If you ship in those markets, the gate isn't optional.
+- **Keep the age rating questionnaire current.** It's versioned with the listing, not the build — re-check it whenever you add UGC, messaging, or an external content source.
+- **Privacy documentation must be current too** — from September 2026 Apple rejects submissions whose privacy documentation hasn't been updated. Pair this check with the privacy-manifest audit above; they fail the same release for the same reason.
+
+Treat all of this as a release-checklist item next to `CFBundleVersion` and the privacy report — a compliance answer that's stale is a rejection, and rejections at review time cost days, not minutes.
+
 ## Build Reproducibility
 
 For TestFlight builds you'll have to debug later, make the build reproducible:
@@ -184,6 +196,8 @@ Xcode 27 (Swift 6.4) changes the CI baseline — plan for these when you bump th
 - **Xcode 27 is Apple-silicon-only** and requires **macOS Tahoe 26.4+**. CI runners must be Apple silicon (e.g. GitHub's `macos-15`/`macos-26` ARM images) — an Intel runner can't install it. Pin the runner image, not just the Xcode version.
 - **Universal builds drop `x86_64` by default at deployment target ≥ 27.** `ARCHS_STANDARD` no longer includes `x86_64` when `MACOSX_DEPLOYMENT_TARGET` (or `DRIVERKIT_DEPLOYMENT_TARGET`) is `27.0`+. Apple-silicon-only apps get a smaller binary for free; if you still ship Intel, add `x86_64` to `ARCHS` explicitly.
 - **`ld64` (the classic linker) is removed; `-ld_classic` is no longer accepted.** Strip any `-ld_classic` from `OTHER_LDFLAGS` / SPM `unsafeFlags` before moving to Xcode 27 — a leftover flag fails the link. The modern linker is the only option.
+- **Device Hub replaces the separate Simulator and Devices & Simulators windows**, unifying simulated and physical devices — and it can **resize a running app by dragging its edges** (Xcode Previews gained the same mode). CI scripts that drove the old windows, or docs that tell developers to "open Devices & Simulators," need updating.
+- **Apps built against the iOS 27 SDK are resizable by default**, so a release that merely bumps the SDK changes layout behavior for users. Treat an SDK bump as a UI-affecting change: run the adaptive-layout pass (see `apple-adaptive-layout.md`) before shipping it, not after.
 
 ## CI Patterns — Tool-Agnostic
 

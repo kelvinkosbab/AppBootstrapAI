@@ -10,6 +10,32 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Apple adaptive layout & iPhone Duo — rule + skill.**
+  `apple-adaptive-layout.md` (ui) covers the platform shift that landed with the
+  iOS 27 SDK: **apps are resizable by default** and the **UIScene lifecycle is
+  mandatory** (legacy-lifecycle apps no longer launch), so adaptive layout stops
+  being an iPad refinement. Steers to size classes over idiom / orientation /
+  `UIScreen.main` (iPhone Duo's inner display reports regular-regular while
+  still being an iPhone), the containers that adapt for free,
+  `ArrangementView` / `UIArrangementViewController` + hinge and reserved-region
+  APIs (iOS 27.1), asymmetric safe areas, state continuity across fold, camera
+  coordinators, and Device Hub / Previews resize testing.
+  `swift-adaptive-layout-pro` audits the same surface in depth — launch
+  blockers first, then branching, arrangement nesting constraints, safe-area
+  math, and outer→inner navigation continuity. Apple counterpart to
+  `android-adaptive-layout-pro`.
+
+### Changed
+
+- **`apple-testflight-deployment.md` — age declaration & age assurance.** New
+  submission-gate section: the social-media capability declaration required on
+  every new app and update as of September 2026, gating social features behind
+  the `DeclaredAgeRange` API, the regional age-assurance rules already in force
+  (Brazil / Australia / Singapore, Utah, Louisiana), and the current-privacy-
+  documentation requirement. Xcode 27 toolchain notes gain Device Hub (which
+  replaced the Simulator and Devices & Simulators windows) and a warning that
+  an SDK bump to iOS 27 is itself a UI-affecting change.
+
 - **Android large screens & foldables — rule + skill, the first form-factor
   gate.** `android-large-screen-best-practices.md` (ui) steers toward window
   size classes over device heuristics (`isWidthAtLeastBreakpoint`,

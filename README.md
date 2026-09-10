@@ -18,15 +18,15 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 
 | Area | What's inside |
 |------|---------------|
-| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · accessibility · testing · DocC · localization · SPM + modular architecture · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
+| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · adaptive layout / iPhone Duo · accessibility · testing · DocC · localization · SPM + modular architecture · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
 | **Android rules** | Kotlin/Compose/MVVM/Hilt · coroutines · accessibility · large screens / foldables · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta |
-| **Skills (Claude)** | 10 Apple + 7 Android on-demand deep-review agents |
+| **Skills (Claude)** | 11 Apple + 7 Android on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
 <details>
-<summary><strong>Apple — 15 rules + 10 skills</strong> (click to expand)</summary>
+<summary><strong>Apple — 16 rules + 11 skills</strong> (click to expand)</summary>
 
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text), plus Bluetooth assistive tech: Full Keyboard Access (`.focusable()`, focus rings), Switch Control scan order, braille-display label discipline, focus management (`@AccessibilityFocusState`), modern announcements (`AccessibilityNotification`), audio/hearing (no sound-only cues, captions), WCAG AA color/contrast (both themes, Increase Contrast, Smart Invert), and App Store Accessibility Nutrition Label honesty.
@@ -35,6 +35,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`apple-objc-best-practices.md`** — Modern Objective-C for legacy / mixed-language codebases: ARC discipline, nullability, lightweight generics, `instancetype`, designated initializers, modern literals/blocks, Swift bridging-header conventions.
 - **`apple-objc-accessibility-best-practices.md`** — UIKit accessibility in Objective-C: `accessibilityLabel` / `accessibilityHint` / `accessibilityTraits` discipline, `accessibilityIdentifier` vs `accessibilityLabel`, Dynamic Type via `preferredFontForTextStyle:`, `UIAccessibilityIsReduceMotionEnabled()`, VoiceOver announcements (`UIAccessibilityPostNotification`), modal-focus management (`accessibilityViewIsModal`), custom-action support, Full Keyboard Access + Switch Control via the focus system (`canBecomeFocused`, `accessibilityRespondsToUserInteraction`), braille-friendly labels, announcement priority (`UIAccessibilitySpeechAttributeAnnouncementPriority`), and WCAG AA color/contrast (semantic colors, Darker System Colors, `shouldDifferentiateWithoutColor`, Smart Invert).
 - **`apple-testing-strategy.md`** — what to test (and what not), Given/When/Then naming, determinism (inject clocks/UUIDs/network), Swift Testing vs XCTest split, XCUITest discipline, CI coverage gates with sensible exclusions.
+- **`apple-adaptive-layout.md`** *(ui)* — resizable-app and **iPhone Duo** readiness: building against the iOS 27 SDK opts apps into resizability, and the **UIScene lifecycle is mandatory** (legacy-lifecycle apps no longer launch). Size classes over idiom/orientation/`UIScreen.main`, the containers that adapt for free, `ArrangementView` / `UIArrangementViewController` and the hinge APIs (iOS 27.1), asymmetric safe areas, state continuity across fold, and Device Hub testing.
 - **`apple-documentation-strategy.md`** — what to document (and what not), DocC discipline (summary line, `- Parameter`/`- Returns`/`- Throws`, double-backtick symbol linking, `## Topics` organization), deprecation discipline with mandatory migration paths, when to write a DocC Article vs. a doc comment.
 - **`apple-localization-best-practices.md`** — String Catalogs (`.xcstrings`) as the modern format, type-safe `Strings` enum facade pattern, `LocalizedStringResource` over `NSLocalizedString`, plurals, locale-aware `.formatted()` for numbers/dates/currency, RTL via leading/trailing modifiers, translator-context comments.
 - **`apple-modular-architecture.md`** — the *architecture* stance behind the SPM conventions: a thin Xcode app target over a fat local Swift package split into many small modules (the KozBon / BasicSwiftUtilities shape). Why it wins (build parallelism, compile-enforced module boundaries, headless testing, reuse across widgets/extensions), the layered dependency graph (Core → domain → features → UI → `AppCore` umbrella the app links), the incremental migration playbook (scaffold, move leaf-first, thin the app target), and the `Bundle.module` / `.xcdatamodeld` caveats. Pairs with the `scripts/scaffold-spm-package.sh` scaffolder.
@@ -47,6 +48,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
 - **`coredata-swift6-pro` skill** — Core Data under Swift 6 strict concurrency, `viewContext`/`@MainActor`, SPM `.xcdatamodeld` caveats.
+- **`swift-adaptive-layout-pro` skill** — deep resizability / iPhone Duo audit: the UIScene launch blocker, `UIRequiresFullScreen` semantics, idiom/orientation/`UIScreen.main` removals, arrangement nesting constraints, hinge and reserved regions, symmetric safe-area math, outer→inner navigation continuity, and pose/window-size test coverage.
 - **`swift-accessibility-pro` skill** — deep accessibility audit: the VoiceOver surface (labels/traits/merging/rotor/announcements), Bluetooth assistive input (Full Keyboard Access reachability, Switch Control scan order, braille label quality), visual accessibility (WCAG AA contrast in both themes, Dynamic Type at AX sizes, color-independence, Reduce Motion), and Nutrition-Label claim verification.
 - **`swiftdata-pro` skill** — SwiftData review: core model/context rules, safe `#Predicate` usage, CloudKit constraints, iOS 18+ indexing, iOS 26+ class inheritance.
 - **`swift-docc-pro` skill** — DocC comment review: parameter/return/throws tags, double-backtick symbol linking, Topics organization.
@@ -610,6 +612,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
 │   │   ├── android-testing-strategy.md                # Android test strategy + JaCoCo
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
+│   │   ├── apple-adaptive-layout.md                   # Resizable apps / iPhone Duo (ui)
 │   │   ├── apple-documentation-strategy.md            # DocC strategy + deprecation
 │   │   ├── apple-foundation-models.md                 # On-device LLM patterns
 │   │   ├── apple-linting-strategy.md                  # SwiftLint + formatter (linting)
@@ -641,6 +644,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── swift-package-pro/
 │   │   ├── swift-testing-pro/
 │   │   ├── swift-accessibility-pro/            # VoiceOver / keyboard / contrast audit (ui)
+│   │   ├── swift-adaptive-layout-pro/          # Resizable / iPhone Duo readiness audit (ui)
 │   │   ├── swiftdata-pro/                      # SwiftData review (persistence)
 │   │   ├── swiftui-pro/
 │   │   └── xml-to-compose-migration-pro/       # XML/Fragment → Compose migration

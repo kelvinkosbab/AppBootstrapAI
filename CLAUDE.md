@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 10 Apple, 7 Android — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 11 Apple, 7 Android — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -25,6 +25,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
+│   ├── apple-adaptive-layout.md                   # Apple: resizable apps / iPhone Duo
 │   ├── apple-documentation-strategy.md            # Apple: DocC strategy + deprecation
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
 │   ├── apple-linting-strategy.md                  # Apple: SwiftLint + formatter discipline
@@ -50,6 +51,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
 │   ├── swift-accessibility-pro/            # Apple: VoiceOver / keyboard / contrast audit
+│   ├── swift-adaptive-layout-pro/          # Apple: resizable / iPhone Duo audit
 │   ├── swift-concurrency-pro/              # Apple: Swift concurrency review
 │   ├── swift-docc-pro/                     # Apple: DocC documentation
 │   ├── swift-error-handling-pro/           # Apple: typed throws, Result
@@ -146,6 +148,7 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `swift-concurrency-pro` to review the changes in `NetworkClient.swift`."
 - "Use `swiftui-pro` to review `SettingsView.swift` for modern API and a11y."
 - "Use `swift-accessibility-pro` to audit the scan screens for VoiceOver and keyboard access."
+- "Use `swift-adaptive-layout-pro` to get this app ready for iPhone Duo."
 - "Use `swift-testing-pro` to write tests for `UserSession`."
 - "Use `coredata-swift6-pro` to review the persistence layer."
 - "Use `swift-docc-pro` to review documentation in this package."

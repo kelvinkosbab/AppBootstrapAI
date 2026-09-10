@@ -2002,6 +2002,26 @@ else
 fi
 rm -rf "$t"
 
+bold "==> ui: adaptive-layout rule + skill land per-platform (apple vs android, no cross-leak)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+a_ok=$([[ -f "$t/.claude/rules/apple-adaptive-layout.md" \
+       && -f "$t/.claude/skills/swift-adaptive-layout-pro/SKILL.md" \
+       && ! -d "$t/.claude/skills/android-adaptive-layout-pro" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features all > /dev/null
+b_ok=$([[ ! -f "$t/.claude/rules/apple-adaptive-layout.md" \
+       && ! -d "$t/.claude/skills/swift-adaptive-layout-pro" \
+       && -d "$t/.claude/skills/android-adaptive-layout-pro" ]] && echo y)
+rm -rf "$t"
+if [[ "$a_ok" == "y" && "$b_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: adaptive-layout rule/skill should install for their own platform only (apple=$a_ok android=$b_ok)"
+    FAIL=$((FAIL + 1))
+fi
+
 bold "==> ui: a11y skills land per-platform (swift- for apple, android- for android, no cross-leak)"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform apple --features recommended > /dev/null

@@ -29,7 +29,7 @@ file_category() {
             echo "core" ;;
         apple-swift6-strict-concurrency.md|swift-concurrency-pro|android-coroutines-best-practices.md|android-coroutines-pro)
             echo "concurrency" ;;
-        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|swiftui-pro|swift-accessibility-pro|android-compose-best-practices.md|android-accessibility-best-practices.md|android-compose-pro|android-accessibility-pro|android-large-screen-best-practices.md|android-adaptive-layout-pro)
+        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|apple-adaptive-layout.md|swiftui-pro|swift-accessibility-pro|swift-adaptive-layout-pro|android-compose-best-practices.md|android-accessibility-best-practices.md|android-compose-pro|android-accessibility-pro|android-large-screen-best-practices.md|android-adaptive-layout-pro)
             echo "ui" ;;
         apple-testing-strategy.md|swift-testing-pro|android-testing-strategy.md)
             echo "testing" ;;
