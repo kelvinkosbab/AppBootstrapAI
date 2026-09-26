@@ -25,7 +25,35 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   math, and outer→inner navigation continuity. Apple counterpart to
   `android-adaptive-layout-pro`.
 
+- **`apple-infoplist-localization.md`** (localization) — Info.plist strings are
+  the one localization channel the type-safe `Strings` facade cannot reach (the
+  system reads them, so there's no call site), which left adopting projects with
+  no valid path for app names and permission purpose strings. Covers
+  `InfoPlist.xcstrings` vs legacy `InfoPlist.strings`, the `INFOPLIST_KEY_*`
+  build setting as the required base value (omit it and the upload fails
+  `ITMS-90683` even though the key looks present), catalog rows left in the
+  *new* state silently shipping the development language, one catalog per
+  target, identifiers that must never be translated, and purpose strings
+  specific enough to pass App Review.
+
 ### Changed
+
+- **iPhone Duo support refreshed against the shipped Xcode 27.1 / iOS 27.1 SDK.**
+  The original rule was written from release-candidate material and hedged its
+  API spellings; several were imprecise. Corrected and expanded:
+  `ArrangementView`'s real shape (trailing `secondary:` closure +
+  `.arrangementViewStyle(.split/.overlay)`), `onHingeChange`'s context with an
+  **optional** `hinge` (most devices have none — force-unwrapping is a bug) plus
+  the rule that layout must never key off the raw angle, reserved regions as
+  `proxy.reservedRegions(kind: .division / .occlusion)` with `.isActive` (replacing
+  the guessed `ReservedRegion` type), the previously-missing vertical-toolbar axis
+  APIs (`.axisBehavior`, `toolbarVerticalEdge`, `.toolbarVerticalBehavior`), and
+  `ViewThatFits`. Folded↔unfolded **continuity** is now its own section — navigation
+  depth, first responder, scroll, playback, in-flight work, session identity, and
+  visual stability, with the SwiftUI/UIKit failure modes for each. Testing gains the
+  simulator specifics (⌥ Option hinge-angle slider) and, importantly, **what the
+  simulator can't cover** (camera transitions, reachability, haptics, thermals).
+  `swift-adaptive-layout-pro` updated to match.
 
 - **`apple-testflight-deployment.md` — age declaration & age assurance.** New
   submission-gate section: the social-media capability declaration required on

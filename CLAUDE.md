@@ -28,6 +28,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-adaptive-layout.md                   # Apple: resizable apps / iPhone Duo
 │   ├── apple-documentation-strategy.md            # Apple: DocC strategy + deprecation
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
+│   ├── apple-infoplist-localization.md            # Apple: Info.plist / usage-description strings
 │   ├── apple-linting-strategy.md                  # Apple: SwiftLint + formatter discipline
 │   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
 │   ├── apple-logging-strategy.md                  # Apple: os.Logger, privacy markers, levels

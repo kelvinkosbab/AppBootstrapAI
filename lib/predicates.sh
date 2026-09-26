@@ -41,7 +41,7 @@ file_category() {
             echo "packaging" ;;
         swift-logging-pro|apple-logging-strategy.md|android-logging-strategy.md)
             echo "logging" ;;
-        apple-localization-best-practices.md|android-localization-best-practices.md)
+        apple-localization-best-practices.md|apple-infoplist-localization.md|android-localization-best-practices.md)
             echo "localization" ;;
         apple-linting-strategy.md|android-linting-strategy.md)
             echo "linting" ;;
