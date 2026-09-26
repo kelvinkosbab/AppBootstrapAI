@@ -193,7 +193,7 @@ For TestFlight builds you'll have to debug later, make the build reproducible:
 
 Xcode 27 (Swift 6.4) changes the CI baseline — plan for these when you bump the pinned Xcode:
 
-- **Xcode 27 is Apple-silicon-only** and requires **macOS Tahoe 26.4+**. CI runners must be Apple silicon (e.g. GitHub's `macos-15`/`macos-26` ARM images) — an Intel runner can't install it. Pin the runner image, not just the Xcode version.
+- **Xcode 27 is Apple-silicon-only** and requires **macOS Tahoe 26.4+** — and the floor rises across 27.x point releases (27.1, which carries iPhone Duo support, wants 26.6+). Check the release notes for the exact version you pin, not just the major. CI runners must be Apple silicon (e.g. GitHub's `macos-15`/`macos-26` ARM images) — an Intel runner can't install it. Pin the runner image, not just the Xcode version.
 - **Universal builds drop `x86_64` by default at deployment target ≥ 27.** `ARCHS_STANDARD` no longer includes `x86_64` when `MACOSX_DEPLOYMENT_TARGET` (or `DRIVERKIT_DEPLOYMENT_TARGET`) is `27.0`+. Apple-silicon-only apps get a smaller binary for free; if you still ship Intel, add `x86_64` to `ARCHS` explicitly.
 - **`ld64` (the classic linker) is removed; `-ld_classic` is no longer accepted.** Strip any `-ld_classic` from `OTHER_LDFLAGS` / SPM `unsafeFlags` before moving to Xcode 27 — a leftover flag fails the link. The modern linker is the only option.
 - **Device Hub replaces the separate Simulator and Devices & Simulators windows**, unifying simulated and physical devices — and it can **resize a running app by dragging its edges** (Xcode Previews gained the same mode). CI scripts that drove the old windows, or docs that tell developers to "open Devices & Simulators," need updating.

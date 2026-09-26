@@ -29,7 +29,7 @@ The app runs on iPhone Duo without recompiling, but the experience improves with
 |---|---|
 | Pre-iOS 27 | Runs; conservative use of the inner display |
 | **iOS 27** | **Resizable by default**; content extends left of the status bar on the inner display |
-| **iOS 27.1** | Content reaches the screen edge; vertical layout for navigation/toolbars; system arrangements and reserved regions available |
+| **iOS 27.1** | Content reaches the screen edge; vertical toolbar layout; `ArrangementView`, `onHingeChange`, and reserved regions available — the Duo-ready level |
 
 Report the project's deployment target and SDK alongside findings — "this is fine today because you build against iOS 26" is real context, and so is "you're on the iOS 27 SDK, so resizability is already live for your users."
 
@@ -42,9 +42,12 @@ Report the project's deployment target and SDK alongside findings — "this is f
 
 ## Test coverage
 
-- **Device Hub** (Xcode 27) replaced the separate Simulator and Devices & Simulators windows. It rotates, screenshots, toggles dark mode, changes font size, **resizes freely by dragging edges**, and launches onto connected hardware. **Xcode Previews gained the same resize mode** — size-class branches can be exercised without booting a simulator.
-- **iPhone Duo simulator** (Xcode 27.1+) has on-screen controls to open, close, rotate, and fold through the device's poses. A review should name which poses were (or should be) exercised: folded, unfolded, half-open, each orientation, split view, free resize.
+- **Device Hub** (Xcode 27) replaced the separate Simulator and Devices & Simulators windows. It rotates, screenshots, toggles dark mode, changes font size, **resizes freely by dragging edges**, and launches onto connected hardware. **Xcode Previews gained the same resize mode**, plus a Display group for previewing on an alternative display — size-class branches can be exercised without booting a simulator.
+- **iPhone Duo simulator (Xcode 27.1).** Install the iOS 27.1 runtime via Settings ▸ Components, then select iPhone Duo as a normal build destination. Toolbar buttons fold/unfold; **hold ⌥ Option for a precise hinge-angle slider**. A review should name which poses were exercised: folded, unfolded, partially open, each orientation, split view, free resize.
+- **The recipe that finds real bugs**: navigate several screens deep, open a sheet, start typing — *then* fold and unfold while it's live, in both directions. Most continuity findings only appear this way.
+- **What the simulator cannot cover** — flag these as device-only rather than letting a simulator pass stand in: camera transitions between outer / inner / rear cameras, one-handed reachability in partially folded poses, haptics, thermal behavior, and the physical appearance of the fold.
 - **Xcode 27.1's "App Resizability" coding-agent skill** (renamed from "App Modernization") auto-detects and fixes common resizability issues in SwiftUI and UIKit. Recommend it as a first pass on a large legacy codebase — then review its edits; it is an agent, not an oracle.
+- App Store Connect accepts TestFlight builds made with the iOS 27.1 SDK, so a Duo-ready build can go to testers without waiting for a later toolchain.
 - Where the project has UI tests, suggest launching at more than one window size rather than asserting against a single fixed geometry.
 
 ## Audit sequence

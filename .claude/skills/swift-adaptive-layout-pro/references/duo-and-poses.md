@@ -1,70 +1,117 @@
-# iPhone Duo — arrangements, hinge, safe areas, continuity
+# iPhone Duo — arrangements, hinge, reserved regions, continuity
 
 iPhone Duo is a book-style foldable: a 5.4″ outer display that behaves like a standard iPhone, and a 7.6″ inner display that reports **regular width and regular height**. Most Duo bugs are ordinary resizability bugs made visible on a phone; a smaller set are genuinely fold-specific.
 
-> **iOS 27.1 surface.** `ArrangementView` / `UIArrangementViewController`, reserved regions, and edge-to-edge/vertical-bar layout are new in 27.1. Verify symbol spellings against the SDK in use before flagging their absence as a finding.
+> **iOS 27.1 surface.** `ArrangementView`, `onHingeChange`, reserved regions, and toolbar axis behavior ship in the iOS 27.1 SDK (Xcode 27.1). Verify spellings against the SDK in use before flagging their absence.
 
 ## Arrangements — the two-view container
 
-When two views should coexist across the hinge, the system container beats a hand-built conditional:
+```swift
+ArrangementView {
+    VideoPlayer(player: player)          // primary
+} secondary: {
+    PlaybackControls(player: player)     // secondary
+}
+.arrangementViewStyle(.split)            // or .overlay
+```
 
-- **SwiftUI:** `ArrangementView` with a primary and a secondary view, placed inside a `NavigationStack`.
-- **UIKit:** `UIArrangementViewController` as the **root view controller of your `UINavigationController`**, configured with primary and secondary view controllers.
-- **Styles:** **split** — the default; divides its bounds between primary and secondary. Use when both must stay unobscured. **overlay** — for a foreground/background relationship.
+- **`.split`** (default) divides the bounds, both regions unobscured. **`.overlay`** floats secondary over primary.
+- **UIKit:** `UIArrangementViewController` as the **root view controller of a `UINavigationController`**, with primary and secondary view controllers.
+- The canonical fit: media in primary, controls in secondary — in tabletop pose the content sits above the fold and the controls below it.
 
 Findings to raise:
 
-- **Navigation containers nested inside an arrangement**, or an **arrangement embedded in a `List` or scroll view**. Arrangements provide *layout, not navigation*; both shapes are explicitly wrong.
-- **A hand-rolled split that reads the hinge angle to place its divider** — the arrangement already adapts around available space *and* the fold. Re-deriving it is fragile and usually drops the overlay case.
-- **`ArrangementView` used where `NavigationSplitView` is the better fit** — list+detail with selection and back behavior is the split view's job; arrangements are for two co-resident views, not a navigation hierarchy.
+- **Navigation containers nested inside an arrangement**, or an **arrangement inside a `List` / scroll view** — both explicitly wrong; arrangements are layout, not navigation.
+- **A hand-rolled split that reads the hinge angle to place its divider** — the arrangement adapts around available space *and* the fold already. Re-deriving it is fragile and drops the overlay case.
+- **`ArrangementView` where `NavigationSplitView` fits better** — list+detail with selection and back behavior belongs to the split view; arrangements are for two co-resident views.
+- **A missing `.arrangementViewStyle(...)` where overlay was intended** — the default is split, so an intended overlay silently renders as a division.
 
-## Hinge & posture
+## The hinge is enhancement-only
 
-Read posture with `onHingeChange` (SwiftUI) or `UIHingeInteraction` (UIKit): a coarse status (**closed / partially open / fully open**) plus a **continuous angle**.
+```swift
+.onHingeChange { _, context in
+    if let hinge = context.hinge, hinge.status == .partiallyOpen {
+        foldEffect = min(max(hinge.angle.degrees / 180, 0), 1)
+    } else {
+        foldEffect = 0
+    }
+}
+```
 
-- **Spend posture code where it pays**: camera viewfinders, video playback, and media controls benefit from a half-open "stand" posture (content up, controls down). Note its *absence* on those screens.
-- **Flag posture code that doesn't earn its place** — hinge observation on a settings or list screen is complexity with no user benefit, and over-engineering is a finding in both directions.
-- **Don't infer obstruction from the angle.** Ask the geometry: reserved regions (`ReservedRegion` in SwiftUI, `UIViewReservedRegion` in UIKit; `reservedRegion` on `GeometryProxy` / `UIView`) report where system UI or the fold claims space, so custom UI can avoid collisions without hardcoded math.
-- Treat the coarse status as the layout signal and the continuous angle as an animation input — layouts that snap on every degree of angle change are jarring.
+- **`context.hinge` is optional.** Every non-folding device — and Duo's own outer display — has none. **Force-unwrapping it is a broken-tier finding** that breaks the whole rest of the lineup, not just an edge case.
+- **Layout must never depend on the raw angle.** Structure comes from size classes and arrangements; the angle is animation input only (Apple's "unfold effect" treats the outer display as a window onto the inner one). Flag any layout branch keyed to `angle`.
+- `hinge.status` is the coarse signal, `hinge.angle.degrees` the continuous one. Per-degree layout changes read as jitter.
+- **Flag posture code that doesn't earn its place** — hinge observation on a settings or list screen is cost without benefit. Note its *absence* only on camera, video, and media screens, where the tabletop stand genuinely matters.
+
+## Reserved regions — query, don't compute
+
+```swift
+GeometryReader { proxy in
+    let divisions  = proxy.reservedRegions(kind: .division)
+    let occlusions = proxy.reservedRegions(kind: .occlusion)
+    // each exposes .frame, .margins, .isActive
+}
+```
+
+- **`.division`** = content shouldn't straddle this (the fold). **`.occlusion`** = something covers the display here.
+- Check **`.isActive`**; `.includeInactive` only when deliberately planning for a region not currently applied.
+- **The high-value finding: an interactive control that can land in a division or occlusion.** A partially-closed device puts it underneath the fold — unreachable, and invisible to screenshot tests. Any custom layout computing the fold's position by hand instead of querying is the same finding upstream.
+
+## Vertical toolbars
+
+The inner display may lay toolbars out vertically. System containers handle it; per-item overrides exist for items that genuinely can't rotate:
+
+- `.axisBehavior(.horizontalOnly)` / `.axisBehavior(.verticalPreferred)`
+- `toolbarVerticalEdge` from the environment when content must know its edge
+- `.toolbarVerticalBehavior(.disabled)` — last resort; flag it as a default
 
 ## Safe areas are asymmetric
 
-Insets differ per side and per display. The canonical bug:
-
 ```swift
-// ❌ Assumes symmetry — off-center on Duo and on any device with asymmetric insets
+// ❌ Assumes symmetry — off-center on Duo
 let width = view.bounds.width - view.safeAreaInsets.left * 2
-
 // ✅ Inset the rect, then measure it
 let width = view.bounds.inset(by: view.safeAreaInsets).width
 ```
 
-- **UIKit**: align foreground content to `view.bounds.inset(by: view.safeAreaInsets)`; let backgrounds extend beneath.
-- **SwiftUI**: `.ignoresSafeArea()` belongs on backgrounds only — never on content the user must reach or tap.
-- **Corners**: `ConcentricRectangle()` (SwiftUI) / `UICornerConfiguration` (UIKit, iOS 26+) match the actual screen corner instead of a radius tuned for one display.
-- Grep for `safeAreaInsets.left`, `.top`, `.bottom` used individually in arithmetic — each is a candidate.
+- UIKit: align foreground content to `view.bounds.inset(by: view.safeAreaInsets)`; let backgrounds extend beneath.
+- SwiftUI: `.ignoresSafeArea()` on backgrounds only — never on content the user must reach.
+- Corners: `ConcentricRectangle()` / `UICornerConfiguration` match the real screen corner. Grep for `safeAreaInsets.<edge>` used individually in arithmetic.
 
 ## Camera on two displays
 
-- `CameraCaptureAccessory` for dual-display capture experiences (preview on one display, controls or subject-facing preview on the other).
-- `AVCaptureDeviceDirectionCoordinator` for device-direction handling as the device folds and rotates.
-- `RotationCoordinator` for preview orientation across display changes.
-- **The classic bug**: a preview layer sized from cached screen bounds or a fixed aspect ratio — stretched or letterboxed the moment the device unfolds. Any camera code reading `UIScreen.main.bounds` is broken-tier.
+- `CameraCaptureAccessory` for dual-display capture, `AVCaptureDeviceDirectionCoordinator` for device direction, `RotationCoordinator` for preview orientation across display changes.
+- **The classic bug**: a preview sized from cached screen bounds or a fixed aspect ratio — stretched the moment the device unfolds. Camera code reading `UIScreen.main.bounds` is broken-tier.
 
-## Continuity across fold and resize
+## Continuity across fold and unfold
 
-Opening or closing the device is a size change, and the user expects to keep what they were doing.
+**The layout must survive every fold state and the transitions between them while state is live.** A fold is a configuration change under a running app.
 
-- **What must survive**: current selection, scroll position, text entry and cursor, sheet/popover presentation, media playback position, in-flight requests.
-- **Where it breaks**: state derived from the *old* geometry (a cached column count, a stored `isCompact` computed once), view state that lives only in a branch that gets rebuilt, and UIKit controllers recreated on trait change instead of updated.
-- **SwiftUI**: `@State` on a view that is replaced when the layout branch flips loses its value — hoist it above the branch, or key it to the content's identity rather than the layout shape. `@SceneStorage` / `@StateObject` for anything that must outlive re-composition.
-- **UIKit**: prefer updating the existing hierarchy in `traitCollectionDidChange` / `viewWillTransition(to:with:)` over rebuilding it. Rebuilding drops first-responder status and scroll offsets.
-- **Outer → inner continuity is the headline case**: a detail screen open on the folded display should become the detail pane of a split/arrangement when unfolded — not pop back to the list. Test that path explicitly; custom navigation usually gets it wrong.
+Trace each of these across fold, unfold, and the outer↔inner switch:
+
+- **Navigation depth + selection** — three screens deep stays three deep. On unfold a pushed detail should *become* the detail pane, not pop to the list. Custom navigation usually breaks this; test it explicitly.
+- **Text entry and first responder**, including inside presented sheets.
+- **Scroll position**, **media playback position**, **in-flight requests** (must not restart).
+- **Session identity** — closing mid-task moves to the outer display; the session must not reset.
+- **Visual stability** — no navigation jump, no re-animation. Interrupted animations and layout jumps mean the transition rebuilt instead of updated.
+
+Where it breaks:
+
+- **SwiftUI**: `@State` on a view replaced when the layout branch flips loses its value — hoist above the branch or key to content identity, not layout shape. `@SceneStorage` / an observable model for anything that must outlive re-composition.
+- **UIKit**: update the existing hierarchy in `traitCollectionDidChange` / `viewWillTransition(to:with:)`; rebuilding drops first responder and scroll offsets.
+- **Anything cached from old geometry** — a stored `isCompact`, a computed column count, a captured frame.
+- **Fixed frames** clip as the window narrows — the most common visible symptom.
 
 ## Audit sequence
 
-1. Find two-view layouts → should they be an `ArrangementView` / `NavigationSplitView`? Check the nesting constraints.
-2. Camera/media screens → posture handling present? Preview sized from geometry, not screen bounds?
-3. Grep `safeAreaInsets.<edge>` in arithmetic → symmetric-math findings.
-4. Trace state across a size change per screen: selection, scroll, text, playback, presentation.
-5. Walk the folded→unfolded navigation path and name where continuity breaks.
+1. Two-view layouts → `ArrangementView` / `NavigationSplitView`? Check nesting constraints and the style modifier.
+2. Every `onHingeChange` → optional unwrapped safely? Any layout keyed to `angle`?
+3. Custom layouts → do they query `reservedRegions`, and can a control land in one?
+4. Grep `safeAreaInsets.<edge>` in arithmetic; grep `UIScreen.main`.
+5. Per screen, trace state across a fold: navigation, selection, text, scroll, playback, in-flight work.
+6. Walk folded→unfolded *and* unfolded→folded navigation paths; name where continuity breaks.
+7. Note what needs a physical device (below) rather than claiming simulator coverage.
+
+## Simulator vs device
+
+Xcode 27.1's Duo simulator folds/unfolds from toolbar buttons, and **⌥ Option gives a precise hinge-angle slider**. It does **not** cover: camera transitions between outer / inner / rear cameras, one-handed reachability in partially folded poses, haptics, thermal behavior, or how the fold physically looks. Recommend device time for those rather than signing off from the simulator.
