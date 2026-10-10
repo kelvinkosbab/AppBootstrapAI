@@ -99,6 +99,7 @@
 #                          core             project-level README/CHANGELOG/ADR patterns
 #                          concurrency      Swift concurrency / Kotlin coroutines
 #                          ui               SwiftUI/MVVM / Jetpack Compose + accessibility
+#                                           + iconography / design system
 #                          testing          test strategy + coverage gates
 #                          docs             DocC / KDoc documentation strategy
 #                          error-handling   Swift typed throws / Result / LocalizedError
@@ -115,6 +116,8 @@
 #                                           spatial gestures, RealityKit / ECS, USDZ
 #                          deployment       TestFlight (Apple) + Play beta tracks (Android):
 #                                           versioning, signing, CI patterns, gotchas
+#                          architecture     Android MVVM/UDF + repository pattern
+#                                           (Apple + Android data layer)
 #
 #                        Note: apple-objc-best-practices.md is gated solely by
 #                        --apple-language, not --features.

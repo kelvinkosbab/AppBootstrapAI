@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 11 Apple, 7 Android — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 12 Apple, 8 Android — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -15,19 +15,25 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-ai-best-practices.md               # Android: Gemini Nano / ML Kit GenAI / Firebase AI Logic
 │   ├── android-compose-best-practices.md          # Android: Jetpack Compose patterns
 │   ├── android-coroutines-best-practices.md       # Android: Kotlin coroutines / structured concurrency
+│   ├── android-design-system.md                   # Android: M3 AppTheme, tokens, core components
 │   ├── android-documentation-strategy.md          # Android: KDoc strategy + Dokka
 │   ├── android-gradle-conventions.md              # Android: Gradle DSL / version catalogs / modules
+│   ├── android-iconography.md                     # Android: Material Symbols, adaptive/themed launcher icons
 │   ├── android-large-screen-best-practices.md     # Android: tablets / foldables (tablet-gated)
 │   ├── android-linting-strategy.md                # Android: ktlint + detekt + Android Lint
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
 │   ├── android-logging-strategy.md                # Android: Timber, levels, release-stripping
+│   ├── android-mvvm-architecture.md               # Android: MVVM / UDF, UiState, Route vs Screen (opt-in)
 │   ├── android-play-beta-deployment.md            # Android: Play beta tracks, signing, CI
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
+│   ├── android-repository-pattern.md              # Android: data layer / repositories (opt-in)
 │   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
 │   ├── apple-adaptive-layout.md                   # Apple: resizable apps / iPhone Duo
+│   ├── apple-design-system.md                     # Apple: tokens, component styles, Liquid Glass
 │   ├── apple-documentation-strategy.md            # Apple: DocC strategy + deprecation
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
+│   ├── apple-iconography.md                       # Apple: SF Symbols facade, Icon Composer app icons
 │   ├── apple-infoplist-localization.md            # Apple: Info.plist / usage-description strings
 │   ├── apple-linting-strategy.md                  # Apple: SwiftLint + formatter discipline
 │   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
@@ -35,6 +41,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-modular-architecture.md              # Apple: thin app shell + fat local SPM package
 │   ├── apple-objc-accessibility-best-practices.md # Apple: UIKit a11y in Objective-C
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
+│   ├── apple-repository-pattern.md                # Apple: data layer / repositories (opt-in)
 │   ├── apple-spm-package-conventions.md           # Apple: Package.swift authoring
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.4 strict concurrency
 │   ├── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
@@ -48,12 +55,14 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-adaptive-layout-pro/        # Android: large-screen / foldable audit (tablet-gated)
 │   ├── android-compose-pro/                # Android: Compose deep review
 │   ├── android-coroutines-pro/             # Android: coroutines/Flow deep review
+│   ├── android-design-system-pro/          # Android: icons + theme + components bootstrap/audit
 │   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
 │   ├── swift-accessibility-pro/            # Apple: VoiceOver / keyboard / contrast audit
 │   ├── swift-adaptive-layout-pro/          # Apple: resizable / iPhone Duo audit
 │   ├── swift-concurrency-pro/              # Apple: Swift concurrency review
+│   ├── swift-design-system-pro/            # Apple: icons + tokens + components bootstrap/audit
 │   ├── swift-docc-pro/                     # Apple: DocC documentation
 │   ├── swift-error-handling-pro/           # Apple: typed throws, Result
 │   ├── swift-logging-pro/                  # Apple: os.Logger review
@@ -132,11 +141,11 @@ Use the installer from the target repo. It takes a **command verb** —
 # Preview catalog with category tags
 /path/to/AppBootstrapAI/install.sh --list --platform apple --features all
 
-# Full help — enumerates all 16 feature categories
+# Full help — enumerates all 17 feature categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
 
 The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
@@ -148,6 +157,8 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 
 - "Use `swift-concurrency-pro` to review the changes in `NetworkClient.swift`."
 - "Use `swiftui-pro` to review `SettingsView.swift` for modern API and a11y."
+- "Use `swift-design-system-pro` to set up a DesignSystem module with an icon facade and button styles."
+- "Use `swift-design-system-pro` to audit hardcoded colors, fonts, and SF Symbol strings across the app."
 - "Use `swift-accessibility-pro` to audit the scan screens for VoiceOver and keyboard access."
 - "Use `swift-adaptive-layout-pro` to get this app ready for iPhone Duo."
 - "Use `swift-testing-pro` to write tests for `UserSession`."
@@ -160,6 +171,8 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `android-accessibility-pro` to audit `FeedScreen.kt` for TalkBack and contrast."
 - "Use `android-adaptive-layout-pro` to make the app tablet- and foldable-ready."
 - "Use `android-compose-pro` to review `FeedScreen.kt` for recomposition and effect bugs."
+- "Use `android-design-system-pro` to scaffold `:core:designsystem` with an AppTheme, AppIcons, and core components."
+- "Use `android-design-system-pro` to audit launcher, notification, and in-app icons."
 - "Use `android-coroutines-pro` to review cancellation and Flow usage in the data layer."
 - "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
 - "Use `xml-to-compose-migration-pro` to migrate `SettingsFragment` to Compose."
@@ -249,6 +262,49 @@ Specialized opt-in (`--features ...,deployment`). Operational rule — fires on 
 - **ProGuard / R8**: `isMinifyEnabled = true` on Release. `mapping.txt` auto-uploads to Play Console with the AAB; verify Crashlytics/Sentry plugins also upload (or release crashes show as `a.a.b()`).
 - **Keystores never in source.** Decode from a base64 CI secret to disk; clean up on job exit.
 
+### Apple iconography (`apple-iconography.md`)
+
+In `recommended` (ui). Fires on `.swift`. Encodes:
+
+- **SF Symbols first**, custom symbols (from an SF Symbols template, as Symbol Image Sets) only when nothing fits; never an SF Symbol as the app icon or logo.
+- **Typed `AppIcon` facade, no raw `systemName:` strings** — a typo or too-new symbol renders nothing silently. Cases named by meaning; a `CaseIterable` test proves every case resolves on the minimum deployment target. `.forward`/`.backward` names so glyphs mirror in RTL.
+- **Size via font** (`.font`, `.imageScale`, `@ScaledMetric` slots), never `.resizable().frame(...)` on a symbol; 44pt hit targets.
+- Rendering modes / variants / variable values set per context; built-in symbol effects, indefinite ones gated on Reduce Motion.
+- Icon accessibility: decorative hidden, icon-only buttons keep a `Label` with `.labelStyle(.iconOnly)`, state never by icon color alone.
+- **App icons in Icon Composer** (`.icon`, layered for Liquid Glass; Default/Dark/Clear/Tinted reviewed) — flat full-bleed art, no baked mask or shadow; `bundle: .module` for packaged assets.
+
+### Apple design system (`apple-design-system.md`)
+
+In `recommended` (ui). Fires on `.swift`. Encodes:
+
+- **One `DesignSystem` module** (tokens, icons, styles, components, gallery) depending on `Core` at most; components take data + closures, never view models.
+- **Role-named color tokens** built on system semantic colors, brand colors as asset-catalog sets with Dark + High Contrast variants; no literal colors in features.
+- **Text styles as the type scale**; custom fonts via `relativeTo:` so they keep Dynamic Type. Spacing scale + `@ScaledMetric`; concentric corners (`ConcentricRectangle`).
+- **Liquid Glass**: standard components adopt it free — remove custom bar backgrounds; glass for the floating control layer only (`.glassEffect`, `GlassEffectContainer`, `.buttonStyle(.glass)`); `UIDesignRequiresCompatibility` is temporary.
+- **Styles before wrappers** (`ButtonStyle`, `LabelStyle`, …); composite components use `@ViewBuilder` slots; check system components (`ContentUnavailableView`, `LabeledContent`) first.
+- Theming via `@Entry` environment values, not global state; previews for every state + a component gallery.
+
+### Android iconography (`android-iconography.md`)
+
+In `recommended` (ui). Fires on `.kt`/`.kts`/`.xml`. Encodes:
+
+- **Material Symbols imported as vector drawables** (one style app-wide) behind a meaning-named `AppIcons` object; avoid `material-icons-extended` in new code.
+- 24dp icons, 48dp targets via `IconButton`; tint from `LocalContentColor` / theme roles, never literals; `android:autoMirrored="true"` on directional glyphs.
+- `contentDescription` from resources for meaningful icons, `null` (not `""`) for decorative ones.
+- **Adaptive launcher icon with a `<monochrome>` layer** (themed icons, Android 13+), art inside the 66dp safe zone, no baked shape; Play listing icon matches.
+- Notification small icons are alpha-only silhouettes (`ic_stat_*`); splash via the SplashScreen API, not a custom Activity.
+
+### Android design system (`android-design-system.md`)
+
+In `recommended` (ui). Fires on `.kt`/`.kts`/`.xml`. Encodes:
+
+- **One `:core:designsystem` module** (Now in Android shape) depending on Compose/M3 only; components take primitives, state, and lambdas.
+- **`AppTheme` over `MaterialTheme`** — schemes generated from a brand seed, dynamic color as an explicit decision with a full fallback; Material 3 Expressive opted into centrally.
+- **Roles, not literals** — `colorScheme.*` with matching `on*` pairs, M3 type and shape scales, `sp` text; extended colors + spacing via `staticCompositionLocalOf` with a fail-loud default.
+- **Thin, stateless wrappers over M3 components** — `modifier` as first optional param applied to the root, slot APIs, `XxxDefaults` objects; never clickable boxes posing as buttons.
+- **Edge-to-edge** (enforced at targetSdk 35+): `enableEdgeToEdge()` + insets handling.
+- Previews via multipreview annotations inside `AppTheme`, a component catalog, and screenshot tests for the design system.
+
 ### Apple localization (`apple-localization-best-practices.md`)
 
 - String Catalogs (`.xcstrings`) are the modern source-of-truth (Xcode 15 / iOS 17+); legacy `.strings` / `.stringsdict` stays stable, new entries route through the catalog.
@@ -305,6 +361,16 @@ In `recommended`. Always-on steering that complements the `swift-logging-pro` sk
 - **Levels** — `.debug` (free in release, not persisted) / `.info` / `.notice` (default, persisted) / `.error` / `.fault`. Match level to severity; reserve `.error`/`.fault` for real problems.
 - **Lazy `@autoclosure` interpolation** — interpolate directly in the call (don't pre-build the string); no manual level guards needed. Signposts (`OSSignposter`) for Instruments timing.
 - **Never log** secrets, tokens, PII beyond a hashed correlation ID, or whole request/response bodies. Retrieve via Console / `log` CLI / in-app `OSLogStore`.
+
+### Architecture: MVVM + repository pattern (`android-mvvm-architecture.md`, `apple-repository-pattern.md`, `android-repository-pattern.md`)
+
+Specialized opt-in (`--features ...,architecture`) for teams that want an explicit layered structure. The SwiftUI side of MVVM stays in `apple-swiftui-mvvm.md` (`ui`).
+
+- **Android MVVM / UDF** — one `StateFlow<UiState>` per screen derived with `combine` + `stateIn(viewModelScope, WhileSubscribed(5_000), Loading)`; events are ViewModel functions; one-off effects modeled as state; `SavedStateHandle` (+ `toRoute`) for process-death state and nav args; stateful `…Route` collects, stateless `…Screen` renders; no `Context`/`NavController` in ViewModels; use cases only when reused or combining repositories.
+- **Repositories (both platforms)** — named by data type, not screen; the local store is the single source of truth and the network writes into it; live data as `Flow` / `AsyncSequence`, one-shots as `suspend` / `async throws`; DTO / persistence / domain models stay separate and only domain models cross the boundary; transport errors mapped to domain errors; cancellation never swallowed.
+- **Apple specifics** — protocol in a domain module, `actor` (or stateless `Sendable` class) implementation, never `@MainActor`; `Sendable` value types, never `NSManagedObject` / `@Model` across the boundary; typed throws; wired at the `AppCore` composition root. A plain `@Query` SwiftData app may skip repositories.
+- **Android specifics** — Hilt `@Binds` `@Singleton` implementations in `:core:data`; Room as source of truth; `@ApplicationScope` / WorkManager for work that outlives the screen; fakes in a shared test module.
+- **No generic `Repository<T>` CRUD base** on either platform.
 
 ### Android logging (`android-logging-strategy.md`)
 

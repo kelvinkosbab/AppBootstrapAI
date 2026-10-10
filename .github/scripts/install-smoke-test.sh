@@ -2022,6 +2022,67 @@ else
     FAIL=$((FAIL + 1))
 fi
 
+bold "==> ui: iconography + design-system rules/skills land per-platform (apple vs android, no cross-leak)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+a_ok=$([[ -f "$t/.claude/rules/apple-iconography.md" \
+       && -f "$t/.claude/rules/apple-design-system.md" \
+       && -f "$t/.claude/skills/swift-design-system-pro/references/bootstrap.md" \
+       && ! -f "$t/.claude/rules/android-iconography.md" \
+       && ! -d "$t/.claude/skills/android-design-system-pro" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features ui > /dev/null
+b_ok=$([[ -f "$t/.claude/rules/android-iconography.md" \
+       && -f "$t/.claude/rules/android-design-system.md" \
+       && -f "$t/.claude/skills/android-design-system-pro/references/bootstrap.md" \
+       && ! -f "$t/.claude/rules/apple-iconography.md" \
+       && ! -d "$t/.claude/skills/swift-design-system-pro" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features core,testing > /dev/null
+c_ok=$([[ ! -f "$t/.claude/rules/apple-design-system.md" \
+       && ! -f "$t/.claude/rules/android-design-system.md" ]] && echo y)
+rm -rf "$t"
+if [[ "$a_ok" == "y" && "$b_ok" == "y" && "$c_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: design-system/iconography should follow platform + ui feature (apple=$a_ok android=$b_ok no-ui=$c_ok)"
+    FAIL=$((FAIL + 1))
+fi
+
+bold "==> architecture: MVVM + repository rules are opt-in and per-platform"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features recommended > /dev/null
+a_ok=$([[ ! -f "$t/.claude/rules/android-mvvm-architecture.md" \
+       && ! -f "$t/.claude/rules/apple-repository-pattern.md" \
+       && ! -f "$t/.claude/rules/android-repository-pattern.md" \
+       && -f "$t/.claude/rules/apple-swiftui-mvvm.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended,architecture > /dev/null
+b_ok=$([[ -f "$t/.claude/rules/apple-repository-pattern.md" \
+       && ! -f "$t/.claude/rules/android-repository-pattern.md" \
+       && ! -f "$t/.claude/rules/android-mvvm-architecture.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended,architecture > /dev/null
+c_ok=$([[ -f "$t/.claude/rules/android-mvvm-architecture.md" \
+       && -f "$t/.claude/rules/android-repository-pattern.md" \
+       && ! -f "$t/.claude/rules/apple-repository-pattern.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+mkdir -p "$t/app/src/main/java"
+printf 'interface TasksRepository\n' > "$t/app/src/main/java/TasksRepository.kt"
+d_ok=$("$INSTALL" recommend "$t" --json 2>/dev/null | python3 -c 'import json,sys; print("y" if "architecture" in json.load(sys.stdin)["features"] else "n")')
+rm -rf "$t"
+if [[ "$a_ok" == "y" && "$b_ok" == "y" && "$c_ok" == "y" && "$d_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: architecture opt-in (recommended-excludes=$a_ok apple=$b_ok android=$c_ok recommend-detects=$d_ok)"
+    FAIL=$((FAIL + 1))
+fi
+
 bold "==> ui: a11y skills land per-platform (swift- for apple, android- for android, no cross-leak)"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform apple --features recommended > /dev/null

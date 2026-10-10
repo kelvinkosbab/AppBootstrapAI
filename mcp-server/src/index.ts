@@ -80,6 +80,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     shrinking:        "R8 / ProGuard configuration and keep-rule discipline.",
     spatial:          "visionOS: scene types, immersion styles, spatial gestures, RealityKit/ECS, USDZ pipeline.",
     deployment:       "TestFlight (Apple) + Play beta tracks (Android): versioning, signing, CI patterns, gotchas.",
+    architecture:     "Android MVVM/UDF (StateFlow UiState, SavedStateHandle, Route/Screen) + repository pattern / data layer (Apple + Android).",
 };
 
 interface Category { name: string; recommended: boolean; description: string; }

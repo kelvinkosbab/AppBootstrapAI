@@ -57,7 +57,7 @@ A plain `install` over a **managed** dir is refused (use `upgrade`; `--force` ov
 `import FoundationModels` → `ai` · Core Data / SwiftData / `.xcdatamodeld` →
 `persistence` · RealityKit / `.usdz` → `spatial` · Room → `persistence` ·
 R8 / ProGuard → `shrinking` · XML layouts / Fragments → `migration` ·
-fastlane / CI → `deployment`. The `recommended` set is always included.
+fastlane / CI → `deployment`, `*Repository` types → `architecture`. The `recommended` set is always included.
 
 ## Scaffolding a local Swift package (separate tool)
 
