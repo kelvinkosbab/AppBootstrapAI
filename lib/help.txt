@@ -50,7 +50,10 @@
 #   --platform           Which platform's rules and skills to install.
 #                        - apple   → install apple-* rules + Apple skills
 #                        - android → install android-* rules + Android skills
-#                        - both    → install everything (intersected with --features)
+#                        - both    → install everything (intersected with --features),
+#                                    plus the cross-platform rule + skill
+#                                    (cross-platform-development.md,
+#                                    cross-platform-parity-pro)
 #                        If unset, the installer auto-detects from the TARGET_DIR:
 #                          - Package.swift / *.xcodeproj / *.xcworkspace → apple
 #                          - build.gradle* / settings.gradle* / gradlew  → android
@@ -97,6 +100,7 @@
 #
 #                        Available categories (each spans Apple + Android where applicable):
 #                          core             project-level README/CHANGELOG/ADR patterns
+#                                           (+ cross-platform steering with --platform both)
 #                          concurrency      Swift concurrency / Kotlin coroutines
 #                          ui               SwiftUI/MVVM / Jetpack Compose + accessibility
 #                                           + iconography / design system

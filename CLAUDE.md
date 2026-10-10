@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 12 Apple, 8 Android — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 12 Apple, 8 Android, 1 cross-platform — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -49,6 +49,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-testing-strategy.md                  # Apple: test strategy + coverage
 │   ├── apple-visionos-best-practices.md           # Apple: visionOS / RealityKit / spatial UX
 │   ├── concise-comments-and-commits.md            # Cross-platform: terse comments + commits
+│   ├── cross-platform-development.md              # Cross-platform: Apple + Android together with AI (--platform both)
 │   └── project-documentation.md                   # Cross-platform: README/CHANGELOG/ADR
 ├── skills/                        # On-demand Claude Code skills
 │   ├── android-accessibility-pro/          # Android: TalkBack / keyboard / contrast audit
@@ -58,6 +59,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-design-system-pro/          # Android: icons + theme + components bootstrap/audit
 │   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
+│   ├── cross-platform-parity-pro/          # Both: port features, audit drift, set up a two-platform repo
 │   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
 │   ├── swift-accessibility-pro/            # Apple: VoiceOver / keyboard / contrast audit
 │   ├── swift-adaptive-layout-pro/          # Apple: resizable / iPhone Duo audit
@@ -177,6 +179,8 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
 - "Use `xml-to-compose-migration-pro` to migrate `SettingsFragment` to Compose."
 - "Use `r8-shrink-pro` to audit my ProGuard rules before release."
+- "Use `cross-platform-parity-pro` to port the iOS task list to Android."
+- "Use `cross-platform-parity-pro` to audit the two apps for drift in strings, icons, and analytics events."
 
 Each skill produces a file-by-file findings report with before/after code fixes and a prioritized summary.
 
@@ -304,6 +308,20 @@ In `recommended` (ui). Fires on `.kt`/`.kts`/`.xml`. Encodes:
 - **Thin, stateless wrappers over M3 components** — `modifier` as first optional param applied to the root, slot APIs, `XxxDefaults` objects; never clickable boxes posing as buttons.
 - **Edge-to-edge** (enforced at targetSdk 35+): `enableEdgeToEdge()` + insets handling.
 - Previews via multipreview annotations inside `AppTheme`, a component catalog, and screenshot tests for the design system.
+
+### Cross-platform development (`cross-platform-development.md`)
+
+In `core`, but installs only with `--platform both`. Fires on Swift, Kotlin, resources, config, and docs. Encodes:
+
+- **Decide what to share once, in an ADR**: native × 2 (default; share specs, contracts, tokens, names) or Kotlin Multiplatform for domain + data logic. UI stays SwiftUI + Compose.
+- **Monorepo for agents**: `apple/` and `android/` each with their own `CLAUDE.md` (loaded only when working there), `shared/` for contracts, `docs/features/` specs, `docs/parity.md`. One root install with `--platform both`.
+- **Spec first, then two implementations**: states, strings, icons, events, links, a11y, acceptance checks; one reference platform then a port, or both in parallel worktrees once the spec settles. Name the platform in prompts.
+- **One vocabulary**: same type/file/module names, string keys mapped `.` → `_` on Android, matching icon vocabularies, same event and flag names.
+- **Generated shared contracts**: OpenAPI clients, design tokens, analytics events, flags, deep-link routes — never hand-copied per platform.
+- **Parity is behavior, not pixels**: HIG on Apple, Material on Android; platform-only features declared in `docs/parity.md`.
+- **CI path filters**: `apple/**` on macOS, `android/**` on Linux, `shared/**` runs both.
+
+The `cross-platform-parity-pro` skill ports features (concept map + porting workflow), audits drift (string-key / icon / event / flag / deep-link diff scripts), and sets up the repo (root + platform `CLAUDE.md`, `apple-engineer` / `android-engineer` subagents, shared-contract generation, CI). Its `kmp.md` reference covers sharing logic with Kotlin Multiplatform behind a Swift adapter.
 
 ### Apple localization (`apple-localization-best-practices.md`)
 

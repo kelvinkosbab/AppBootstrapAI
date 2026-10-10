@@ -20,7 +20,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 |------|---------------|
 | **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
 | **Android rules** | Kotlin/Compose/MVVM/Hilt · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta |
-| **Skills (Claude)** | 12 Apple + 8 Android on-demand deep-review agents |
+| **Skills (Claude)** | 12 Apple + 8 Android + 1 cross-platform on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
@@ -95,9 +95,11 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Cross-platform — 2 rules</strong> (click to expand)</summary>
+<summary><strong>Cross-platform — 3 rules + 1 skill</strong> (click to expand)</summary>
 
 - **`concise-comments-and-commits.md`** *(core)* — fires on all Swift/Kotlin/ObjC source: in-code comments default to *none* (write only what code can't express — why, traps, ticket refs; never narration, diff commentary, or commented-out code), and commit messages stay short (imperative ≤72-char subject; body only when the why isn't in the diff — never file-by-file inventories or process reports). Aimed squarely at AI-assistant verbosity.
+- **`cross-platform-development.md`** *(core; installs only with `--platform both`)* — building one app on Apple and Android at once with AI agents: native × 2 vs Kotlin Multiplatform as a recorded decision, a monorepo with nested `CLAUDE.md` files per platform, spec-first features (`docs/features/`), one vocabulary of names across platforms (types, modules, string keys, icons, events, flags), single sources of truth for the API (OpenAPI), design tokens, strings, analytics, flags, and deep links, parity as behavior-not-pixels, `docs/parity.md`, and CI path filters.
+- **`cross-platform-parity-pro` skill** *(core; `--platform both`)* — ports a feature from one platform to the other (spec → reference behavior → idiomatic target code → verify both), audits drift with scripts that diff string keys, icon vocabularies, analytics events, flags, and deep links, and sets up the repo: root + per-platform `CLAUDE.md`, `apple-engineer` / `android-engineer` subagents, shared-contract generation, PR template, CI. Includes a Swift ↔ Kotlin / SwiftUI ↔ Compose concept map and a Kotlin Multiplatform guide (share logic, never UI; a Swift adapter at the boundary).
 - **`project-documentation.md`** — README structure, [Keep a Changelog](https://keepachangelog.com) format, `CONTRIBUTING.md` essentials, ADR conventions (`docs/adr/####-title.md`, immutable once accepted), inline-comment philosophy (*why* not *what*), and link-rot defenses (pinned versions, permalinked source). Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`.
 
 </details>
@@ -646,6 +648,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-testing-strategy.md                  # Apple test strategy + coverage
 │   │   ├── apple-visionos-best-practices.md           # visionOS / RealityKit / spatial UX (spatial)
 │   │   ├── concise-comments-and-commits.md            # terse comments + commit messages (core)
+│   │   ├── cross-platform-development.md              # Apple + Android together with AI (core, --platform both)
 │   │   └── project-documentation.md                   # README/CHANGELOG/ADR/inline comments
 │   ├── skills/                        # On-demand skills
 │   │   ├── android-accessibility-pro/          # TalkBack / keyboard / contrast audit (ui)
@@ -655,6 +658,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-design-system-pro/          # Icons + theme + components bootstrap/audit (ui)
 │   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs
 │   │   ├── coredata-swift6-pro/
+│   │   ├── cross-platform-parity-pro/          # Port features, audit drift, set up a two-platform repo (both)
 │   │   ├── r8-shrink-pro/                      # ProGuard/R8 rules
 │   │   ├── swift-concurrency-pro/
 │   │   ├── swift-design-system-pro/            # Icons + tokens + components bootstrap/audit (ui)

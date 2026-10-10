@@ -25,7 +25,7 @@
 # --apple-language, not --features.
 file_category() {
     case "$1" in
-        project-documentation.md|concise-comments-and-commits.md)
+        project-documentation.md|concise-comments-and-commits.md|cross-platform-development.md|cross-platform-parity-pro)
             echo "core" ;;
         apple-swift6-strict-concurrency.md|swift-concurrency-pro|android-coroutines-best-practices.md|android-coroutines-pro)
             echo "concurrency" ;;
@@ -119,6 +119,10 @@ should_install_rule() {
         android-*)
             [[ "$PLATFORM" != "apple" ]] && is_in_features "$name"
             ;;
+        cross-platform-*)
+            # Apple + Android working together — only meaningful with both.
+            [[ "$PLATFORM" == "both" ]] && is_in_features "$name"
+            ;;
         *)
             # Unprefixed rules (like project-documentation.md) — gated by --features only.
             is_in_features "$name"
@@ -130,6 +134,10 @@ should_install_rule() {
 should_install_skill() {
     local name="$1"
     case "$name" in
+        cross-platform-*)
+            # Cross-platform skill — needs both platforms in scope.
+            [[ "$PLATFORM" == "both" ]] && is_in_features "$name"
+            ;;
         android-adaptive-layout-pro)
             # Form-factor skill — also needs `tablet` in --android-platforms.
             [[ "$PLATFORM" != "apple" ]] && is_in_features "$name" && android_platform_selected tablet

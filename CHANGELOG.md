@@ -10,6 +10,14 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Cross-platform development — 1 rule + 1 skill (core, `--platform both`).**
+  `cross-platform-development.md` steers teams building the Apple and Android
+  apps together with AI agents: the native-vs-KMP decision, a monorepo with
+  per-platform `CLAUDE.md` files, spec-first features, one shared vocabulary
+  of names, generated shared contracts, parity tracking, and CI path filters.
+  `cross-platform-parity-pro` ports features between platforms, audits drift,
+  and sets up the repo. Both install only when `--platform both`.
+
 - **Architecture — 3 rules (new opt-in `architecture` category).**
   `android-mvvm-architecture.md` covers MVVM with unidirectional data flow
   (one `StateFlow<UiState>` per screen, effects as state, `SavedStateHandle`,

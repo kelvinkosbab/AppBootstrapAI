@@ -2051,6 +2051,33 @@ else
     FAIL=$((FAIL + 1))
 fi
 
+bold "==> core: cross-platform rule + skill install only with --platform both"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features recommended > /dev/null
+a_ok=$([[ -f "$t/.claude/rules/cross-platform-development.md" \
+       && -f "$t/.claude/skills/cross-platform-parity-pro/references/concept-map.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+b_ok=$([[ ! -f "$t/.claude/rules/cross-platform-development.md" \
+       && ! -d "$t/.claude/skills/cross-platform-parity-pro" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended > /dev/null
+c_ok=$([[ ! -f "$t/.claude/rules/cross-platform-development.md" \
+       && ! -d "$t/.claude/skills/cross-platform-parity-pro" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features testing > /dev/null
+d_ok=$([[ ! -f "$t/.claude/rules/cross-platform-development.md" ]] && echo y)
+rm -rf "$t"
+if [[ "$a_ok" == "y" && "$b_ok" == "y" && "$c_ok" == "y" && "$d_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: cross-platform content gating (both=$a_ok apple=$b_ok android=$c_ok no-core=$d_ok)"
+    FAIL=$((FAIL + 1))
+fi
+
 bold "==> architecture: MVVM + repository rules are opt-in and per-platform"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform both --features recommended > /dev/null
