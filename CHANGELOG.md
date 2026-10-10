@@ -10,6 +10,18 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Modular architecture — 1 new rule + 2 skills, and a rewritten Apple rule
+  (packaging, in `recommended`).** `apple-modular-architecture.md` now spells
+  out the KozBon layout: what must stay in the app target (`@main`, the
+  `AppShortcutsProvider`, main-bundle catalogs), interface/implementation
+  modules, re-exports, tests under `swift test`, and a module table in
+  `CLAUDE.md`. New `android-modular-architecture.md` covers the Now in Android
+  layout: module types, the feature `api`/`impl` split, navigation through
+  `:app`, Hilt per module, non-transitive R, build flags, and graph
+  enforcement. `swift-modularization-pro` and `android-modularization-pro`
+  plan a module graph, migrate one module at a time, and audit an existing
+  graph with a dependency-rule script.
+
 - **Cross-platform development — 1 rule + 1 skill (core, `--platform both`).**
   `cross-platform-development.md` steers teams building the Apple and Android
   apps together with AI agents: the native-vs-KMP decision, a monorepo with

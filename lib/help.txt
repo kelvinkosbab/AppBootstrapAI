@@ -107,7 +107,7 @@
 #                          testing          test strategy + coverage gates
 #                          docs             DocC / KDoc documentation strategy
 #                          error-handling   Swift typed throws / Result / LocalizedError
-#                          packaging        Package.swift / Gradle / SPM authoring
+#                          packaging        Package.swift / Gradle authoring, modular app structure
 #                          logging          os.Logger discipline
 #                          localization     String Catalogs / strings.xml / RTL
 #                          linting          SwiftLint+formatter / ktlint+detekt+Android Lint

@@ -19,14 +19,14 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 | Area | What's inside |
 |------|---------------|
 | **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
-| **Android rules** | Kotlin/Compose/MVVM/Hilt · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta |
-| **Skills (Claude)** | 12 Apple + 8 Android + 1 cross-platform on-demand deep-review agents |
+| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta |
+| **Skills (Claude)** | 13 Apple + 9 Android + 1 cross-platform on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
 <details>
-<summary><strong>Apple — 20 rules + 12 skills</strong> (click to expand)</summary>
+<summary><strong>Apple — 20 rules + 13 skills</strong> (click to expand)</summary>
 
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text), plus Bluetooth assistive tech: Full Keyboard Access (`.focusable()`, focus rings), Switch Control scan order, braille-display label discipline, focus management (`@AccessibilityFocusState`), modern announcements (`AccessibilityNotification`), audio/hearing (no sound-only cues, captions), WCAG AA color/contrast (both themes, Increase Contrast, Smart Invert), and App Store Accessibility Nutrition Label honesty.
@@ -40,7 +40,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`apple-design-system.md`** *(ui)* — the core-UI foundation: one `DesignSystem` module of role-named color tokens (system semantic colors first, brand sets with Dark + High Contrast variants), text-style typography with Dynamic Type-safe custom fonts, spacing/radius scales and concentric corners, **Liquid Glass adoption** (remove custom bar backgrounds; glass only on the control layer), component **styles before wrapper views**, slot-based composites, `@Entry` environment theming, previews and a component gallery, plus an incremental adoption path for existing apps.
 - **`apple-documentation-strategy.md`** — what to document (and what not), DocC discipline (summary line, `- Parameter`/`- Returns`/`- Throws`, double-backtick symbol linking, `## Topics` organization), deprecation discipline with mandatory migration paths, when to write a DocC Article vs. a doc comment.
 - **`apple-localization-best-practices.md`** — String Catalogs (`.xcstrings`) as the modern format, type-safe `Strings` enum facade pattern, `LocalizedStringResource` over `NSLocalizedString`, plurals, locale-aware `.formatted()` for numbers/dates/currency, RTL via leading/trailing modifiers, translator-context comments.
-- **`apple-modular-architecture.md`** — the *architecture* stance behind the SPM conventions: a thin Xcode app target over a fat local Swift package split into many small modules (the KozBon / BasicSwiftUtilities shape). Why it wins (build parallelism, compile-enforced module boundaries, headless testing, reuse across widgets/extensions), the layered dependency graph (Core → domain → features → UI → `AppCore` umbrella the app links), the incremental migration playbook (scaffold, move leaf-first, thin the app target), and the `Bundle.module` / `.xcdatamodeld` caveats. Pairs with the `scripts/scaffold-spm-package.sh` scaffolder.
+- **`apple-modular-architecture.md`** — the *architecture* stance behind the SPM conventions: a thin Xcode app target over a local Swift package split into many small modules (the KozBon / BasicSwiftUtilities shape). Why it wins (build parallelism, compile-enforced boundaries, headless `swift test`, reuse across widgets/extensions), what must stay in the app target (`@main`, the `AppShortcutsProvider` and main-bundle catalogs), the layered graph up to an `AppCore` umbrella, interface/implementation modules for interchangeable backends, re-exports, documenting the graph in `CLAUDE.md`, the incremental migration playbook, and the `Bundle.module` / `.xcdatamodeld` caveats. Pairs with `scripts/scaffold-spm-package.sh` and the `swift-modularization-pro` skill.
 - **`apple-repository-pattern.md`** *(architecture)* — the data layer: protocol repositories in a domain module returning `Sendable` value types (never `NSManagedObject` / `@Model` / DTOs), `actor` implementations under Swift 6, local store as the single source of truth observed through `AsyncSequence`, typed-throws error mapping, in-flight dedup, injection at the `AppCore` composition root, in-memory fakes + contract tests — and when `@Query` alone is enough.
 - **`apple-spm-package-conventions.md`** — `Package.swift` authoring: `swift-tools-version` discipline, mandatory `platforms:`, flat per-module folder layout (`{Module}/Sources/` + `{Module}/Tests/`, matching KozBon and BasicSwiftUtilities), `makeTargets()` helper for many similar modules with `hasTests` / `hasResources` / `plugins` toggles, resources (`.process` vs `.copy`), build plugins (SwiftLintPlugins, swift-docc-plugin), `Package.resolved` discipline (commit for apps, gitignore for libraries), local-path overrides for sibling-package development, modern features (`InternalImportsByDefault`, `.swiftLanguageMode(.v6)`, `public import`), dependency hygiene (`from:` vs `exact:`).
 - **`apple-infoplist-localization.md`** *(localization)* — the localization channel the `Strings` facade **can't** reach: `InfoPlist.xcstrings` vs legacy `InfoPlist.strings`, why the `INFOPLIST_KEY_*` build setting is the base value (and how omitting it yields `ITMS-90683` at upload), untranslated rows silently falling back, one catalog per target, and writing purpose strings specific enough to pass App Review.
@@ -53,6 +53,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
 - **`coredata-swift6-pro` skill** — Core Data under Swift 6 strict concurrency, `viewContext`/`@MainActor`, SPM `.xcdatamodeld` caveats.
 - **`swift-design-system-pro` skill** — bootstraps or audits the UI foundation: scaffolds a `DesignSystem` module (tokens, `AppIcon` facade + availability test, button styles, gallery) or inventories an existing app (literal colors, fixed fonts, raw symbol strings, duplicate components, Liquid Glass blockers, app-icon appearances) and returns a ranked, incremental migration plan.
+- **`swift-modularization-pro` skill** *(packaging)* — plans a module graph for a new or existing app, migrates code out of the app target one module at a time (what stays, extraction order, per-step checklist, common breakages), and audits an existing package with a tested dependency-rule script over `swift package dump-package` (feature→feature edges, upward edges, concrete-backend imports, missing test targets) plus `Bundle.main` / `@_exported` / app-target searches and a CI job.
 - **`swift-adaptive-layout-pro` skill** — deep resizability / iPhone Duo audit: the UIScene launch blocker, `UIRequiresFullScreen` semantics, idiom/orientation/`UIScreen.main` removals, arrangement nesting constraints, hinge and reserved regions, symmetric safe-area math, outer→inner navigation continuity, and pose/window-size test coverage.
 - **`swift-accessibility-pro` skill** — deep accessibility audit: the VoiceOver surface (labels/traits/merging/rotor/announcements), Bluetooth assistive input (Full Keyboard Access reachability, Switch Control scan order, braille label quality), visual accessibility (WCAG AA contrast in both themes, Dynamic Type at AX sizes, color-independence, Reduce Motion), and Nutrition-Label claim verification.
 - **`swiftdata-pro` skill** — SwiftData review: core model/context rules, safe `#Predicate` usage, CloudKit constraints, iOS 18+ indexing, iOS 26+ class inheritance.
@@ -64,7 +65,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Android — 17 rules + 8 skills</strong> (click to expand)</summary>
+<summary><strong>Android — 18 rules + 9 skills</strong> (click to expand)</summary>
 
 - **`android-project-rules.md`** — Kotlin, Jetpack Compose, MVVM, Hilt, StateFlow, Retrofit/Moshi, ktlint.
 - **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
@@ -78,6 +79,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`android-documentation-strategy.md`** — KDoc syntax (`@param` / `@return` / `@throws` / `@property` / `@sample` / `@see`), Composable docs (state hoisting, semantics, skippable vs. restartable), Hilt module docs, suspend / cancellation behavior, deprecation with `ReplaceWith`, Dokka conventions and external links.
 - **`android-localization-best-practices.md`** — `strings.xml` discipline, `stringResource` / `pluralStringResource` in Compose, positional format args (`%1$s` not `%s`), `<plurals>` with `getQuantityString`, locale-aware `NumberFormat` / `DateTimeFormatter`, RTL with `start`/`end` modifiers and `android:supportsRtl="true"`, translator-context comment blocks.
 - **`android-gradle-conventions.md`** — Kotlin DSL only, version catalogs (`gradle/libs.versions.toml`) as single source of truth, AGP/Kotlin/Compose-compiler co-versioning, `jvmToolchain`, `api` vs `implementation`, multi-module graph patterns (`:app` + `:feature:*` + `:data:*` + `:core:*`), library publishing with `consumer-rules.pro`, KSP over kapt. **Now includes** an inline-strings → catalog migration walkthrough for legacy projects.
+- **`android-modular-architecture.md`** *(packaging)* — the Now in Android shape: a thin `:app` over `:feature:*` (with an `api`/`impl` split), `:core:data`, `:core:domain`, pure-Kotlin `:core:model`, data-source modules, `:core:designsystem`, and `:core:testing`. Allowed edges, navigation wired in `:app` through lambdas and type-safe routes, Hilt bindings per module, `internal` and explicit API, non-transitive R, build-cache and configuration-cache flags, graph enforcement with module-graph-assertion, and a leaf-first migration from a single-module app.
 - **`android-linting-strategy.md`** *(linting)* — three linters, three jobs: ktlint (`.editorconfig`, formatting), detekt (`detekt.yml` tuning, `buildUponDefaultConfig`, type resolution, baselines), and Android Lint (`lint {}`, `lint.xml`, `warningsAsErrors`, baselines). `@Suppress` / `@SuppressLint` hygiene, CI placement (`ktlintCheck detekt lintDebug`), version pinning, plus a triage decision-order.
 - **`android-logging-strategy.md`** *(logging)* — Timber over `android.util.Log` (plant a tree in `Application.onCreate`), log levels (V/D/I/W/E/WTF) and passing the `Throwable`, **stripping debug logs from release** (DebugTree-in-debug-only + R8 `assumenosideeffects`), no PII/secrets, crash-reporter integration (Crashlytics/Sentry breadcrumbs + non-fatals via a `CrashReportingTree`), Logcat hygiene.
 - **`android-ai-best-practices.md`** *(ai)* — in-app AI models on Android, the counterpart to the Apple Foundation Models rule: on-device Gemini Nano via ML Kit GenAI / AICore vs cloud Gemini via Firebase AI Logic, **never ship a raw model API key** (App Check / backend proxy), two-level availability gating (feature download + user preference), streaming into Compose with placeholder-then-mutate, structural cancellation, interface + fake testability, consent + Data-safety implications.
@@ -89,6 +91,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`android-compose-pro` skill** — deep Compose review: recomposition stability + skippability (incl. strong-skipping-mode awareness), side-effect audit (`LaunchedEffect` keys, `rememberUpdatedState`, `DisposableEffect` teardown), lazy-list performance (keys, `contentType`, `derivedStateOf` for scroll), state modeling and hoisting.
 - **`android-coroutines-pro` skill** — deep coroutines/Flow review: scope-to-lifecycle mapping, cooperative cancellation (`CancellationException` discipline, `runCatching` traps), `launch` vs `async` exception propagation, supervisor boundaries, `stateIn`/`shareIn` configuration, `callbackFlow` teardown, coroutine testing (virtual time, Turbine).
 - **`android-gradle-architecture-pro` skill** — reviews multi-module Android builds against the **Now in Android** convention-plugin pattern: `build-logic/convention/` factoring, version-catalog depth, AGP co-versioning, KSP-over-kapt migration.
+- **`android-modularization-pro` skill** *(packaging)* — plans, migrates, and audits a multi-module Android app: module types and allowed edges, the feature `api`/`impl` split, cross-feature navigation and Hilt across modules, a migration checklist with common breakages (transitive `R`, missing bindings, manifest merges), and a tested dependency-rule script over `settings.gradle.kts` and module build files, plus the Gradle graph assertion and a CI job.
 - **`xml-to-compose-migration-pro` skill** — reviews and assists XML/Fragment → Compose migration: incremental interop via `ComposeView` / `AndroidView`, layout translation (LinearLayout/ConstraintLayout/FrameLayout → Modifier), RecyclerView → `LazyColumn` with stable keys, Fragment → Composable, Navigation Component → Navigation-Compose, ViewModel bridging, themes/styles → `MaterialTheme`.
 - **`r8-shrink-pro` skill** — reviews R8 / ProGuard configuration: `-keep` rule discipline, `consumer-rules.pro` contract for libraries, common reflection-library rules (Moshi, Room, Retrofit, Hilt, Glide, kotlinx-serialization), mapping-file workflow, debugging release-build crashes.
 
@@ -622,6 +625,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-linting-strategy.md                # ktlint + detekt + Android Lint (linting)
 │   │   ├── android-localization-best-practices.md     # strings.xml, plurals, RTL
 │   │   ├── android-logging-strategy.md                # Timber, level discipline, release-stripping (logging)
+│   │   ├── android-modular-architecture.md            # Thin :app over feature/core modules (packaging)
 │   │   ├── android-mvvm-architecture.md               # MVVM / UDF, UiState, Route vs Screen (architecture)
 │   │   ├── android-play-beta-deployment.md            # Play beta tracks, signing, CI (deployment)
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
@@ -657,6 +661,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-coroutines-pro/             # Coroutines & Flow correctness (concurrency)
 │   │   ├── android-design-system-pro/          # Icons + theme + components bootstrap/audit (ui)
 │   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs
+│   │   ├── android-modularization-pro/         # Plan/migrate/audit a multi-module app (packaging)
 │   │   ├── coredata-swift6-pro/
 │   │   ├── cross-platform-parity-pro/          # Port features, audit drift, set up a two-platform repo (both)
 │   │   ├── r8-shrink-pro/                      # ProGuard/R8 rules
@@ -665,6 +670,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── swift-docc-pro/
 │   │   ├── swift-error-handling-pro/
 │   │   ├── swift-logging-pro/
+│   │   ├── swift-modularization-pro/           # Plan/migrate/audit a local SPM package (packaging)
 │   │   ├── swift-package-pro/
 │   │   ├── swift-testing-pro/
 │   │   ├── swift-accessibility-pro/            # VoiceOver / keyboard / contrast audit (ui)

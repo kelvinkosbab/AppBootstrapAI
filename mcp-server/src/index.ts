@@ -70,7 +70,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     testing:          "Test strategy + coverage gates (Apple + Android).",
     docs:             "DocC / KDoc documentation strategy.",
     "error-handling": "Swift typed throws / Result / LocalizedError.",
-    packaging:        "Package.swift / Gradle conventions / SPM and Gradle authoring.",
+    packaging:        "Package.swift / Gradle authoring and modular app structure (local SPM package, multi-module Gradle).",
     logging:          "os.Logger discipline (privacy markers, subsystem/category).",
     localization:     "String Catalogs / strings.xml / plurals / RTL.",
     linting:          "SwiftLint + formatter (Apple) / ktlint + detekt + Android Lint (Android): config, suppression hygiene, baselines, triage decision-order, CI placement.",

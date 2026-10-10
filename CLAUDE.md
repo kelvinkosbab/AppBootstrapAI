@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 12 Apple, 8 Android, 1 cross-platform — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 13 Apple, 9 Android, 1 cross-platform — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -23,6 +23,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-linting-strategy.md                # Android: ktlint + detekt + Android Lint
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
 │   ├── android-logging-strategy.md                # Android: Timber, levels, release-stripping
+│   ├── android-modular-architecture.md            # Android: thin :app over feature/core modules (NiA)
 │   ├── android-mvvm-architecture.md               # Android: MVVM / UDF, UiState, Route vs Screen (opt-in)
 │   ├── android-play-beta-deployment.md            # Android: Play beta tracks, signing, CI
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
@@ -58,6 +59,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-coroutines-pro/             # Android: coroutines/Flow deep review
 │   ├── android-design-system-pro/          # Android: icons + theme + components bootstrap/audit
 │   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
+│   ├── android-modularization-pro/         # Android: plan/migrate/audit a multi-module app
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── cross-platform-parity-pro/          # Both: port features, audit drift, set up a two-platform repo
 │   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
@@ -68,6 +70,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── swift-docc-pro/                     # Apple: DocC documentation
 │   ├── swift-error-handling-pro/           # Apple: typed throws, Result
 │   ├── swift-logging-pro/                  # Apple: os.Logger review
+│   ├── swift-modularization-pro/           # Apple: plan/migrate/audit a local SPM package
 │   ├── swift-package-pro/                  # Apple: SPM library design
 │   ├── swift-testing-pro/                  # Apple: Swift Testing code
 │   ├── swiftdata-pro/                      # Apple: SwiftData review
@@ -169,6 +172,8 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `swift-error-handling-pro` to review error types and throwing functions."
 - "Use `swift-logging-pro` to audit Logger usage."
 - "Use `swift-package-pro` to review `Package.swift` and the public API."
+- "Use `swift-modularization-pro` to plan moving this app's code into a local Swift package."
+- "Use `swift-modularization-pro` to audit the module graph in `MyAppPackages`."
 - "Use `swiftdata-pro` to review the SwiftData models and queries."
 - "Use `android-accessibility-pro` to audit `FeedScreen.kt` for TalkBack and contrast."
 - "Use `android-adaptive-layout-pro` to make the app tablet- and foldable-ready."
@@ -177,6 +182,7 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `android-design-system-pro` to audit launcher, notification, and in-app icons."
 - "Use `android-coroutines-pro` to review cancellation and Flow usage in the data layer."
 - "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
+- "Use `android-modularization-pro` to split this single-module app into feature and core modules."
 - "Use `xml-to-compose-migration-pro` to migrate `SettingsFragment` to Compose."
 - "Use `r8-shrink-pro` to audit my ProGuard rules before release."
 - "Use `cross-platform-parity-pro` to port the iOS task list to Android."
@@ -389,6 +395,16 @@ Specialized opt-in (`--features ...,architecture`) for teams that want an explic
 - **Apple specifics** — protocol in a domain module, `actor` (or stateless `Sendable` class) implementation, never `@MainActor`; `Sendable` value types, never `NSManagedObject` / `@Model` across the boundary; typed throws; wired at the `AppCore` composition root. A plain `@Query` SwiftData app may skip repositories.
 - **Android specifics** — Hilt `@Binds` `@Singleton` implementations in `:core:data`; Room as source of truth; `@ApplicationScope` / WorkManager for work that outlives the screen; fakes in a shared test module.
 - **No generic `Repository<T>` CRUD base** on either platform.
+
+### Modular architecture (`apple-modular-architecture.md`, `android-modular-architecture.md`)
+
+In `recommended` (packaging). The structure KozBon uses on Apple and Now in Android uses on Android: a thin app shell over many small modules.
+
+- **Apple**: a thin app target over a local Swift package (`<App>Packages/`, one directory per module, `makeTargets()` manifest, `AppCore` umbrella). The app target keeps only `@main` (returning `AppCoreScene()`), Info.plist, entitlements, assets, the privacy manifest, `InfoPlist.xcstrings`, and the `AppShortcutsProvider` with its main-bundle catalogs. Interface / implementation / umbrella modules for interchangeable backends; `@_exported` used sparingly; every module tested under `swift test`.
+- **Android**: a thin `:app` over `:feature:*` (with an `api`/`impl` split when another feature navigates in), `:core:data`, optional `:core:domain`, pure-Kotlin `:core:model`, data-source modules, `:core:designsystem`, `:core:testing`. Only `:app` sees `impl` modules and owns the `NavHost`; features take navigation as lambdas. Hilt bindings `internal` per module; non-transitive R; parallel, build cache, and configuration cache on.
+- **Both**: the graph flows one way, features never depend on each other's implementation, the graph is enforced in CI, and `CLAUDE.md` holds a module table. Migrate leaf-first, one module per change.
+
+The `swift-modularization-pro` and `android-modularization-pro` skills plan a graph, migrate step by step, and audit an existing one with a dependency-rule script. `scripts/scaffold-spm-package.sh` creates the Apple package skeleton; Android build mechanics stay with `android-gradle-architecture-pro`.
 
 ### Android logging (`android-logging-strategy.md`)
 
