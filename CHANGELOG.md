@@ -10,6 +10,40 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Cross-platform development — 1 rule + 1 skill (core, `--platform both`).**
+  `cross-platform-development.md` steers teams building the Apple and Android
+  apps together with AI agents: the native-vs-KMP decision, a monorepo with
+  per-platform `CLAUDE.md` files, spec-first features, one shared vocabulary
+  of names, generated shared contracts, parity tracking, and CI path filters.
+  `cross-platform-parity-pro` ports features between platforms, audits drift,
+  and sets up the repo. Both install only when `--platform both`.
+
+- **Architecture — 3 rules (new opt-in `architecture` category).**
+  `android-mvvm-architecture.md` covers MVVM with unidirectional data flow
+  (one `StateFlow<UiState>` per screen, effects as state, `SavedStateHandle`,
+  Route vs Screen). `apple-repository-pattern.md` and
+  `android-repository-pattern.md` cover the data layer: single source of
+  truth, stream vs one-shot APIs, model mapping, error mapping, DI, and fakes.
+  Not in `recommended`; opt in with `--features recommended,architecture`.
+  `install.sh recommend` suggests it when it finds `*Repository` types.
+
+- **Iconography & design system — 4 rules + 2 skills (ui).** Gives new apps a
+  UI foundation to start from and existing apps a path off hardcoded colors,
+  fonts, and one-off components. `apple-iconography.md` puts SF Symbols behind a
+  typed `AppIcon` facade (a misspelled or too-new symbol otherwise renders
+  nothing, silently), sizes icons through font rather than frames, and covers
+  custom symbols and Icon Composer app icons with their Liquid Glass
+  appearances. `apple-design-system.md` covers role-named tokens, Dynamic
+  Type-safe custom fonts, component styles over wrapper views, and Liquid Glass
+  adoption. `android-iconography.md` moves UI glyphs to Material Symbols
+  drawables behind an `AppIcons` object and pins the launcher (adaptive +
+  monochrome), notification, and splash icon specs. `android-design-system.md`
+  covers a Material 3 `AppTheme` with dynamic color, extended tokens via
+  CompositionLocal, thin M3 component wrappers, and edge-to-edge.
+  `swift-design-system-pro` and `android-design-system-pro` each scaffold the
+  design-system module or audit an existing app and return an incremental
+  migration plan.
+
 - **Apple adaptive layout & iPhone Duo — rule + skill.**
   `apple-adaptive-layout.md` (ui) covers the platform shift that landed with the
   iOS 27 SDK: **apps are resizable by default** and the **UIScene lifecycle is

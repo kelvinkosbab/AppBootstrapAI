@@ -17,6 +17,16 @@
 - Minimum OS: <iOS 18 / Android 14 / ...>
 - Language: <Swift 6.4 / Kotlin 2.x>
 
+## Cross-Platform Workflow
+
+<!-- Keep this section if the repo ships both apps. See .claude/rules/cross-platform-development.md. -->
+
+- Layout: `apple/` (own CLAUDE.md), `android/` (own CLAUDE.md), `shared/` (API, tokens, analytics, strings), `docs/features/`, `docs/parity.md`.
+- Sharing: <native on both | KMP for domain + data> (see `docs/adr/<NNNN>-<title>.md`).
+- Features start as a spec in `docs/features/<feature>.md`; port between platforms with `cross-platform-parity-pro`.
+- Same names on both sides: types, modules, string keys (`.` → `_` on Android), icon vocabulary, analytics events, flag keys.
+- A change under `shared/` must build and pass tests on both platforms. Update `docs/parity.md` in the same PR.
+
 ## Build & Run
 
 ```bash

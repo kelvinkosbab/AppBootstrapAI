@@ -64,7 +64,7 @@ const SKILLS_DIR = join(REPO_ROOT, ".claude", "skills");
 // in install.sh but missing here just gets an empty description — it can never
 // silently disappear from the set.
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-    core:             "Project-level README/CHANGELOG/CONTRIBUTING/ADR patterns.",
+    core:             "Project-level README/CHANGELOG/CONTRIBUTING/ADR patterns, plus cross-platform (Apple + Android) steering when platform is both.",
     concurrency:      "Swift 6.2 strict concurrency / Kotlin coroutines structured concurrency.",
     ui:               "SwiftUI/MVVM / Jetpack Compose patterns + accessibility.",
     testing:          "Test strategy + coverage gates (Apple + Android).",
@@ -80,6 +80,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     shrinking:        "R8 / ProGuard configuration and keep-rule discipline.",
     spatial:          "visionOS: scene types, immersion styles, spatial gestures, RealityKit/ECS, USDZ pipeline.",
     deployment:       "TestFlight (Apple) + Play beta tracks (Android): versioning, signing, CI patterns, gotchas.",
+    architecture:     "Android MVVM/UDF (StateFlow UiState, SavedStateHandle, Route/Screen) + repository pattern / data layer (Apple + Android).",
 };
 
 interface Category { name: string; recommended: boolean; description: string; }

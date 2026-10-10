@@ -134,7 +134,7 @@ run_interactive() {
     # --- 5. Features ----------------------------------------------------------
     echo ""
     echo "    Feature presets: 'recommended' (most apps) | 'all' (everything) | custom CSV"
-    echo "    Opt-in extras beyond recommended: persistence, ai, migration, shrinking, spatial, deployment"
+    echo "    Opt-in extras beyond recommended: persistence, ai, migration, shrinking, spatial, deployment, architecture"
     local feats
     _iask feats "Features" "recommended"
     if [[ "$feats" != "recommended" ]]; then FEATURES_INPUT="$feats"; FEATURES_EXPLICIT="true"; fi

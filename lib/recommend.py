@@ -25,6 +25,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import sys
 
 # Directories that never contain meaningful source for detection — skip them so
@@ -41,8 +42,8 @@ MAX_READ_BYTES = 2_000_000  # skip absurdly large files
 
 # Which opt-in categories are meaningful per platform. Recommended categories
 # install regardless; these are the extras `recommend` may suggest on top.
-APPLE_OPT_INS = {"ai", "spatial", "persistence", "deployment"}
-ANDROID_OPT_INS = {"ai", "migration", "shrinking", "persistence", "deployment"}
+APPLE_OPT_INS = {"ai", "spatial", "persistence", "deployment", "architecture"}
+ANDROID_OPT_INS = {"ai", "migration", "shrinking", "persistence", "deployment", "architecture"}
 
 
 def detect_state(target: str) -> str:
@@ -162,6 +163,8 @@ def _scan_text(ext: str, text: str, add) -> None:
         if ("import RealityKit" in text or "RealityKitContent" in text
                 or "ImmersiveSpace" in text or ".immersionStyle" in text):
             add("spatial", "RealityKit / ImmersiveSpace")
+        if re.search(r"\bprotocol\s+\w+Repository\b", text):
+            add("architecture", "repository protocol")
     elif ext in (".kt", ".kts"):
         if "androidx.room" in text or "RoomDatabase" in text or "@Dao" in text or "@Entity" in text:
             add("persistence", "Room database")
@@ -170,6 +173,8 @@ def _scan_text(ext: str, text: str, add) -> None:
         if ("com.google.mlkit.genai" in text or "com.google.firebase.ai" in text
                 or "GenerativeModel" in text or "generateContentStream" in text):
             add("ai", "Gemini / ML Kit GenAI / Firebase AI usage")
+        if re.search(r"\b(?:interface|class)\s+\w+Repository\b", text):
+            add("architecture", "repository class/interface")
     if ext in (".gradle", ".kts"):
         if "isMinifyEnabled = true" in text or "minifyEnabled true" in text:
             add("shrinking", "R8/ProGuard (minify enabled)")

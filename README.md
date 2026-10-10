@@ -18,15 +18,15 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 
 | Area | What's inside |
 |------|---------------|
-| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · adaptive layout / iPhone Duo · accessibility · testing · DocC · localization · SPM + modular architecture · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
-| **Android rules** | Kotlin/Compose/MVVM/Hilt · coroutines · accessibility · large screens / foldables · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta |
-| **Skills (Claude)** | 11 Apple + 7 Android on-demand deep-review agents |
+| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
+| **Android rules** | Kotlin/Compose/MVVM/Hilt · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta |
+| **Skills (Claude)** | 12 Apple + 8 Android + 1 cross-platform on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
 <details>
-<summary><strong>Apple — 17 rules + 11 skills</strong> (click to expand)</summary>
+<summary><strong>Apple — 20 rules + 12 skills</strong> (click to expand)</summary>
 
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text), plus Bluetooth assistive tech: Full Keyboard Access (`.focusable()`, focus rings), Switch Control scan order, braille-display label discipline, focus management (`@AccessibilityFocusState`), modern announcements (`AccessibilityNotification`), audio/hearing (no sound-only cues, captions), WCAG AA color/contrast (both themes, Increase Contrast, Smart Invert), and App Store Accessibility Nutrition Label honesty.
@@ -36,9 +36,12 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`apple-objc-accessibility-best-practices.md`** — UIKit accessibility in Objective-C: `accessibilityLabel` / `accessibilityHint` / `accessibilityTraits` discipline, `accessibilityIdentifier` vs `accessibilityLabel`, Dynamic Type via `preferredFontForTextStyle:`, `UIAccessibilityIsReduceMotionEnabled()`, VoiceOver announcements (`UIAccessibilityPostNotification`), modal-focus management (`accessibilityViewIsModal`), custom-action support, Full Keyboard Access + Switch Control via the focus system (`canBecomeFocused`, `accessibilityRespondsToUserInteraction`), braille-friendly labels, announcement priority (`UIAccessibilitySpeechAttributeAnnouncementPriority`), and WCAG AA color/contrast (semantic colors, Darker System Colors, `shouldDifferentiateWithoutColor`, Smart Invert).
 - **`apple-testing-strategy.md`** — what to test (and what not), Given/When/Then naming, determinism (inject clocks/UUIDs/network), Swift Testing vs XCTest split, XCUITest discipline, CI coverage gates with sensible exclusions.
 - **`apple-adaptive-layout.md`** *(ui)* — resizable-app and **iPhone Duo** readiness: building against the iOS 27 SDK opts apps into resizability, and the **UIScene lifecycle is mandatory** (legacy-lifecycle apps no longer launch). Size classes over idiom/orientation/`UIScreen.main`, the containers that adapt for free, `ArrangementView` / `UIArrangementViewController` and the hinge APIs (iOS 27.1), asymmetric safe areas, state continuity across fold, and Device Hub testing.
+- **`apple-iconography.md`** *(ui)* — SF Symbols behind a typed `AppIcon` facade (raw `systemName:` strings render nothing on a typo or a too-new symbol — a `CaseIterable` test catches both), sizing through font / `imageScale` / `@ScaledMetric` instead of frames, rendering modes, variants and variable values, symbol effects gated on Reduce Motion, custom symbols as Symbol Image Sets loaded with `bundle: .module`, icon accessibility, and **app icons built in Icon Composer** (layered `.icon` for Liquid Glass; Default / Dark / Clear / Tinted).
+- **`apple-design-system.md`** *(ui)* — the core-UI foundation: one `DesignSystem` module of role-named color tokens (system semantic colors first, brand sets with Dark + High Contrast variants), text-style typography with Dynamic Type-safe custom fonts, spacing/radius scales and concentric corners, **Liquid Glass adoption** (remove custom bar backgrounds; glass only on the control layer), component **styles before wrapper views**, slot-based composites, `@Entry` environment theming, previews and a component gallery, plus an incremental adoption path for existing apps.
 - **`apple-documentation-strategy.md`** — what to document (and what not), DocC discipline (summary line, `- Parameter`/`- Returns`/`- Throws`, double-backtick symbol linking, `## Topics` organization), deprecation discipline with mandatory migration paths, when to write a DocC Article vs. a doc comment.
 - **`apple-localization-best-practices.md`** — String Catalogs (`.xcstrings`) as the modern format, type-safe `Strings` enum facade pattern, `LocalizedStringResource` over `NSLocalizedString`, plurals, locale-aware `.formatted()` for numbers/dates/currency, RTL via leading/trailing modifiers, translator-context comments.
 - **`apple-modular-architecture.md`** — the *architecture* stance behind the SPM conventions: a thin Xcode app target over a fat local Swift package split into many small modules (the KozBon / BasicSwiftUtilities shape). Why it wins (build parallelism, compile-enforced module boundaries, headless testing, reuse across widgets/extensions), the layered dependency graph (Core → domain → features → UI → `AppCore` umbrella the app links), the incremental migration playbook (scaffold, move leaf-first, thin the app target), and the `Bundle.module` / `.xcdatamodeld` caveats. Pairs with the `scripts/scaffold-spm-package.sh` scaffolder.
+- **`apple-repository-pattern.md`** *(architecture)* — the data layer: protocol repositories in a domain module returning `Sendable` value types (never `NSManagedObject` / `@Model` / DTOs), `actor` implementations under Swift 6, local store as the single source of truth observed through `AsyncSequence`, typed-throws error mapping, in-flight dedup, injection at the `AppCore` composition root, in-memory fakes + contract tests — and when `@Query` alone is enough.
 - **`apple-spm-package-conventions.md`** — `Package.swift` authoring: `swift-tools-version` discipline, mandatory `platforms:`, flat per-module folder layout (`{Module}/Sources/` + `{Module}/Tests/`, matching KozBon and BasicSwiftUtilities), `makeTargets()` helper for many similar modules with `hasTests` / `hasResources` / `plugins` toggles, resources (`.process` vs `.copy`), build plugins (SwiftLintPlugins, swift-docc-plugin), `Package.resolved` discipline (commit for apps, gitignore for libraries), local-path overrides for sibling-package development, modern features (`InternalImportsByDefault`, `.swiftLanguageMode(.v6)`, `public import`), dependency hygiene (`from:` vs `exact:`).
 - **`apple-infoplist-localization.md`** *(localization)* — the localization channel the `Strings` facade **can't** reach: `InfoPlist.xcstrings` vs legacy `InfoPlist.strings`, why the `INFOPLIST_KEY_*` build setting is the base value (and how omitting it yields `ITMS-90683` at upload), untranslated rows silently falling back, one catalog per target, and writing purpose strings specific enough to pass App Review.
 - **`apple-linting-strategy.md`** *(linting)* — SwiftLint as primary linter + a single formatter (SwiftFormat or Apple's swift-format, not both): `.swiftlint.yml` structure, the high-value `opt_in_rules` (`force_unwrapping`, `empty_count`, …), analyzer rules, scoped `// swiftlint:disable:next` hygiene, `--strict` in CI, build-phase vs SPM-plugin vs CI placement, incremental adoption on legacy code, version pinning, plus a triage decision-order.
@@ -49,6 +52,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs and a11y compliance.
 - **`coredata-swift6-pro` skill** — Core Data under Swift 6 strict concurrency, `viewContext`/`@MainActor`, SPM `.xcdatamodeld` caveats.
+- **`swift-design-system-pro` skill** — bootstraps or audits the UI foundation: scaffolds a `DesignSystem` module (tokens, `AppIcon` facade + availability test, button styles, gallery) or inventories an existing app (literal colors, fixed fonts, raw symbol strings, duplicate components, Liquid Glass blockers, app-icon appearances) and returns a ranked, incremental migration plan.
 - **`swift-adaptive-layout-pro` skill** — deep resizability / iPhone Duo audit: the UIScene launch blocker, `UIRequiresFullScreen` semantics, idiom/orientation/`UIScreen.main` removals, arrangement nesting constraints, hinge and reserved regions, symmetric safe-area math, outer→inner navigation continuity, and pose/window-size test coverage.
 - **`swift-accessibility-pro` skill** — deep accessibility audit: the VoiceOver surface (labels/traits/merging/rotor/announcements), Bluetooth assistive input (Full Keyboard Access reachability, Switch Control scan order, braille label quality), visual accessibility (WCAG AA contrast in both themes, Dynamic Type at AX sizes, color-independence, Reduce Motion), and Nutrition-Label claim verification.
 - **`swiftdata-pro` skill** — SwiftData review: core model/context rules, safe `#Predicate` usage, CloudKit constraints, iOS 18+ indexing, iOS 26+ class inheritance.
@@ -60,13 +64,17 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Android — 13 rules + 7 skills</strong> (click to expand)</summary>
+<summary><strong>Android — 17 rules + 8 skills</strong> (click to expand)</summary>
 
 - **`android-project-rules.md`** — Kotlin, Jetpack Compose, MVVM, Hilt, StateFlow, Retrofit/Moshi, ktlint.
 - **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
 - **`android-compose-best-practices.md`** — state hoisting, side effects (`LaunchedEffect`/`DisposableEffect`/`SideEffect`), `Modifier` ordering, recomposition stability (`@Stable`/`@Immutable`), lifecycle-aware `collectAsStateWithLifecycle()`, `LazyColumn` keys.
 - **`android-accessibility-best-practices.md`** — TalkBack semantics, 48dp touch targets, dynamic text, WCAG AA contrast, reduce-motion, Bluetooth keyboard / switch-access focus discipline, braille displays (HID over Bluetooth, Android 15+), and the Android 16 `announceForAccessibility` deprecation (use live regions / `paneTitle` / `stateDescription`).
 - **`android-testing-strategy.md`** — test pyramid, source-set discipline (`src/test` vs `src/androidTest`), `runTest` + `StandardTestDispatcher` patterns, Turbine for `Flow`, Compose UI tests via semantics (not visible text), Hilt test modules, MockK conventions, JaCoCo coverage gates with generated-code exclusions.
+- **`android-iconography.md`** *(ui)* — Material Symbols imported as vector drawables behind a meaning-named `AppIcons` object (not `material-icons-extended`), 24dp icons / 48dp targets, tint from `LocalContentColor`, `autoMirrored` directional glyphs, icon `contentDescription` discipline, **adaptive launcher icons with a `<monochrome>` layer** for themed icons and the 66dp safe zone, alpha-only notification icons, and the SplashScreen API icon.
+- **`android-design-system.md`** *(ui)* — the core-UI foundation: a `:core:designsystem` module with one Material 3 `AppTheme` (generated schemes, dynamic color with a full brand fallback), color roles with `on*` pairs, extended tokens and spacing via `staticCompositionLocalOf`, M3 type/shape scales, thin stateless wrappers over M3 components (modifier-first optional param, slots, `Defaults` objects), edge-to-edge insets, multipreview annotations, a component catalog, and screenshot tests.
+- **`android-mvvm-architecture.md`** *(architecture)* — MVVM with unidirectional data flow: one `StateFlow<UiState>` per screen derived with `combine` + `stateIn(WhileSubscribed(5_000))`, events as ViewModel functions, one-off effects modeled as state, `SavedStateHandle` + type-safe nav args, stateful Route vs stateless Screen, when a use case earns its place.
+- **`android-repository-pattern.md`** *(architecture)* — the data layer: `Flow` for observation + main-safe `suspend` one-shots, offline-first with Room as the single source of truth, DTO / entity / domain mapping, Hilt `@Binds` singletons, application-scope and WorkManager for work that outlives the caller, fakes in a shared test module.
 - **`android-documentation-strategy.md`** — KDoc syntax (`@param` / `@return` / `@throws` / `@property` / `@sample` / `@see`), Composable docs (state hoisting, semantics, skippable vs. restartable), Hilt module docs, suspend / cancellation behavior, deprecation with `ReplaceWith`, Dokka conventions and external links.
 - **`android-localization-best-practices.md`** — `strings.xml` discipline, `stringResource` / `pluralStringResource` in Compose, positional format args (`%1$s` not `%s`), `<plurals>` with `getQuantityString`, locale-aware `NumberFormat` / `DateTimeFormatter`, RTL with `start`/`end` modifiers and `android:supportsRtl="true"`, translator-context comment blocks.
 - **`android-gradle-conventions.md`** — Kotlin DSL only, version catalogs (`gradle/libs.versions.toml`) as single source of truth, AGP/Kotlin/Compose-compiler co-versioning, `jvmToolchain`, `api` vs `implementation`, multi-module graph patterns (`:app` + `:feature:*` + `:data:*` + `:core:*`), library publishing with `consumer-rules.pro`, KSP over kapt. **Now includes** an inline-strings → catalog migration walkthrough for legacy projects.
@@ -76,6 +84,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`android-large-screen-best-practices.md`** *(ui; gated by the `tablet` form factor)* — tablets, foldables, and desktop windows: window size classes over device heuristics (`isWidthAtLeastBreakpoint`, `BREAKPOINTS_V2`), Material 3 adaptive canonical layouts (`NavigationSuiteScaffold`, `ListDetailPaneScaffold`, `SupportingPaneScaffold`), `FoldingFeature` posture (tabletop / book), state survival across fold/unfold, and the **Android 16 change that ignores orientation / resizability restrictions on ≥ 600dp screens**; large-screen input (keyboard, mouse, stylus, drag-and-drop).
 - **`android-play-beta-deployment.md`** *(deployment)* — shipping to Play beta tracks: `versionCode` monotonicity, Play App Signing (upload key vs app signing key), AAB-not-APK, service-account JSON for CI, internal/closed/open tracks, Triple-T / fastlane upload, `mapping.txt` upload, ranked gotchas.
 - **`android-accessibility-pro` skill** — deep accessibility audit: the TalkBack semantics tree (descriptions/roles/merging/state/custom actions/live regions incl. the Android 16 announcement migration), Bluetooth input (keyboard/Switch Access/braille), visual accessibility (contrast in both themes, sp scaling at 200%, 48dp targets, reduce motion).
+- **`android-design-system-pro` skill** — bootstraps or audits the UI foundation: scaffolds `:core:designsystem` (`AppTheme`, extended colors, spacing, `AppIcons`, core components with previews) or inventories an existing app (literal colors/sizes, `Icons.*` usage, clickable-box buttons, edge-to-edge gaps, launcher/notification/splash icons) and returns a ranked, incremental migration plan.
 - **`android-adaptive-layout-pro` skill** *(gated by `tablet`)* — large-screen / foldable readiness audit: size-class usage and deprecated device heuristics, canonical-layout fit, `FoldingFeature` posture handling and outer→inner continuity, state across fold/unfold, manifest restrictions under Android 16, window-vs-display math, camera orientation, hardware input, Play quality-tier mapping.
 - **`android-compose-pro` skill** — deep Compose review: recomposition stability + skippability (incl. strong-skipping-mode awareness), side-effect audit (`LaunchedEffect` keys, `rememberUpdatedState`, `DisposableEffect` teardown), lazy-list performance (keys, `contentType`, `derivedStateOf` for scroll), state modeling and hoisting.
 - **`android-coroutines-pro` skill** — deep coroutines/Flow review: scope-to-lifecycle mapping, cooperative cancellation (`CancellationException` discipline, `runCatching` traps), `launch` vs `async` exception propagation, supervisor boundaries, `stateIn`/`shareIn` configuration, `callbackFlow` teardown, coroutine testing (virtual time, Turbine).
@@ -86,9 +95,11 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Cross-platform — 2 rules</strong> (click to expand)</summary>
+<summary><strong>Cross-platform — 3 rules + 1 skill</strong> (click to expand)</summary>
 
 - **`concise-comments-and-commits.md`** *(core)* — fires on all Swift/Kotlin/ObjC source: in-code comments default to *none* (write only what code can't express — why, traps, ticket refs; never narration, diff commentary, or commented-out code), and commit messages stay short (imperative ≤72-char subject; body only when the why isn't in the diff — never file-by-file inventories or process reports). Aimed squarely at AI-assistant verbosity.
+- **`cross-platform-development.md`** *(core; installs only with `--platform both`)* — building one app on Apple and Android at once with AI agents: native × 2 vs Kotlin Multiplatform as a recorded decision, a monorepo with nested `CLAUDE.md` files per platform, spec-first features (`docs/features/`), one vocabulary of names across platforms (types, modules, string keys, icons, events, flags), single sources of truth for the API (OpenAPI), design tokens, strings, analytics, flags, and deep links, parity as behavior-not-pixels, `docs/parity.md`, and CI path filters.
+- **`cross-platform-parity-pro` skill** *(core; `--platform both`)* — ports a feature from one platform to the other (spec → reference behavior → idiomatic target code → verify both), audits drift with scripts that diff string keys, icon vocabularies, analytics events, flags, and deep links, and sets up the repo: root + per-platform `CLAUDE.md`, `apple-engineer` / `android-engineer` subagents, shared-contract generation, PR template, CI. Includes a Swift ↔ Kotlin / SwiftUI ↔ Compose concept map and a Kotlin Multiplatform guide (share logic, never UI; a Swift adapter at the boundary).
 - **`project-documentation.md`** — README structure, [Keep a Changelog](https://keepachangelog.com) format, `CONTRIBUTING.md` essentials, ADR conventions (`docs/adr/####-title.md`, immutable once accepted), inline-comment philosophy (*why* not *what*), and link-rot defenses (pinned versions, permalinked source). Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`.
 
 </details>
@@ -108,7 +119,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
   - `--apple-platforms ios,macos,tvos,watchos,visionos|all` — which Apple sub-platforms you target. Default `ios,macos,tvos,watchos` (every platform **except** visionOS — the lean default for typical app projects). Only meaningful when Apple is in scope. Today the one platform-specific rule is visionOS, so this stays in sync with the `spatial` feature: naming `visionos` installs the visionOS rule, omitting it keeps it out. Recorded in the manifest; a forward-looking framework for future platform-specific rules.
   - `--android-platforms phone,tablet,wear,tv,auto|all` — which Android form factors you target. Default `phone,tablet`. Only meaningful when Android is in scope. **`tablet` gates the large-screen / foldable rule** (`android-large-screen-best-practices.md`) **and the `android-adaptive-layout-pro` skill** — drop it for a phone-only app. Other tokens are recorded in the manifest for future form-factor rules (Wear OS / Android TV / Auto would gate the same way).
-  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`); custom CSVs like `core,testing,docs` give fine-grained control
+  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`); custom CSVs like `core,testing,docs` give fine-grained control
   - `--list` previews the catalog with one-line descriptions + category tags
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
   - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
@@ -117,7 +128,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--dry-run` shows what an install would do without writing any files
   - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope / rename. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. The header prints a GitHub compare URL when commits differ. See [Upgrading an existing install](#upgrading-an-existing-install).
   - `--uninstall` reverses install: deletes every tracked file whose current hash matches what was installed (locally-edited files kept unless `--force-conflicts`; `CLAUDE.md` / `settings.json` kept unless `--purge`). MCP entries are removed if unchanged, unless `--keep-mcps`. Strips the `.gitignore` block and the manifest itself. See [Removing the install](#removing-the-install).
-  - `--help` documents every flag and enumerates all 16 categories
+  - `--help` documents every flag and enumerates all 17 categories
   - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (schema v2 — records per-file SHA-256 hashes so `--upgrade` can diff 3-way: installed vs. current disk vs. bundle)
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 - **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
@@ -304,7 +315,7 @@ repo:
 
 Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. The manifest is what powers `--upgrade`'s 3-way diff against future bundle versions.
 
-**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas).
+**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas), `architecture` (Android MVVM / unidirectional data flow + the repository pattern for both platforms).
 
 **The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|kiro|all` (additive CSV) and the installer also drops the matching file shape for those agents (one concat file for Copilot/Gemini/Codex; per-rule files for Cursor `.mdc` and Kiro `.kiro/steering/*.md`). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
 
@@ -350,7 +361,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 
 `install.sh` is a shell command — every coding agent can run it. Agents operating this package should read [`AGENTS.md`](AGENTS.md) — a terse, machine-first guide to the create / adopt / update workflow. If you'd rather *ask* the agent to bootstrap your repo than run the script by hand, four things make that work well:
 
-1. **Let the package do the analysis: `./install.sh recommend <dir>`.** This is the fastest path for an agent. Point it at any directory and it introspects the repo — managed-state, platform, Apple-language, and framework usage (`import FoundationModels` → `ai`, Core Data / SwiftData → `persistence`, Room → `persistence`, R8/ProGuard → `shrinking`, fastlane/CI → `deployment`, …) — then prints the **exact** create / adopt / upgrade command to run, with the reasoning behind each choice. Add `--json` for a machine-readable object (with a ready-to-exec `command` array) instead of prose. One call replaces the agent grepping the tree by hand.
+1. **Let the package do the analysis: `./install.sh recommend <dir>`.** This is the fastest path for an agent. Point it at any directory and it introspects the repo — managed-state, platform, Apple-language, and framework usage (`import FoundationModels` → `ai`, Core Data / SwiftData → `persistence`, Room → `persistence`, R8/ProGuard → `shrinking`, fastlane/CI → `deployment`, `*Repository` types → `architecture`, …) — then prints the **exact** create / adopt / upgrade command to run, with the reasoning behind each choice. Add `--json` for a machine-readable object (with a ready-to-exec `command` array) instead of prose. One call replaces the agent grepping the tree by hand.
 
    ```bash
    # Human-readable
@@ -603,19 +614,25 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-ai-best-practices.md               # Gemini Nano / Firebase AI Logic (ai)
 │   │   ├── android-compose-best-practices.md          # Jetpack Compose patterns
 │   │   ├── android-coroutines-best-practices.md       # Structured concurrency
+│   │   ├── android-design-system.md                   # M3 AppTheme, tokens, core components (ui)
 │   │   ├── android-documentation-strategy.md          # KDoc strategy + Dokka
 │   │   ├── android-gradle-conventions.md              # Gradle DSL, version catalogs, modules
+│   │   ├── android-iconography.md                     # Material Symbols, adaptive/themed launcher icons (ui)
 │   │   ├── android-large-screen-best-practices.md     # Tablets / foldables / desktop windows (ui, tablet-gated)
 │   │   ├── android-linting-strategy.md                # ktlint + detekt + Android Lint (linting)
 │   │   ├── android-localization-best-practices.md     # strings.xml, plurals, RTL
 │   │   ├── android-logging-strategy.md                # Timber, level discipline, release-stripping (logging)
+│   │   ├── android-mvvm-architecture.md               # MVVM / UDF, UiState, Route vs Screen (architecture)
 │   │   ├── android-play-beta-deployment.md            # Play beta tracks, signing, CI (deployment)
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
+│   │   ├── android-repository-pattern.md              # Data layer, offline-first repositories (architecture)
 │   │   ├── android-testing-strategy.md                # Android test strategy + JaCoCo
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
 │   │   ├── apple-adaptive-layout.md                   # Resizable apps / iPhone Duo (ui)
+│   │   ├── apple-design-system.md                     # Tokens, component styles, Liquid Glass (ui)
 │   │   ├── apple-documentation-strategy.md            # DocC strategy + deprecation
 │   │   ├── apple-foundation-models.md                 # On-device LLM patterns
+│   │   ├── apple-iconography.md                       # SF Symbols facade, Icon Composer app icons (ui)
 │   │   ├── apple-infoplist-localization.md            # Info.plist strings (localization)
 │   │   ├── apple-linting-strategy.md                  # SwiftLint + formatter (linting)
 │   │   ├── apple-localization-best-practices.md       # String Catalogs, plurals, RTL
@@ -623,6 +640,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-modular-architecture.md              # Thin app shell + fat local SPM package
 │   │   ├── apple-objc-accessibility-best-practices.md # UIKit a11y in ObjC
 │   │   ├── apple-objc-best-practices.md               # Modern Objective-C
+│   │   ├── apple-repository-pattern.md                # Data layer, protocol repositories (architecture)
 │   │   ├── apple-spm-package-conventions.md           # Package.swift authoring
 │   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.4 strict concurrency (Xcode 27)
 │   │   ├── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
@@ -630,16 +648,20 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-testing-strategy.md                  # Apple test strategy + coverage
 │   │   ├── apple-visionos-best-practices.md           # visionOS / RealityKit / spatial UX (spatial)
 │   │   ├── concise-comments-and-commits.md            # terse comments + commit messages (core)
+│   │   ├── cross-platform-development.md              # Apple + Android together with AI (core, --platform both)
 │   │   └── project-documentation.md                   # README/CHANGELOG/ADR/inline comments
 │   ├── skills/                        # On-demand skills
 │   │   ├── android-accessibility-pro/          # TalkBack / keyboard / contrast audit (ui)
 │   │   ├── android-adaptive-layout-pro/        # Large-screen / foldable readiness audit (ui, tablet-gated)
 │   │   ├── android-compose-pro/                # Compose stability / effects / lazy perf (ui)
 │   │   ├── android-coroutines-pro/             # Coroutines & Flow correctness (concurrency)
+│   │   ├── android-design-system-pro/          # Icons + theme + components bootstrap/audit (ui)
 │   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs
 │   │   ├── coredata-swift6-pro/
+│   │   ├── cross-platform-parity-pro/          # Port features, audit drift, set up a two-platform repo (both)
 │   │   ├── r8-shrink-pro/                      # ProGuard/R8 rules
 │   │   ├── swift-concurrency-pro/
+│   │   ├── swift-design-system-pro/            # Icons + tokens + components bootstrap/audit (ui)
 │   │   ├── swift-docc-pro/
 │   │   ├── swift-error-handling-pro/
 │   │   ├── swift-logging-pro/
