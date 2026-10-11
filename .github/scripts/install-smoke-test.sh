@@ -1972,6 +1972,32 @@ else
     FAIL=$((FAIL + 1))
 fi
 
+bold "==> packaging: modularization rules + skills land per-platform (apple vs android, no cross-leak)"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+a_ok=$([[ -f "$t/.claude/skills/swift-modularization-pro/references/audit.md" \
+       && ! -f "$t/.claude/rules/android-modular-architecture.md" \
+       && ! -d "$t/.claude/skills/android-modularization-pro" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features packaging > /dev/null
+b_ok=$([[ -f "$t/.claude/rules/android-modular-architecture.md" \
+       && -f "$t/.claude/skills/android-modularization-pro/references/audit.md" \
+       && ! -d "$t/.claude/skills/swift-modularization-pro" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features core,testing > /dev/null
+c_ok=$([[ ! -f "$t/.claude/rules/android-modular-architecture.md" \
+       && ! -d "$t/.claude/skills/swift-modularization-pro" \
+       && ! -d "$t/.claude/skills/android-modularization-pro" ]] && echo y)
+rm -rf "$t"
+if [[ "$a_ok" == "y" && "$b_ok" == "y" && "$c_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: modularization rules/skills should follow platform + packaging feature (apple=$a_ok android=$b_ok no-packaging=$c_ok)"
+    FAIL=$((FAIL + 1))
+fi
+
 bold "==> scaffold-spm-package.sh generates a valid KozBon-style package skeleton"
 t="$(mktemp -d)"; mkdir -p "$t/MyApp"
 "$REPO_ROOT/scripts/scaffold-spm-package.sh" "$t/MyApp" --modules Core,Models,AppCore > /dev/null

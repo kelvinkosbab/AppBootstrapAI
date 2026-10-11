@@ -74,6 +74,9 @@ a compiling source + passing test per module; a module named `AppCore` becomes
 the umbrella the app target links. Non-destructive (never overwrites; `--force`
 fills only missing files). It does **not** move existing code — that's the
 incremental, leaf-first step (see `.claude/rules/apple-modular-architecture.md`).
+The `swift-modularization-pro` skill drives that migration and audits the
+resulting graph; `android-modularization-pro` does the same for a multi-module
+Gradle build (there is no Android scaffolder; use convention plugins).
 
 ## Guardrails (respect these)
 
