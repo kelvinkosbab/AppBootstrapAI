@@ -27,6 +27,7 @@
  * Prompts:
  *   - sync_and_audit      The end-to-end agent workflow (playbooks/sync-and-audit.md):
  *                         recommend → preview → apply → audit → deep reviews → report.
+ *   - audit               Audit only, no install (playbooks/audit.md).
  *
  * Communicates over stdio (the standard MCP transport for local subprocess servers).
  * Configure a client by pointing at the compiled `dist/index.js`.
@@ -68,6 +69,7 @@ const INSTALL_SH = join(REPO_ROOT, "install.sh");
 const RULES_DIR = join(REPO_ROOT, ".claude", "rules");
 const SKILLS_DIR = join(REPO_ROOT, ".claude", "skills");
 const PLAYBOOK = join(REPO_ROOT, "playbooks", "sync-and-audit.md");
+const AUDIT_PLAYBOOK = join(REPO_ROOT, "playbooks", "audit.md");
 
 // --- Category metadata --------------------------------------------------------
 //
@@ -369,13 +371,14 @@ async function toolRecommend(args: { target_dir: string }) {
     return { content: [{ type: "text" as const, text: JSON.stringify(parsed, null, 2) }] };
 }
 
-async function toolAudit(args: { target_dir: string; no_baseline?: boolean }) {
+async function toolAudit(args: { target_dir: string; no_baseline?: boolean; skip_install_check?: boolean }) {
     if (!args.target_dir) {
         throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
     }
     // Read-only. Returns findings with rule/skill paths the agent reads next.
     const cmd = [INSTALL_SH, "audit", args.target_dir, "--json"];
     if (args.no_baseline) cmd.push("--no-baseline");
+    if (args.skip_install_check) cmd.push("--no-install-check");
     const result = await runCommand("bash", cmd);
     if (result.code !== 0) {
         throw new McpError(
@@ -518,12 +521,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         {
             name: "audit_project",
-            description: "Audit a repo against the AppBootstrapAI bundle. Read-only. Returns { mode (new|existing), install {state, up_to_date, command[], preview_command[]}, summary, findings[], skills_to_run[] }. Each finding has severity, file:line locations, a one-line fix, and the rule_path / skill_path to read for a deep review. Findings accepted in the repo's audit baseline (.claude/appbootstrap-audit-baseline.json) are listed under baseline.suppressed instead; pass no_baseline to see everything. Findings are regex/file-presence hotspots: confirm or dismiss each by reading the code and the rule. Follow the sync_and_audit prompt for the full workflow.",
+            description: "Audit a repo against the AppBootstrapAI bundle. Read-only. Returns { mode (new|existing), install {state, up_to_date, command[], preview_command[]}, summary, findings[], skills_to_run[] }. Each finding has severity, file:line locations, a one-line fix, and the rule_path / skill_path to read for a deep review. Findings accepted in the repo's audit baseline (.claude/appbootstrap-audit-baseline.json) are listed under baseline.suppressed instead; pass no_baseline to see everything. Pass skip_install_check when auditing a repo the user doesn't want the bundle installed into. kind is package (a library) or app. Findings are regex/file-presence hotspots: confirm or dismiss each by reading the code and the rule. Follow the audit prompt (audit only) or sync_and_audit prompt (install + audit) for the full workflow.",
             inputSchema: {
                 type: "object",
                 properties: {
                     target_dir: { type: "string", description: "Absolute path to the repo to audit. Required." },
                     no_baseline: { type: "boolean", description: "Ignore the audit baseline and report every finding." },
+                    skip_install_check: { type: "boolean", description: "Audit without the bundle installed: drop the not-installed / outdated findings." },
                 },
                 required: ["target_dir"],
                 additionalProperties: false
@@ -587,7 +591,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
 
 // --- Prompts -------------------------------------------------------------------
 //
-// One prompt, sourced from the playbook file so the MCP path and the plain
+// Prompts are sourced from the playbook files so the MCP path and the plain
 // "read this Markdown" path never diverge.
 
 server.setRequestHandler(ListPromptsRequestSchema, async () => ({
@@ -597,23 +601,44 @@ server.setRequestHandler(ListPromptsRequestSchema, async () => ({
         arguments: [
             { name: "target_dir", description: "Absolute path to the repo. Defaults to the current working directory.", required: false },
         ],
+    }, {
+        name: "audit",
+        description: "Audit a package, app, or repo against the AppBootstrapAI rules and skills without installing anything. Read-only; reports findings in chat.",
+        arguments: [
+            { name: "target_dir", description: "Absolute path to the repo. Defaults to the current working directory.", required: false },
+        ],
     }],
 }));
 
 server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-    if (request.params.name !== "sync_and_audit") {
-        throw new McpError(ErrorCode.InvalidParams, `Unknown prompt: ${request.params.name}`);
+    const name = request.params.name;
+    if (name !== "sync_and_audit" && name !== "audit") {
+        throw new McpError(ErrorCode.InvalidParams, `Unknown prompt: ${name}`);
     }
     const target = request.params.arguments?.target_dir || "the current working directory";
-    const playbook = await readFile(PLAYBOOK, "utf-8");
-    const text = [
-        `Run this playbook against ${target}. BUNDLE is ${REPO_ROOT}.`,
-        "Use the appbootstrap MCP tools where they map to a step: recommend_setup for `recommend`, preview_upgrade / preview_install for the preview, install for adopt, audit_project for `audit`. Use the shell for `upgrade --apply`.",
-        "",
-        playbook,
-    ].join("\n");
+    // sync-and-audit.md defers its triage and report steps to audit.md, so both prompts carry it.
+    const audit = await readFile(AUDIT_PLAYBOOK, "utf-8");
+    const text = name === "audit"
+        ? [
+            `Run this playbook against ${target}. BUNDLE is ${REPO_ROOT}; skip step 1.`,
+            "Use the audit_project tool with skip_install_check: true for step 2.",
+            "",
+            audit,
+        ].join("\n")
+        : [
+            `Run this playbook against ${target}. BUNDLE is ${REPO_ROOT}.`,
+            "Use the appbootstrap MCP tools where they map to a step: recommend_setup for `recommend`, preview_upgrade / preview_install for the preview, install for adopt, audit_project for `audit`. Use the shell for `upgrade --apply`.",
+            "",
+            await readFile(PLAYBOOK, "utf-8"),
+            "",
+            "---",
+            "",
+            "audit.md, which steps 2 and 3 above refer to:",
+            "",
+            audit,
+        ].join("\n");
     return {
-        description: "AppBootstrapAI sync and audit",
+        description: name === "audit" ? "AppBootstrapAI audit" : "AppBootstrapAI sync and audit",
         messages: [{ role: "user", content: { type: "text", text } }],
     };
 });

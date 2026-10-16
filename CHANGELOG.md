@@ -10,6 +10,16 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Audit without installing.** `playbooks/audit.md` is a read-only workflow
+  for an agent told "use kelvinkosbab/AppBootstrapAI to audit my package": clone
+  the bundle to a temp dir, run `install.sh audit <repo> --no-install-check`,
+  triage, run the deep reviews, and report in chat. The audit now reports
+  `kind` (`package` or `app`); libraries skip the compliance-register check and
+  get library reviews (`swift-package-pro`, `swift-docc-pro`,
+  `android-gradle-architecture-pro`, `r8-shrink-pro`). README and `AGENTS.md`
+  point cold-start agents at it; the MCP server adds an `audit` prompt and
+  `skip_install_check` on `audit_project`.
+
 - **Agent sync-and-audit flow.** `install.sh audit` scans a repo (read-only) for
   rule hotspots on both platforms (`try!`, `@unchecked Sendable`, `GlobalScope`,
   `print`, raw `android.util.Log`, AI brand names in UI strings, hardcoded API

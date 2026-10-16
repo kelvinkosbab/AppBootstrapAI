@@ -85,6 +85,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 Plus, at the repo root:
 
 - `install.sh` — one-command bootstrap into any target repo (`--platform apple|android|both`).
+- `playbooks/audit.md` — vendor-neutral, read-only audit for a developer who only found the repo on GitHub ("use kelvinkosbab/AppBootstrapAI to audit my package"): clone to a temp dir, `install.sh audit <repo> --no-install-check`, triage, deep reviews, report in chat. The audit tags the target `kind: package|app`; libraries skip store-only checks and get `swift-package-pro` / `android-gradle-architecture-pro` reviews.
 - `playbooks/sync-and-audit.md` — vendor-neutral agent workflow: sync a repo to the latest bundle, run `install.sh audit`, triage findings against the rules, run the listed skills, and write a report. Agents start it with `/appbootstrap-sync`, which the install writes per agent from `templates/commands/`; the manifest's `bundle.path` / `bundle.repo` tell it where the bundle is. Accepted audit findings go in `.claude/appbootstrap-audit-baseline.json` (`install.sh audit --write-baseline`).
 - `templates/CLAUDE.template.apple.md` — starter `CLAUDE.md` for Apple-only projects.
 - `templates/CLAUDE.template.android.md` — starter `CLAUDE.md` for Android-only projects.

@@ -5,6 +5,9 @@
 > Follow this file step by step to bring a repo up to the latest
 > AppBootstrapAI bundle and then audit it against the bundle's rules.
 > Humans: the one-line kickoff prompt is at the bottom.
+>
+> To audit a repo **without** installing anything, follow
+> [`audit.md`](audit.md) instead.
 
 Two terms:
 
@@ -67,84 +70,19 @@ Then:
 "$BUNDLE/install.sh" audit "$TARGET" --json
 ```
 
-The output has:
-
-- `mode`: `new` (fewer than ten source files) or `existing`.
-- `findings[]`: `{id, severity, title, count, locations[], fix, rule, rule_path, skill, skill_path}`,
-  ordered by severity. `locations` holds up to five `file:line` samples; `count`
-  is the total.
-- `skills_to_run[]`: the deep reviews to run, in priority order, each with the
-  `files` that triggered it.
-
-If the repo has an audit baseline (`.claude/appbootstrap-audit-baseline.json`),
-findings it accepts move to `baseline.suppressed` and a finding with new
-occurrences shows `baselined` (the accepted count). Triage only what's left.
-Mention `baseline.missing_reason` and `baseline.stale` in the report; don't
-edit the baseline unless the user asks.
-
-The audit's checks are regexes and file-presence tests. They tell you **where
-to look**, not what's wrong. Your job is to confirm or dismiss each one.
-
-### 2a. Triage the findings
-
-For each `high` finding, then each `medium`:
-
-1. Open two or three of its `locations` and read the surrounding code.
-2. Read the rule at `rule_path`. It's plain Markdown, so you don't need Claude
-   to use it. Read only the section that matches the finding.
-3. Mark the finding **confirmed** (a real violation), **dismissed** (a false
-   positive: say why in one line), or **needs-decision** (a trade-off only the
-   user can make, such as removing a storefront).
-
-Group `low` findings as setup tasks rather than reviewing each line.
-
-### 2b. Run the deep reviews
-
-For each entry in `skills_to_run` (stop after the top five unless the user
-asks for more):
-
-1. Read `skill_path` (`SKILL.md`). It tells you which `references/*.md` to
-   load for which questions; load only those.
-2. Review the entry's `files`. If it has none (a baseline review), pick the
-   three to five most central files of that kind: the root view, the main
-   view model, the networking client, and similar.
-3. Record each issue with a `file:line`, the rule or reference it breaks, and
-   a before/after fix, in the skill's own report format.
-
-Claude Code also loads these skills natively from `.claude/skills/` after
-install. Other agents read the same `SKILL.md` files directly; the content is
-identical.
-
-### 2c. New projects
-
-When `mode` is `new`, most findings are missing foundations rather than bugs.
-Turn them into a setup plan instead of a defect list:
-
-- **Apple:** `scripts/scaffold-spm-package.sh` for the local package, then
-  `swift-modularization-pro` and `swift-design-system-pro` for the module
-  graph and design system, plus `.swiftlint.yml` and `PrivacyInfo.xcprivacy`.
-- **Android:** `android-modularization-pro` and `android-design-system-pro`,
-  plus `.editorconfig`, detekt, and Android Lint.
-- **Both:** `docs/compliance/regions.md`, and `cross-platform-parity-pro` for a
-  two-platform repo.
-
-Run the scaffolder only with the user's go-ahead. It's non-destructive, but it
-creates a directory tree.
+Then follow steps 3 and 4 of [`audit.md`](audit.md): triage each finding
+against its rule, and run the deep reviews in `skills_to_run`. That file also
+describes the JSON fields and the audit baseline. After a successful sync the
+output has no `bundle-outdated` or `bundle-not-installed` finding; if one is
+there, the apply step didn't take.
 
 ## 3. Report
 
 Write the report to `$TARGET/docs/appbootstrap/audit-<YYYY-MM-DD>.md`
-(create the directory) with these sections:
-
-1. **Sync**: the action taken, the files changed, and anything skipped or in
-   conflict.
-2. **Summary**: confirmed counts per severity and the three things to fix first.
-3. **Findings**: one row per confirmed finding (severity, `file:line`, rule,
-   fix). List dismissed findings briefly at the end with the reason, so the
-   next audit doesn't re-triage them. If the user wants dismissed findings
-   gone for good, offer to accept them into the baseline (see below).
-4. **Decisions needed**: the needs-decision items, each as a one-line
-   question.
+(create the directory). Start with a **Sync** section (the action taken, the
+files changed, and anything skipped or in conflict), then the sections from
+step 5 of [`audit.md`](audit.md). If the user wants dismissed findings gone
+for good, offer to accept them into the baseline (see below).
 
 Then tell the user, in a few lines, where the report is and what you'd fix
 first.

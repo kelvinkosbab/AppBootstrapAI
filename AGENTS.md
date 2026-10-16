@@ -11,6 +11,21 @@ and MCP recipes — copied into a target app repo by `install.sh`. It covers App
 (Swift 6 / SwiftUI / visionOS / Testing / Core Data / Foundation Models) and
 Android (Kotlin / Compose / Gradle / Hilt).
 
+## Asked to audit a repo with this package? (no install)
+
+If the user wants their package, app, or repo **audited** against these rules
+("use kelvinkosbab/AppBootstrapAI to audit my package"), follow
+[`playbooks/audit.md`](playbooks/audit.md). It's read-only on their repo:
+
+```bash
+git clone --depth 1 https://github.com/kelvinkosbab/AppBootstrapAI "${TMPDIR:-/tmp}/AppBootstrapAI"
+"${TMPDIR:-/tmp}/AppBootstrapAI/install.sh" audit <their-repo> --no-install-check --json
+```
+
+Then triage each finding against its `rule_path`, run the `skills_to_run`, and
+report in chat. Don't install unless they ask. The rest of this file covers
+installing the bundle.
+
 ## Golden path — do this
 
 ```bash
@@ -46,7 +61,7 @@ Cursor, Copilot, Gemini CLI). The command finds the bundle through `bundle.path`
 | Verb | Does | Alias |
 |------|------|-------|
 | `recommend [dir] [--json]` | analyze a dir → suggested command | `--recommend` |
-| `audit [dir] [--json] [--fail-on high] [--write-baseline]` | rule hotspots → findings + skills to run (read-only unless `--write-baseline`) | `--audit` |
+| `audit [dir] [--json] [--fail-on high] [--write-baseline] [--no-install-check]` | rule hotspots → findings + skills to run (read-only unless `--write-baseline`); `kind` is `package` or `app` | `--audit` |
 | `install [dir] [flags]` | copy the bundle in (**default** verb — may be omitted) | — |
 | `upgrade <dir> [--apply]` | 3-way diff vs. the current bundle; preserves local edits | `--upgrade` |
 | `uninstall <dir>` | reverse an install | `--uninstall` |
@@ -109,8 +124,9 @@ Gradle build (there is no Android scaffolder; use convention plugins).
 This repo ships an MCP server (`mcp-server/`) exposing the same surface as typed
 tools — call **`recommend_setup`** first, then `preview_install` / `install`,
 `preview_upgrade`, `preview_uninstall` / `uninstall`, plus `list_categories` /
-`list_rules` / `list_skills`, and `audit_project`. The `sync_and_audit` prompt
-runs the whole playbook. See [mcp-server/README.md](mcp-server/README.md).
+`list_rules` / `list_skills`, and `audit_project` (`skip_install_check` for an
+audit-only run). The `audit` prompt runs the audit playbook; `sync_and_audit`
+runs the sync-and-audit playbook. See [mcp-server/README.md](mcp-server/README.md).
 
 ## Don't
 
