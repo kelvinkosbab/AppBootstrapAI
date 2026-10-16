@@ -74,6 +74,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     logging:          "os.Logger discipline (privacy markers, subsystem/category).",
     localization:     "String Catalogs / strings.xml / plurals / RTL.",
     linting:          "SwiftLint + formatter (Apple) / ktlint + detekt + Android Lint (Android): config, suppression hygiene, baselines, triage decision-order, CI placement.",
+    compliance:       "Region-specific App Store / Play rules: storefront availability, China ICP and generative-AI filings, third-party AI brand mentions, EU trader status, storefront-based gating, regional rejections.",
     persistence:      "Core Data under Swift 6 strict concurrency.",
     ai:               "In-app AI models: Apple Foundation Models (iOS 26+) + Android Gemini Nano / ML Kit GenAI / Firebase AI Logic.",
     migration:        "Android XML/Fragment → Compose migration.",

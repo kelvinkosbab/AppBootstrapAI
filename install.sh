@@ -330,8 +330,8 @@ source "$SCRIPT_DIR/lib/detect_platform.sh"
 
 # --- Feature categories -------------------------------------------------------
 
-ALL_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting persistence ai migration shrinking spatial deployment architecture"
-RECOMMENDED_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting"
+ALL_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting compliance persistence ai migration shrinking spatial deployment architecture"
+RECOMMENDED_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting compliance"
 
 # --- recommend: analyze a directory and print the suggested command ----------
 # Self-contained, read-only. Lives here (after the category constants) so the

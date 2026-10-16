@@ -92,7 +92,8 @@
 #   --features           Comma-separated list of feature categories, or one of:
 #                        - recommended (default) → curated subset for most apps:
 #                            core, concurrency, ui, testing, docs,
-#                            error-handling, packaging, logging, localization, linting
+#                            error-handling, packaging, logging, localization, linting,
+#                            compliance
 #                        - all                   → every category
 #                        - custom CSV, e.g. --features core,testing,docs
 #                        - composable, e.g. --features recommended,ai,persistence
@@ -111,6 +112,9 @@
 #                          logging          os.Logger discipline
 #                          localization     String Catalogs / strings.xml / RTL
 #                          linting          SwiftLint+formatter / ktlint+detekt+Android Lint
+#                          compliance       Region-specific store rules: storefront availability,
+#                                           China ICP / generative-AI filings, AI brand mentions,
+#                                           EU trader status, storefront-based feature gating
 #                          persistence      Core Data under Swift 6
 #                          ai               In-app AI models: Apple Foundation Models (iOS 26+)
 #                                           + Android Gemini Nano / ML Kit GenAI / Firebase AI Logic

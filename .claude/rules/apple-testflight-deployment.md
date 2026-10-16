@@ -178,6 +178,8 @@ Alongside the privacy manifest, App Store submissions now carry age-related obli
 - **Keep the age rating questionnaire current.** It's versioned with the listing, not the build — re-check it whenever you add UGC, messaging, or an external content source.
 - **Privacy documentation must be current too** — from September 2026 Apple rejects submissions whose privacy documentation hasn't been updated. Pair this check with the privacy-manifest audit above; they fail the same release for the same reason.
 
+Region-specific storefront requirements (China ICP and generative-AI filings, EU trader status, licensed categories) live in [`apple-regional-compliance.md`](./apple-regional-compliance.md).
+
 Treat all of this as a release-checklist item next to `CFBundleVersion` and the privacy report — a compliance answer that's stale is a rejection, and rejections at review time cost days, not minutes.
 
 ## Build Reproducibility

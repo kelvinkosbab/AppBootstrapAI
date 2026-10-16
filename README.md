@@ -18,15 +18,15 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 
 | Area | What's inside |
 |------|---------------|
-| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · Foundation Models · visionOS · TestFlight · Objective-C |
-| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta |
-| **Skills (Claude)** | 13 Apple + 9 Android + 1 cross-platform on-demand deep-review agents |
+| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
+| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta · regional store compliance |
+| **Skills (Claude)** | 13 Apple + 9 Android + 2 cross-platform on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
 <details>
-<summary><strong>Apple — 20 rules + 13 skills</strong> (click to expand)</summary>
+<summary><strong>Apple — 21 rules + 13 skills</strong> (click to expand)</summary>
 
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text), plus Bluetooth assistive tech: Full Keyboard Access (`.focusable()`, focus rings), Switch Control scan order, braille-display label discipline, focus management (`@AccessibilityFocusState`), modern announcements (`AccessibilityNotification`), audio/hearing (no sound-only cues, captions), WCAG AA color/contrast (both themes, Increase Contrast, Smart Invert), and App Store Accessibility Nutrition Label honesty.
@@ -46,6 +46,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`apple-infoplist-localization.md`** *(localization)* — the localization channel the `Strings` facade **can't** reach: `InfoPlist.xcstrings` vs legacy `InfoPlist.strings`, why the `INFOPLIST_KEY_*` build setting is the base value (and how omitting it yields `ITMS-90683` at upload), untranslated rows silently falling back, one catalog per target, and writing purpose strings specific enough to pass App Review.
 - **`apple-linting-strategy.md`** *(linting)* — SwiftLint as primary linter + a single formatter (SwiftFormat or Apple's swift-format, not both): `.swiftlint.yml` structure, the high-value `opt_in_rules` (`force_unwrapping`, `empty_count`, …), analyzer rules, scoped `// swiftlint:disable:next` hygiene, `--strict` in CI, build-phase vs SPM-plugin vs CI placement, incremental adoption on legacy code, version pinning, plus a triage decision-order.
 - **`apple-logging-strategy.md`** *(logging)* — `Logger` / `OSLog` over `print` / `NSLog`, subsystem/category conventions (one `Logger` per category), privacy markers (`.public` / `.private` / `.private(mask: .hash)` — the part people get wrong), log levels (debug/info/notice/error/fault) and their persistence behavior, lazy `@autoclosure` interpolation, signposts for perf, what never to log (secrets/PII/bodies), retrieving logs via Console / `log` CLI / `OSLogStore`. Complements the `swift-logging-pro` skill.
+- **`apple-regional-compliance.md`** *(compliance)* — region-specific App Store rules: storefront availability as a deliberate decision, China mainland (ICP filing, generative-AI filing, no third-party AI brand names like ChatGPT in the UI or metadata, NPPA game licenses, CallKit, maps), EU DSA trader status and other regional requirements, third-party trademarks and 5.1.2(i) AI consent everywhere, one `RegionPolicy` gated on `Storefront.countryCode` (alpha-3, never `Locale`), neutral metadata per storefront, answering a regional rejection, and a `docs/compliance/regions.md` register. Written after KozBon's China rejection over ChatGPT mentions.
 - **`apple-visionos-best-practices.md`** *(spatial)* — visionOS: scene types (Window / Volume / ImmersiveSpace), immersion styles, spatial gestures + hover affordances, head-mounted-display accessibility (Reduce Motion as vestibular safety), RealityKit / ECS conventions, 90fps performance budgets, USDZ pipeline.
 - **`apple-testflight-deployment.md`** *(deployment)* — shipping to TestFlight: `CFBundleVersion` monotonicity, App Store Connect API key (.p8) auth, `xcodebuild archive` → `-exportArchive` → `altool` flow, ExportOptions.plist gotchas, manual signing for CI, internal vs external tester groups, dSYM upload, ranked gotchas.
 - **`swift-concurrency-pro` skill** — reviews async/await, actors, structured concurrency.
@@ -65,7 +66,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Android — 18 rules + 9 skills</strong> (click to expand)</summary>
+<summary><strong>Android — 19 rules + 9 skills</strong> (click to expand)</summary>
 
 - **`android-project-rules.md`** — Kotlin, Jetpack Compose, MVVM, Hilt, StateFlow, Retrofit/Moshi, ktlint.
 - **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
@@ -84,6 +85,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`android-logging-strategy.md`** *(logging)* — Timber over `android.util.Log` (plant a tree in `Application.onCreate`), log levels (V/D/I/W/E/WTF) and passing the `Throwable`, **stripping debug logs from release** (DebugTree-in-debug-only + R8 `assumenosideeffects`), no PII/secrets, crash-reporter integration (Crashlytics/Sentry breadcrumbs + non-fatals via a `CrashReportingTree`), Logcat hygiene.
 - **`android-ai-best-practices.md`** *(ai)* — in-app AI models on Android, the counterpart to the Apple Foundation Models rule: on-device Gemini Nano via ML Kit GenAI / AICore vs cloud Gemini via Firebase AI Logic, **never ship a raw model API key** (App Check / backend proxy), two-level availability gating (feature download + user preference), streaming into Compose with placeholder-then-mutate, structural cancellation, interface + fake testability, consent + Data-safety implications.
 - **`android-large-screen-best-practices.md`** *(ui; gated by the `tablet` form factor)* — tablets, foldables, and desktop windows: window size classes over device heuristics (`isWidthAtLeastBreakpoint`, `BREAKPOINTS_V2`), Material 3 adaptive canonical layouts (`NavigationSuiteScaffold`, `ListDetailPaneScaffold`, `SupportingPaneScaffold`), `FoldingFeature` posture (tabletop / book), state survival across fold/unfold, and the **Android 16 change that ignores orientation / resizability restrictions on ≥ 600dp screens**; large-screen input (keyboard, mouse, stylus, drag-and-drop).
+- **`android-regional-compliance.md`** *(compliance)* — region-specific distribution: Play country availability and per-country declarations (gambling, loans), China's non-Play stores (ICP filing, generative-AI filing, consent before any data collection or SDK init, a GMS-free `china` flavor), EU trader status, Android developer verification, a `RegionPolicy` gated on Play Billing's `BillingConfig.countryCode` (alpha-2), conditional feature delivery by country, country-targeted custom store listings, and answering a regional rejection.
 - **`android-play-beta-deployment.md`** *(deployment)* — shipping to Play beta tracks: `versionCode` monotonicity, Play App Signing (upload key vs app signing key), AAB-not-APK, service-account JSON for CI, internal/closed/open tracks, Triple-T / fastlane upload, `mapping.txt` upload, ranked gotchas.
 - **`android-accessibility-pro` skill** — deep accessibility audit: the TalkBack semantics tree (descriptions/roles/merging/state/custom actions/live regions incl. the Android 16 announcement migration), Bluetooth input (keyboard/Switch Access/braille), visual accessibility (contrast in both themes, sp scaling at 200%, 48dp targets, reduce motion).
 - **`android-design-system-pro` skill** — bootstraps or audits the UI foundation: scaffolds `:core:designsystem` (`AppTheme`, extended colors, spacing, `AppIcons`, core components with previews) or inventories an existing app (literal colors/sizes, `Icons.*` usage, clickable-box buttons, edge-to-edge gaps, launcher/notification/splash icons) and returns a ranked, incremental migration plan.
@@ -98,11 +100,12 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Cross-platform — 3 rules + 1 skill</strong> (click to expand)</summary>
+<summary><strong>Cross-platform — 3 rules + 2 skills</strong> (click to expand)</summary>
 
 - **`concise-comments-and-commits.md`** *(core)* — fires on all Swift/Kotlin/ObjC source: in-code comments default to *none* (write only what code can't express — why, traps, ticket refs; never narration, diff commentary, or commented-out code), and commit messages stay short (imperative ≤72-char subject; body only when the why isn't in the diff — never file-by-file inventories or process reports). Aimed squarely at AI-assistant verbosity.
 - **`cross-platform-development.md`** *(core; installs only with `--platform both`)* — building one app on Apple and Android at once with AI agents: native × 2 vs Kotlin Multiplatform as a recorded decision, a monorepo with nested `CLAUDE.md` files per platform, spec-first features (`docs/features/`), one vocabulary of names across platforms (types, modules, string keys, icons, events, flags), single sources of truth for the API (OpenAPI), design tokens, strings, analytics, flags, and deep links, parity as behavior-not-pixels, `docs/parity.md`, and CI path filters.
 - **`cross-platform-parity-pro` skill** *(core; `--platform both`)* — ports a feature from one platform to the other (spec → reference behavior → idiomatic target code → verify both), audits drift with scripts that diff string keys, icon vocabularies, analytics events, flags, and deep links, and sets up the repo: root + per-platform `CLAUDE.md`, `apple-engineer` / `android-engineer` subagents, shared-contract generation, PR template, CI. Includes a Swift ↔ Kotlin / SwiftUI ↔ Compose concept map and a Kotlin Multiplatform guide (share logic, never UI; a Swift adapter at the boundary).
+- **`store-compliance-pro` skill** *(compliance; Apple and/or Android)* — audits an app and its store listings for regional rejection risks: third-party AI brand mentions in strings and metadata, storefront gating (locale misuse, fail-open defaults, ungated shortcuts), consent-before-collection for Chinese Android stores, licensed categories, and a console checklist. Respond mode classifies a regional rejection, picks exclude / gate / license, sweeps the app and listing, and drafts the Resolution Center reply and review notes.
 - **`project-documentation.md`** — README structure, [Keep a Changelog](https://keepachangelog.com) format, `CONTRIBUTING.md` essentials, ADR conventions (`docs/adr/####-title.md`, immutable once accepted), inline-comment philosophy (*why* not *what*), and link-rot defenses (pinned versions, permalinked source). Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`.
 
 </details>
@@ -122,7 +125,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
   - `--apple-platforms ios,macos,tvos,watchos,visionos|all` — which Apple sub-platforms you target. Default `ios,macos,tvos,watchos` (every platform **except** visionOS — the lean default for typical app projects). Only meaningful when Apple is in scope. Today the one platform-specific rule is visionOS, so this stays in sync with the `spatial` feature: naming `visionos` installs the visionOS rule, omitting it keeps it out. Recorded in the manifest; a forward-looking framework for future platform-specific rules.
   - `--android-platforms phone,tablet,wear,tv,auto|all` — which Android form factors you target. Default `phone,tablet`. Only meaningful when Android is in scope. **`tablet` gates the large-screen / foldable rule** (`android-large-screen-best-practices.md`) **and the `android-adaptive-layout-pro` skill** — drop it for a phone-only app. Other tokens are recorded in the manifest for future form-factor rules (Wear OS / Android TV / Auto would gate the same way).
-  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`); custom CSVs like `core,testing,docs` give fine-grained control
+  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting` and `compliance`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`); custom CSVs like `core,testing,docs` give fine-grained control
   - `--list` previews the catalog with one-line descriptions + category tags
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
   - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
@@ -131,7 +134,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--dry-run` shows what an install would do without writing any files
   - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope / rename. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. The header prints a GitHub compare URL when commits differ. See [Upgrading an existing install](#upgrading-an-existing-install).
   - `--uninstall` reverses install: deletes every tracked file whose current hash matches what was installed (locally-edited files kept unless `--force-conflicts`; `CLAUDE.md` / `settings.json` kept unless `--purge`). MCP entries are removed if unchanged, unless `--keep-mcps`. Strips the `.gitignore` block and the manifest itself. See [Removing the install](#removing-the-install).
-  - `--help` documents every flag and enumerates all 17 categories
+  - `--help` documents every flag and enumerates all 18 categories
   - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (schema v2 — records per-file SHA-256 hashes so `--upgrade` can diff 3-way: installed vs. current disk vs. bundle)
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 - **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
@@ -318,7 +321,7 @@ repo:
 
 Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. The manifest is what powers `--upgrade`'s 3-way diff against future bundle versions.
 
-**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas), `architecture` (Android MVVM / unidirectional data flow + the repository pattern for both platforms).
+**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint) + `compliance` (region-specific App Store / Play rules). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas), `architecture` (Android MVVM / unidirectional data flow + the repository pattern for both platforms).
 
 **The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|kiro|all` (additive CSV) and the installer also drops the matching file shape for those agents (one concat file for Copilot/Gemini/Codex; per-rule files for Cursor `.mdc` and Kiro `.kiro/steering/*.md`). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
 
@@ -629,6 +632,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-mvvm-architecture.md               # MVVM / UDF, UiState, Route vs Screen (architecture)
 │   │   ├── android-play-beta-deployment.md            # Play beta tracks, signing, CI (deployment)
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
+│   │   ├── android-regional-compliance.md             # Per-country Play / China store rules (compliance)
 │   │   ├── android-repository-pattern.md              # Data layer, offline-first repositories (architecture)
 │   │   ├── android-testing-strategy.md                # Android test strategy + JaCoCo
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
@@ -646,6 +650,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-objc-best-practices.md               # Modern Objective-C
 │   │   ├── apple-repository-pattern.md                # Data layer, protocol repositories (architecture)
 │   │   ├── apple-spm-package-conventions.md           # Package.swift authoring
+│   │   ├── apple-regional-compliance.md               # Per-storefront App Store rules (compliance)
 │   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.4 strict concurrency (Xcode 27)
 │   │   ├── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
 │   │   ├── apple-testflight-deployment.md             # TestFlight, ASC API, signing, CI (deployment)
@@ -665,6 +670,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── coredata-swift6-pro/
 │   │   ├── cross-platform-parity-pro/          # Port features, audit drift, set up a two-platform repo (both)
 │   │   ├── r8-shrink-pro/                      # ProGuard/R8 rules
+│   │   ├── store-compliance-pro/               # Regional store-rejection audit + response (compliance)
 │   │   ├── swift-concurrency-pro/
 │   │   ├── swift-design-system-pro/            # Icons + tokens + components bootstrap/audit (ui)
 │   │   ├── swift-docc-pro/

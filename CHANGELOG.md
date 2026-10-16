@@ -10,6 +10,16 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Regional store compliance — 2 rules + 1 skill (new `compliance` category,
+  in `recommended`).** `apple-regional-compliance.md` and
+  `android-regional-compliance.md` cover per-storefront availability, China
+  mainland requirements (ICP and generative-AI filings, no third-party AI brand
+  names in the app or listing, game licenses, consent-before-collection and
+  GMS-free builds for Chinese Android stores), EU trader status, storefront-based
+  gating through one `RegionPolicy`, neutral metadata, and answering a regional
+  rejection. `store-compliance-pro` audits an app and its listings and drafts
+  the fix and reply. Prompted by KozBon's China rejection over ChatGPT mentions.
+
 - **Modular architecture — 1 new rule + 2 skills, and a rewritten Apple rule
   (packaging, in `recommended`).** `apple-modular-architecture.md` now spells
   out the KozBon layout: what must stay in the app target (`@main`, the
