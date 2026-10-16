@@ -684,6 +684,7 @@ fi
 # shellcheck disable=SC2034   # read by lib/install_mode.sh and lib/upgrade_mode.sh
 BUNDLE_REPO_URL="https://github.com/kelvinkosbab/AppBootstrapAI"
 if [[ -n "${_remote_url:-}" && "$_remote_url" =~ ^(https://|git@) ]]; then
+    # shellcheck disable=SC2034
     BUNDLE_REPO_URL="$(printf '%s' "$_remote_url" | sed -E 's#^https://[^/@]+@#https://#')"
 fi
 
