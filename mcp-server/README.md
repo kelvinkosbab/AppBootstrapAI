@@ -11,7 +11,7 @@ If you'd rather just run `install.sh` by hand or via shell tool — that still w
 | Tool | Description |
 |------|-------------|
 | `recommend_setup` | **Call this first.** Analyzes `target_dir` (read-only) and returns the recommended action as JSON — `state`, `platform`, `apple_language`, `features`, `action`, `feature_reasons`, and a ready-to-run `command[]` / `preview_command[]`. Detects managed-state + framework usage (FoundationModels→`ai`, Core Data/SwiftData→`persistence`, Room→`persistence`, R8→`shrinking`, fastlane/CI→`deployment`, …). |
-| `audit_project` | Runs `install.sh audit <target_dir> --json`: findings (severity, `file:line` samples, rule and skill paths) plus `skills_to_run`. Read-only. |
+| `audit_project` | Runs `install.sh audit <target_dir> --json`: findings (severity, `file:line` samples, rule and skill paths) plus `skills_to_run`. Honors the repo's audit baseline; `no_baseline: true` shows every finding. Read-only. |
 | `list_categories` | Returns the feature categories (name + `recommended` flag + description), read live from `install.sh`. Useful before recommending `--features`. |
 | `list_rules` | Returns every steering rule in `.claude/rules/` with its description and `globs:` from frontmatter. |
 | `list_skills` | Returns every skill in `.claude/skills/` with its description and reference-file names. |
@@ -34,7 +34,10 @@ Each tool's input schema is fully typed (see `src/index.ts`), so agents get auto
 ### Prerequisites
 
 - Node.js 20 or newer (the MCP TypeScript SDK requires modern Node)
-- A clone of the AppBootstrapAI repo
+- A clone of the AppBootstrapAI repo, or the packed npm package (below)
+
+The server finds the bundle in this order: `$APPBOOTSTRAP_BUNDLE`, the clone it
+was built in, then the copy packed inside the npm package.
 
 ### Build
 
@@ -44,6 +47,20 @@ npm install        # `prepare` script runs `npm run build` automatically
 ```
 
 That produces `dist/index.js`, the executable MCP server entry point.
+
+### Pack for npx (no clone)
+
+`npm pack` builds the server and copies the bundle into the package
+(`scripts/pack-bundle.mjs`, stamped with the bundle commit), so the tarball runs
+on its own:
+
+```bash
+cd mcp-server && npm pack                       # → kelvinkosbab-appbootstrap-mcp-<version>.tgz
+npx -y ./kelvinkosbab-appbootstrap-mcp-0.1.0.tgz
+```
+
+The same package is ready for `npm publish`; once it's on the registry the
+config becomes `"command": "npx", "args": ["-y", "@kelvinkosbab/appbootstrap-mcp"]`.
 
 ### Wire into Claude Code
 
@@ -116,7 +133,7 @@ The server logs to stderr (`appbootstrap-mcp server connected via stdio`); stdou
 
 ## Roadmap
 
-- Publish to npm as `@kelvinkosbab/appbootstrap-mcp` so `npx -y @kelvinkosbab/appbootstrap-mcp` works without cloning the repo.
+- Publish to npm as `@kelvinkosbab/appbootstrap-mcp` (the package already packs the bundle; see "Pack for npx").
 - Consider a `describe_skill(name)` tool that returns the full SKILL.md body + reference contents for skills the agent wants to deep-read.
 - Consider a `read_rule(name)` tool for the same on the rules side.
 - Track `install.sh`'s feature-category list automatically rather than maintaining the parallel TypeScript list in `src/index.ts`.

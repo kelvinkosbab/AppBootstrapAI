@@ -38,6 +38,7 @@ Args:
     sys.argv[19] — agents_input         — current --agents input string
     sys.argv[20] — agents_resolved_str  — space-separated resolved agent names
     sys.argv[21] — bundle_gh_remote     — "owner/repo" for the bundle's GitHub origin, or "" if not on GitHub
+    sys.argv[22] — bundle_repo_url      — clone URL recorded as manifest bundle.repo
 
 Output: human-readable plan + apply-time progress + manifest refresh notices.
 
@@ -52,7 +53,7 @@ import hashlib, json, os, shutil, sys, datetime
  apply_flag, force_conflicts_flag, prune_flag, migrate_manifest_flag, dry_run_flag,
  bundle_commit,
  settings_local_path, mcp_recipes_dir, bundle_overlay_dir,
- agents_input, agents_resolved_str, bundle_gh_remote) = sys.argv[1:22]
+ agents_input, agents_resolved_str, bundle_gh_remote, bundle_repo_url) = sys.argv[1:23]
 agents_resolved = agents_resolved_str.split() if agents_resolved_str else []
 
 def bundle_source_for(rel_path):
@@ -160,6 +161,7 @@ if schema == 1:
         "schema_version": 2,
         "installed_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "bundle_commit": bundle_commit if bundle_commit else "unknown",
+        "bundle": {"path": script_dir, "repo": bundle_repo_url},
         "selection": {
             "platform": sel.get("platform", platform),
             "apple_language": sel.get("apple_language", apple_lang),
@@ -914,6 +916,7 @@ new_manifest = {
     "schema_version": 2,
     "installed_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     "bundle_commit": bundle_commit if bundle_commit else "unknown",
+    "bundle": {"path": script_dir, "repo": bundle_repo_url},
     "selection": {
         "platform": platform,
         "apple_language": apple_lang,

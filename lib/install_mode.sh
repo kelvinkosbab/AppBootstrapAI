@@ -303,6 +303,19 @@ if agents_has kiro; then
     done
 fi
 
+# /appbootstrap-sync command per selected agent — never overwrite.
+echo "--> Installing /appbootstrap-sync commands"
+while IFS='|' read -r cmd_agent cmd_src cmd_rel; do
+    agents_has "$cmd_agent" || continue
+    if [[ -f "$TARGET/$cmd_rel" ]]; then
+        echo "    skipping $cmd_rel (already exists)"
+        continue
+    fi
+    act "create $(dirname "$cmd_rel")" mkdir -p "$TARGET/$(dirname "$cmd_rel")"
+    act "copy $cmd_rel" cp "$SCRIPT_DIR/$cmd_src" "$TARGET/$cmd_rel"
+    record_install "$cmd_rel" "agent-command" "-" "$SCRIPT_DIR/$cmd_src"
+done < <(agent_command_files)
+
 # .gitignore — append platform entries, deduped by marker.
 GITIGNORE="$TARGET/.gitignore"
 MARKER="# --- AppBootstrapAI ($PLATFORM) ---"
@@ -381,6 +394,7 @@ write_manifest() {
         printf '  "schema_version": 2,\n'
         printf '  "installed_at": "%s",\n' "$TIMESTAMP"
         printf '  "bundle_commit": "%s",\n' "$BUNDLE_COMMIT"
+        printf '  "bundle": {"path": "%s", "repo": "%s"},\n' "$SCRIPT_DIR" "$BUNDLE_REPO_URL"
         printf '  "selection": {\n'
         printf '    "platform": "%s",\n' "$PLATFORM"
         printf '    "apple_language": "%s",\n' "$APPLE_LANG"

@@ -56,6 +56,10 @@ NEW_PROJECT="false"     # --new: create TARGET (and parents) + git init if missi
 FORCE="false"           # --force: allow re-install over an already-managed target
 INTERACTIVE="false"     # -i / --interactive: prompt-driven create/adopt/update flow
 FAIL_ON=""              # audit --fail-on high|medium|low: exit 2 at/above that severity
+BASELINE_PATH=""        # audit --baseline PATH (default: .claude/appbootstrap-audit-baseline.json)
+NO_BASELINE="false"     # audit --no-baseline: report every finding
+WRITE_BASELINE="false"  # audit --write-baseline: accept current findings
+BASELINE_REASON=""      # audit --baseline-reason TEXT: reason on new baseline entries
 
 # Track whether the user explicitly passed each flag. Used by --upgrade to
 # inherit selection from the manifest when the user didn't override.
@@ -141,6 +145,22 @@ while [[ $# -gt 0 ]]; do
             ;;
         --fail-on)
             FAIL_ON="$2"
+            shift 2
+            ;;
+        --baseline)
+            BASELINE_PATH="${2:-}"
+            shift 2
+            ;;
+        --no-baseline)
+            NO_BASELINE="true"
+            shift
+            ;;
+        --write-baseline)
+            WRITE_BASELINE="true"
+            shift
+            ;;
+        --baseline-reason)
+            BASELINE_REASON="${2:-}"
             shift 2
             ;;
         --new)
@@ -245,6 +265,20 @@ if [[ -n "$FAIL_ON" ]]; then
         high|medium|low) ;;
         *) echo "error: --fail-on must be high, medium, or low (got: $FAIL_ON)" >&2; exit 1 ;;
     esac
+fi
+if [[ -n "$BASELINE_PATH" || "$NO_BASELINE" == "true" || "$WRITE_BASELINE" == "true" || -n "$BASELINE_REASON" ]]; then
+    if [[ "$ACTION" != "audit" ]]; then
+        echo "error: --baseline, --no-baseline, --write-baseline, and --baseline-reason require audit" >&2
+        exit 1
+    fi
+    if [[ "$NO_BASELINE" == "true" && ( "$WRITE_BASELINE" == "true" || -n "$BASELINE_PATH" ) ]]; then
+        echo "error: --no-baseline can't be combined with --baseline or --write-baseline" >&2
+        exit 1
+    fi
+    if [[ -n "$BASELINE_REASON" && "$WRITE_BASELINE" != "true" ]]; then
+        echo "error: --baseline-reason requires --write-baseline" >&2
+        exit 1
+    fi
 fi
 # --new / --force are install-only. (Interactive may set ACTION=upgrade later;
 # that path manages its own target creation, so these stay install-scoped.)
@@ -369,17 +403,36 @@ if [[ "$ACTION" == "recommend" ]]; then
     exit $?
 fi
 
+# Best-effort: capture the AppBootstrapAI git HEAD. Falls back to "unknown" if
+# the bundle was extracted from a tarball or git isn't on PATH. Purely informational —
+# the upgrade flow uses content hashes, not commit SHAs.
+# Defined here so both install AND upgrade flows can stamp it into the manifest.
+# A packaged copy (the npm MCP server ships one) carries .bundle-commit instead.
+if command -v git >/dev/null 2>&1; then
+    # shellcheck disable=SC2034   # read by lib/install_mode.sh (write_manifest) and lib/upgrade_mode.sh
+    BUNDLE_COMMIT="$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
+else
+    # shellcheck disable=SC2034
+    BUNDLE_COMMIT="unknown"
+fi
+if [[ "$BUNDLE_COMMIT" == "unknown" && -f "$SCRIPT_DIR/.bundle-commit" ]]; then
+    BUNDLE_COMMIT="$(tr -d '[:space:]' < "$SCRIPT_DIR/.bundle-commit")"
+fi
+
 # --- audit: read-only health check against the bundle -------------------------
 # Install freshness + rule-violation hotspots, each mapped to the rule and the
 # skill for a deep review. Built on recommend.py's detection; exits when done.
 if [[ "$ACTION" == "audit" ]]; then
     audit_args=(--target "$TARGET"
                 --bundle "$SCRIPT_DIR"
-                --bundle-commit "$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+                --bundle-commit "$BUNDLE_COMMIT"
                 --recommended "$RECOMMENDED_CATEGORIES"
                 --all "$ALL_CATEGORIES")
     [[ "$JSON_OUTPUT" == "true" ]] && audit_args+=(--json)
     [[ -n "$FAIL_ON" ]] && audit_args+=(--fail-on "$FAIL_ON")
+    [[ -n "$BASELINE_PATH" ]] && audit_args+=(--baseline "$BASELINE_PATH")
+    [[ "$NO_BASELINE" == "true" ]] && audit_args+=(--no-baseline)
+    [[ "$WRITE_BASELINE" == "true" ]] && audit_args+=(--write-baseline --baseline-reason "$BASELINE_REASON")
     python3 "$SCRIPT_DIR/lib/audit.py" "${audit_args[@]}"
     exit $?
 fi
@@ -605,17 +658,6 @@ act() {
     fi
 }
 
-# Best-effort: capture the AppBootstrapAI git HEAD. Falls back to "unknown" if
-# the bundle was extracted from a tarball or git isn't on PATH. Purely informational —
-# the upgrade flow uses content hashes, not commit SHAs.
-# Defined here so both install AND upgrade flows can stamp it into the manifest.
-if command -v git >/dev/null 2>&1; then
-    # shellcheck disable=SC2034   # read by lib/install_mode.sh (write_manifest) and lib/upgrade_mode.sh
-    BUNDLE_COMMIT="$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")"
-else
-    # shellcheck disable=SC2034
-    BUNDLE_COMMIT="unknown"
-fi
 
 # Detect the bundle's GitHub remote (owner/repo) so the upgrade plan can print
 # a compare URL like https://github.com/owner/repo/compare/<old>...<new>.
@@ -634,6 +676,15 @@ if command -v git >/dev/null 2>&1; then
             BUNDLE_GH_REMOTE="$_owner/$_repo"
         fi
     fi
+fi
+
+# Where the bundle can be cloned from, recorded in the manifest so agents can
+# find or re-clone it later. Credentials in the remote URL are stripped; a
+# checkout with no usable remote falls back to the canonical repo.
+# shellcheck disable=SC2034   # read by lib/install_mode.sh and lib/upgrade_mode.sh
+BUNDLE_REPO_URL="https://github.com/kelvinkosbab/AppBootstrapAI"
+if [[ -n "${_remote_url:-}" && "$_remote_url" =~ ^(https://|git@) ]]; then
+    BUNDLE_REPO_URL="$(printf '%s' "$_remote_url" | sed -E 's#^https://[^/@]+@#https://#')"
 fi
 
 # --list-mcps and --list handlers — both exit 0 after printing.

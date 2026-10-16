@@ -11,6 +11,7 @@
 #                                     [--with-mcps <csv>] [--new] [--force] [--dry-run]
 #   ./install.sh recommend [TARGET_DIR] [--json]     # analyze a dir → suggested command
 #   ./install.sh audit [TARGET_DIR] [--json] [--fail-on high|medium|low]
+#                      [--write-baseline [--baseline-reason TEXT] | --no-baseline]
 #   ./install.sh upgrade TARGET_DIR [--apply ...]    # update a prior install
 #   ./install.sh uninstall TARGET_DIR [...]          # remove a prior install
 #   ./install.sh list [--json] [--features ...] [--platform ...]
@@ -30,6 +31,10 @@
 #                privacy manifest, …) and list the skills to run next. Add
 #                --json for agents; --fail-on SEVERITY exits 2 when a finding at
 #                or above it exists (for CI). Agents: playbooks/sync-and-audit.md.
+#                Findings accepted in .claude/appbootstrap-audit-baseline.json
+#                (override with --baseline PATH) are reported separately and
+#                never trip --fail-on. --write-baseline accepts the current
+#                findings (keeping existing reasons); --no-baseline shows all.
 #   upgrade      3-way diff a prior install vs. the current bundle (plan-only;
 #                add --apply to write). Alias: the --upgrade flag.
 #   uninstall    Reverse a prior install. Alias: the --uninstall flag.

@@ -44,19 +44,26 @@ import {
     type CallToolRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 
 // --- Locate the AppBootstrapAI repo root --------------------------------------
 //
-// The repo root is two levels up from this file's directory:
-//   <repo>/mcp-server/dist/index.js  →  REPO_ROOT = <repo>
-// During `npm run start` from source, the same relationship holds via tsx.
+// First match wins:
+//   1. $APPBOOTSTRAP_BUNDLE — an explicit checkout.
+//   2. <repo>/mcp-server/dist/index.js → <repo>, when run from a clone.
+//   3. <pkg>/bundle — the copy `npm pack` bundles (scripts/pack-bundle.mjs),
+//      so `npx @kelvinkosbab/appbootstrap-mcp` works with no clone.
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const REPO_ROOT = resolve(__dirname, "..", "..");
+const REPO_ROOT = [
+    process.env.APPBOOTSTRAP_BUNDLE,
+    resolve(__dirname, "..", ".."),
+    resolve(__dirname, "..", "bundle"),
+].find((p): p is string => !!p && existsSync(join(p, "install.sh"))) ?? resolve(__dirname, "..", "..");
 const INSTALL_SH = join(REPO_ROOT, "install.sh");
 const RULES_DIR = join(REPO_ROOT, ".claude", "rules");
 const SKILLS_DIR = join(REPO_ROOT, ".claude", "skills");
@@ -362,12 +369,14 @@ async function toolRecommend(args: { target_dir: string }) {
     return { content: [{ type: "text" as const, text: JSON.stringify(parsed, null, 2) }] };
 }
 
-async function toolAudit(args: { target_dir: string }) {
+async function toolAudit(args: { target_dir: string; no_baseline?: boolean }) {
     if (!args.target_dir) {
         throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
     }
     // Read-only. Returns findings with rule/skill paths the agent reads next.
-    const result = await runCommand("bash", [INSTALL_SH, "audit", args.target_dir, "--json"]);
+    const cmd = [INSTALL_SH, "audit", args.target_dir, "--json"];
+    if (args.no_baseline) cmd.push("--no-baseline");
+    const result = await runCommand("bash", cmd);
     if (result.code !== 0) {
         throw new McpError(
             ErrorCode.InternalError,
@@ -509,11 +518,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         {
             name: "audit_project",
-            description: "Audit a repo against the AppBootstrapAI bundle. Read-only. Returns { mode (new|existing), install {state, up_to_date, command[], preview_command[]}, summary, findings[], skills_to_run[] }. Each finding has severity, file:line locations, a one-line fix, and the rule_path / skill_path to read for a deep review. Findings are regex/file-presence hotspots: confirm or dismiss each by reading the code and the rule. Follow the sync_and_audit prompt for the full workflow.",
+            description: "Audit a repo against the AppBootstrapAI bundle. Read-only. Returns { mode (new|existing), install {state, up_to_date, command[], preview_command[]}, summary, findings[], skills_to_run[] }. Each finding has severity, file:line locations, a one-line fix, and the rule_path / skill_path to read for a deep review. Findings accepted in the repo's audit baseline (.claude/appbootstrap-audit-baseline.json) are listed under baseline.suppressed instead; pass no_baseline to see everything. Findings are regex/file-presence hotspots: confirm or dismiss each by reading the code and the rule. Follow the sync_and_audit prompt for the full workflow.",
             inputSchema: {
                 type: "object",
                 properties: {
                     target_dir: { type: "string", description: "Absolute path to the repo to audit. Required." },
+                    no_baseline: { type: "boolean", description: "Ignore the audit baseline and report every finding." },
                 },
                 required: ["target_dir"],
                 additionalProperties: false

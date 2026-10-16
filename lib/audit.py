@@ -15,10 +15,16 @@ Invoked by install.sh's `audit` verb:
 
     python3 lib/audit.py --target DIR --bundle /abs/bundle/root \\
         --bundle-commit SHA --recommended "<cats>" --all "<cats>" \\
-        [--json] [--fail-on high|medium|low]
+        [--json] [--fail-on high|medium|low] \\
+        [--baseline PATH | --no-baseline] [--write-baseline [--baseline-reason TEXT]]
 
-Exit code: 0, or 2 when --fail-on is set and a finding at or above that
-severity exists.
+A baseline (default .claude/appbootstrap-audit-baseline.json) records
+accepted findings as per-file counts, each with a reason. Baselined findings
+are reported separately and never trip --fail-on, so CI fails only on new
+problems. Counts per file (not line numbers) keep it stable as code moves.
+
+Exit code: 0, or 2 when --fail-on is set and a non-baselined finding at or
+above that severity exists.
 """
 
 from __future__ import annotations
@@ -38,6 +44,9 @@ SEVERITIES = ("high", "medium", "low")
 SEV_RANK = {s: i for i, s in enumerate(SEVERITIES)}
 MAX_LOCATIONS = 5
 MAX_READ_BYTES = 2_000_000
+DEFAULT_BASELINE = os.path.join(".claude", "appbootstrap-audit-baseline.json")
+# Install-state findings are fixed by running the installer, never accepted.
+UNBASELINABLE = {"bundle-outdated", "bundle-not-installed"}
 
 # Agent-config dirs hold the bundle's own rule text, which quotes every
 # anti-pattern on purpose. Never scan them.
@@ -77,11 +86,27 @@ class Finding:
     fix: str
     count: int = 0
     locations: list = field(default_factory=list)
+    all_locations: list = field(default_factory=list)
+    baselined: int = 0
 
     def add(self, loc: str) -> None:
         self.count += 1
+        self.all_locations.append(loc)
         if len(self.locations) < MAX_LOCATIONS:
             self.locations.append(loc)
+
+
+def _loc_file(loc: str) -> str:
+    """'Sources/A.swift:12' -> 'Sources/A.swift'; non-line locations stay as is."""
+    head, sep, tail = loc.rpartition(":")
+    return head if sep and tail.isdigit() else loc
+
+
+def _per_file(f: Finding) -> dict:
+    counts: dict = {}
+    for loc in f.all_locations:
+        counts[_loc_file(loc)] = counts.get(_loc_file(loc), 0) + 1
+    return counts
 
 
 def _exts(*e):
@@ -408,7 +433,73 @@ NEW_PROJECT_SKILLS = {
 }
 
 
-def build(target, bundle, bundle_commit, recommended, all_cats):
+def load_baseline(path):
+    """Return {(id, file): {"count": n, "reason": str}} from a baseline file."""
+    try:
+        with open(path) as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for e in data.get("entries", []):
+        if e.get("id") and e.get("file") is not None:
+            out[(e["id"], e["file"])] = {"count": int(e.get("count", 1)),
+                                         "reason": e.get("reason", "")}
+    return out
+
+
+def apply_baseline(ordered, baseline):
+    """Subtract accepted counts per (id, file). Returns (active, baselined, stale)."""
+    active, accepted, used = [], [], set()
+    for f in ordered:
+        if f.id in UNBASELINABLE or not baseline:
+            active.append(f)
+            continue
+        new_locs, suppressed = [], 0
+        per_file = _per_file(f)
+        for file, cur in per_file.items():
+            entry = baseline.get((f.id, file))
+            if entry:
+                used.add((f.id, file))
+            allowed = min(cur, entry["count"]) if entry else 0
+            suppressed += allowed
+            if cur > allowed:
+                # Lines move, so a file over its count reports all its locations.
+                new_locs += [loc for loc in f.all_locations if _loc_file(loc) == file]
+        if suppressed:
+            accepted.append({"id": f.id, "severity": f.severity, "title": f.title,
+                             "count": suppressed})
+        if new_locs:
+            f.baselined = suppressed
+            f.count -= suppressed
+            f.all_locations = new_locs
+            f.locations = new_locs[:MAX_LOCATIONS]
+            active.append(f)
+    stale = [{"id": k[0], "file": k[1]} for k in baseline if k not in used]
+    return active, accepted, stale
+
+
+def write_baseline(path, ordered, previous, reason):
+    entries = []
+    for f in ordered:
+        if f.id in UNBASELINABLE:
+            continue
+        for file, count in sorted(_per_file(f).items()):
+            prior = previous.get((f.id, file), {}).get("reason", "")
+            entries.append({"id": f.id, "file": file, "count": count,
+                            "reason": prior or reason})
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w") as fh:
+        json.dump({"schema_version": 1,
+                   "note": "Accepted AppBootstrapAI audit findings. Give every entry a reason; "
+                           "delete entries as you fix them.",
+                   "entries": entries}, fh, indent=2)
+        fh.write("\n")
+    return entries
+
+
+def build(target, bundle, bundle_commit, recommended, all_cats,
+          baseline_path=None, write_baseline_reason=None):
     target = os.path.abspath(target)
     rec = recommend.build(target, recommended, all_cats, os.path.join(bundle, "install.sh"))
     platform = rec["platform"] or ""
@@ -426,6 +517,23 @@ def build(target, bundle, bundle_commit, recommended, all_cats):
                                        key=lambda f: (SEV_RANK[f.severity], -f.count, f.id))
     mode = "new" if facts["source_files"] < 10 else "existing"
 
+    baseline_info = None
+    if baseline_path:
+        previous = load_baseline(baseline_path)
+        if write_baseline_reason is not None:
+            entries = write_baseline(baseline_path, ordered, previous, write_baseline_reason)
+            previous = load_baseline(baseline_path)
+            baseline_info = {"written": True, "entries_written": len(entries)}
+        ordered, accepted, stale = apply_baseline(ordered, previous)
+        if previous or baseline_info:
+            baseline_info = dict(baseline_info or {}, **{
+                "path": baseline_path,
+                "entries": len(previous),
+                "missing_reason": sum(1 for e in previous.values() if not e["reason"].strip()),
+                "suppressed": accepted,
+                "stale": stale,
+            })
+
     checks = [_finding_json(f, bundle, installed_paths) for f in ordered]
     skills = _skill_plan(ordered, platforms, mode, bundle)
     summary = {s: sum(1 for f in ordered if f.severity == s) for s in SEVERITIES}
@@ -440,6 +548,7 @@ def build(target, bundle, bundle_commit, recommended, all_cats):
         "summary": summary,
         "findings": checks,
         "skills_to_run": skills,
+        "baseline": baseline_info,
         "playbook": os.path.join(bundle, "playbooks", "sync-and-audit.md"),
     }
 
@@ -454,7 +563,8 @@ def _installed_paths(target):
 
 def _finding_json(f: Finding, bundle, installed_paths):
     d = {"id": f.id, "severity": f.severity, "title": f.title, "count": f.count,
-         "locations": f.locations, "fix": f.fix, "rule": f.rule, "skill": f.skill}
+         "locations": f.locations, "fix": f.fix, "rule": f.rule, "skill": f.skill,
+         "baselined": f.baselined}
     if f.rule:
         stem = os.path.splitext(f.rule)[0]
         d["rule_path"] = os.path.join(bundle, ".claude", "rules", f.rule)
@@ -497,13 +607,27 @@ def render_human(r) -> str:
            "    findings:  " + ", ".join(f"{r['summary'][s]} {s}" for s in SEVERITIES), ""]
     for f in r["findings"]:
         tag = f"[{f['severity']}]"
-        out.append(f"  {tag:<9}{f['title']}  ×{f['count']}")
+        extra = f" new (+{f['baselined']} in baseline)" if f.get("baselined") else ""
+        out.append(f"  {tag:<9}{f['title']}  ×{f['count']}{extra}")
         for loc in f["locations"]:
             out.append(f"             {loc}")
-        if f["count"] > len(f["locations"]):
+        if f["count"] + f.get("baselined", 0) > len(f["locations"]) and not f.get("baselined"):
             out.append(f"             … {f['count'] - len(f['locations'])} more")
         ref = " · ".join(x for x in (f.get("rule"), f.get("skill")) if x)
         out.append(f"             fix: {f['fix']}" + (f"  ({ref})" if ref else ""))
+    b = r.get("baseline")
+    if b:
+        if b.get("written"):
+            out += ["", f"  Wrote {b['entries_written']} baseline entries to {b['path']}."]
+        hidden = sum(a["count"] for a in b["suppressed"])
+        out += ["", f"  Baseline: {b['entries']} entries, {hidden} accepted occurrence(s) hidden"
+                    f" ({b['path']})"]
+        if b["missing_reason"]:
+            out.append(f"    {b['missing_reason']} entr{'y has' if b['missing_reason'] == 1 else 'ies have'}"
+                       " no reason: add one, or fix the code and delete the entry.")
+        if b["stale"]:
+            out.append(f"    {len(b['stale'])} entr{'y is' if len(b['stale']) == 1 else 'ies are'}"
+                       " fixed: re-run with --write-baseline to drop them.")
     if r["skills_to_run"]:
         out += ["", "  Deep reviews to run (load each SKILL.md and review the listed files):"]
         for s in r["skills_to_run"]:
@@ -521,13 +645,23 @@ def main(argv=None) -> int:
     ap.add_argument("--all", default="")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--fail-on", choices=SEVERITIES)
+    ap.add_argument("--baseline", help=f"baseline file (default: <target>/{DEFAULT_BASELINE})")
+    ap.add_argument("--no-baseline", action="store_true", help="report every finding")
+    ap.add_argument("--write-baseline", action="store_true",
+                    help="accept all current findings into the baseline")
+    ap.add_argument("--baseline-reason", default="",
+                    help="reason recorded on new baseline entries")
     args = ap.parse_args(argv)
 
     if not os.path.isdir(args.target):
         print(f"error: target directory does not exist: {args.target}", file=sys.stderr)
         return 1
+    baseline_path = None
+    if not args.no_baseline:
+        baseline_path = os.path.abspath(args.baseline or os.path.join(args.target, DEFAULT_BASELINE))
     r = build(args.target, os.path.abspath(args.bundle), args.bundle_commit,
-              args.recommended.split(), args.all.split())
+              args.recommended.split(), args.all.split(), baseline_path,
+              args.baseline_reason if args.write_baseline else None)
     print(json.dumps(r, indent=2) if args.json else render_human(r))
     if args.fail_on:
         limit = SEV_RANK[args.fail_on]

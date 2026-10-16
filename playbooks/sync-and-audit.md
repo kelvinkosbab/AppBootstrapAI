@@ -16,8 +16,11 @@ Everything below runs through `$BUNDLE/install.sh`. Every step before
 
 ## 0. Preflight
 
-1. **Find the bundle.** Use the path the user gave you. Otherwise use an
-   existing clone if you know one, or clone a fresh one outside the target:
+1. **Find the bundle.** Use the path the user gave you, then
+   `$APPBOOTSTRAP_BUNDLE`, then `bundle.path` in the target's
+   `.claude/.appbootstrap-manifest.json` (the installer records where it ran
+   from) if that directory still holds `install.sh`. Otherwise clone
+   `bundle.repo` from the manifest, or the canonical repo, outside the target:
 
    ```bash
    git clone --depth 1 https://github.com/kelvinkosbab/AppBootstrapAI "${TMPDIR:-/tmp}/AppBootstrapAI"
@@ -72,6 +75,12 @@ The output has:
   is the total.
 - `skills_to_run[]`: the deep reviews to run, in priority order, each with the
   `files` that triggered it.
+
+If the repo has an audit baseline (`.claude/appbootstrap-audit-baseline.json`),
+findings it accepts move to `baseline.suppressed` and a finding with new
+occurrences shows `baselined` (the accepted count). Triage only what's left.
+Mention `baseline.missing_reason` and `baseline.stale` in the report; don't
+edit the baseline unless the user asks.
 
 The audit's checks are regexes and file-presence tests. They tell you **where
 to look**, not what's wrong. Your job is to confirm or dismiss each one.
@@ -132,7 +141,8 @@ Write the report to `$TARGET/docs/appbootstrap/audit-<YYYY-MM-DD>.md`
 2. **Summary**: confirmed counts per severity and the three things to fix first.
 3. **Findings**: one row per confirmed finding (severity, `file:line`, rule,
    fix). List dismissed findings briefly at the end with the reason, so the
-   next audit doesn't re-triage them.
+   next audit doesn't re-triage them. If the user wants dismissed findings
+   gone for good, offer to accept them into the baseline (see below).
 4. **Decisions needed**: the needs-decision items, each as a one-line
    question.
 
@@ -166,9 +176,29 @@ The audit has an exit-code gate, so the same check can block a pull request:
 "$BUNDLE/install.sh" audit . --fail-on high   # exits 2 if any high finding exists
 ```
 
+On an existing codebase, accept today's findings first so CI fails only on new
+ones:
+
+```bash
+"$BUNDLE/install.sh" audit . --write-baseline --baseline-reason "pre-existing, see #123"
+```
+
+That writes `.claude/appbootstrap-audit-baseline.json`: one entry per finding
+and file, with a count and a reason. Commit it, give each entry a real reason,
+and delete entries as the code gets fixed. A file that gains an occurrence
+past its count fails again; `--no-baseline` shows everything. Re-running
+`--write-baseline` keeps the reasons already written and drops fixed entries.
+
 ## Kickoff prompt
 
-Paste this into any agent, from the root of your app repo:
+After an install, most agents have a built-in command for this: type
+**`/appbootstrap-sync`** in Claude Code, Cursor, GitHub Copilot (VS Code), or
+Gemini CLI. Text after it is passed along, for example
+`/appbootstrap-sync audit only`. Codex and Kiro have no project-level commands;
+their rule files carry a one-line pointer to this playbook, so asking them to
+"run the AppBootstrapAI sync" works.
+
+Otherwise, paste this into any agent, from the root of your app repo:
 
 > Follow `<path-to-AppBootstrapAI>/playbooks/sync-and-audit.md` against this
 > repo. If you don't have AppBootstrapAI locally, clone

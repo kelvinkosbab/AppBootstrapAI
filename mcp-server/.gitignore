@@ -3,3 +3,5 @@ dist/
 *.tsbuildinfo
 .npm/
 npm-debug.log*
+# Bundle copy staged by `npm pack` (scripts/pack-bundle.mjs)
+bundle/

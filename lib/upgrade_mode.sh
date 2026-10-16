@@ -167,6 +167,16 @@ if [[ "$ACTION" == "upgrade" ]]; then
         _materialize_concat "AGENTS.md" "agent-file-codex" "Codex CLI and other AGENTS.md-aware tools"
     fi
 
+    # /appbootstrap-sync command files, one per selected agent.
+    while IFS='|' read -r cmd_agent cmd_src cmd_rel; do
+        agents_has "$cmd_agent" || continue
+        mkdir -p "$bundle_overlay_dir/$(dirname "$cmd_rel")"
+        cp "$SCRIPT_DIR/$cmd_src" "$bundle_overlay_dir/$cmd_rel"
+        hash="$(sha256_file "$SCRIPT_DIR/$cmd_src")"
+        echo "$cmd_rel|agent-command|-|$hash|" >> "$bundle_all_tmp"
+        echo "$cmd_rel" >> "$bundle_in_scope_tmp"
+    done < <(agent_command_files)
+
     # RENAMES.md path (may not exist; Python tolerates missing file).
     renames_path="$SCRIPT_DIR/RENAMES.md"
     # MCP paths — settings.local.json on the target, recipes dir in the bundle.
@@ -178,7 +188,7 @@ if [[ "$ACTION" == "upgrade" ]]; then
         "$PLATFORM" "$APPLE_LANG" "$FEATURES_INPUT" "$SCRIPT_DIR" \
         "$APPLY" "$FORCE_CONFLICTS" "$PRUNE" "$MIGRATE_MANIFEST" "$DRY_RUN" "$BUNDLE_COMMIT" \
         "$settings_local_path" "$MCP_RECIPES_DIR" "$bundle_overlay_dir" \
-        "$AGENTS_INPUT" "$SELECTED_AGENTS" "$BUNDLE_GH_REMOTE"
+        "$AGENTS_INPUT" "$SELECTED_AGENTS" "$BUNDLE_GH_REMOTE" "$BUNDLE_REPO_URL"
 
     exit 0
 fi
