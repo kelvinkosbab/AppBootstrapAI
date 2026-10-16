@@ -11,6 +11,7 @@ If you'd rather just run `install.sh` by hand or via shell tool — that still w
 | Tool | Description |
 |------|-------------|
 | `recommend_setup` | **Call this first.** Analyzes `target_dir` (read-only) and returns the recommended action as JSON — `state`, `platform`, `apple_language`, `features`, `action`, `feature_reasons`, and a ready-to-run `command[]` / `preview_command[]`. Detects managed-state + framework usage (FoundationModels→`ai`, Core Data/SwiftData→`persistence`, Room→`persistence`, R8→`shrinking`, fastlane/CI→`deployment`, …). |
+| `audit_project` | Runs `install.sh audit <target_dir> --json`: findings (severity, `file:line` samples, rule and skill paths) plus `skills_to_run`. Read-only. |
 | `list_categories` | Returns the feature categories (name + `recommended` flag + description), read live from `install.sh`. Useful before recommending `--features`. |
 | `list_rules` | Returns every steering rule in `.claude/rules/` with its description and `globs:` from frontmatter. |
 | `list_skills` | Returns every skill in `.claude/skills/` with its description and reference-file names. |
@@ -19,6 +20,12 @@ If you'd rather just run `install.sh` by hand or via shell tool — that still w
 | `preview_upgrade` | Plan-only 3-way diff of `target_dir` vs. the current bundle. Writes nothing. |
 | `preview_uninstall` | Plan-only `--uninstall --dry-run`: what an uninstall would delete vs. keep. Writes nothing. |
 | `uninstall` | Reverses an install (`purge` / `keep_mcps` / `force_conflicts` options). Destructive — call `preview_uninstall` first. |
+
+## Prompts exposed
+
+| Prompt | Description |
+|--------|-------------|
+| `sync_and_audit` | The [sync-and-audit playbook](../playbooks/sync-and-audit.md) as a prompt (optional `target_dir` arg): sync the target to the latest bundle, audit it, triage findings, run the listed skills, and write a report. Most MCP clients surface it as a slash command. |
 
 Each tool's input schema is fully typed (see `src/index.ts`), so agents get autocomplete-grade hints when calling. The intended loop is **`recommend_setup` → preview → act**.
 
@@ -53,7 +60,7 @@ Add to your project's `.claude/settings.json` (or your global `~/.claude/setting
 }
 ```
 
-Restart Claude Code; the nine tools become callable from any Claude session.
+Restart Claude Code; the ten tools and the prompt become callable from any Claude session.
 
 ### Wire into other MCP clients
 

@@ -13,6 +13,8 @@
 #   lib/uninstall.py       — Python: --uninstall executor
 #   lib/mcp_merge.py       — Python: MCP merge into settings.local.json
 #   lib/inherit_selection.py — Python: read selection fields from a manifest
+#   lib/recommend.py       — Python: `recommend` analyzer
+#   lib/audit.py           — Python: `audit` health check (builds on recommend.py)
 
 
 set -euo pipefail
@@ -53,6 +55,7 @@ KEEP_MCPS="false"
 NEW_PROJECT="false"     # --new: create TARGET (and parents) + git init if missing
 FORCE="false"           # --force: allow re-install over an already-managed target
 INTERACTIVE="false"     # -i / --interactive: prompt-driven create/adopt/update flow
+FAIL_ON=""              # audit --fail-on high|medium|low: exit 2 at/above that severity
 
 # Track whether the user explicitly passed each flag. Used by --upgrade to
 # inherit selection from the manifest when the user didn't override.
@@ -78,6 +81,7 @@ if [[ $# -gt 0 ]]; then
         upgrade)   ACTION="upgrade";   shift ;;
         uninstall) ACTION="uninstall"; shift ;;
         recommend) ACTION="recommend"; shift ;;
+        audit)     ACTION="audit";     shift ;;
         list)      ACTION="list";      shift ;;
         list-mcps) ACTION="list-mcps"; shift ;;
         setup)     INTERACTIVE="true"; shift ;;
@@ -130,6 +134,14 @@ while [[ $# -gt 0 ]]; do
         --recommend)
             ACTION="recommend"
             shift
+            ;;
+        --audit)
+            ACTION="audit"
+            shift
+            ;;
+        --fail-on)
+            FAIL_ON="$2"
+            shift 2
             ;;
         --new)
             NEW_PROJECT="true"
@@ -223,6 +235,16 @@ fi
 if [[ "$KEEP_MCPS" == "true" && "$ACTION" != "uninstall" ]]; then
     echo "error: --keep-mcps requires --uninstall" >&2
     exit 1
+fi
+if [[ -n "$FAIL_ON" ]]; then
+    if [[ "$ACTION" != "audit" ]]; then
+        echo "error: --fail-on requires audit" >&2
+        exit 1
+    fi
+    case "$FAIL_ON" in
+        high|medium|low) ;;
+        *) echo "error: --fail-on must be high, medium, or low (got: $FAIL_ON)" >&2; exit 1 ;;
+    esac
 fi
 # --new / --force are install-only. (Interactive may set ACTION=upgrade later;
 # that path manages its own target creation, so these stay install-scoped.)
@@ -344,6 +366,21 @@ if [[ "$ACTION" == "recommend" ]]; then
                     --self "$SCRIPT_DIR/install.sh")
     [[ "$JSON_OUTPUT" == "true" ]] && recommend_args+=(--json)
     python3 "$SCRIPT_DIR/lib/recommend.py" "${recommend_args[@]}"
+    exit $?
+fi
+
+# --- audit: read-only health check against the bundle -------------------------
+# Install freshness + rule-violation hotspots, each mapped to the rule and the
+# skill for a deep review. Built on recommend.py's detection; exits when done.
+if [[ "$ACTION" == "audit" ]]; then
+    audit_args=(--target "$TARGET"
+                --bundle "$SCRIPT_DIR"
+                --bundle-commit "$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+                --recommended "$RECOMMENDED_CATEGORIES"
+                --all "$ALL_CATEGORIES")
+    [[ "$JSON_OUTPUT" == "true" ]] && audit_args+=(--json)
+    [[ -n "$FAIL_ON" ]] && audit_args+=(--fail-on "$FAIL_ON")
+    python3 "$SCRIPT_DIR/lib/audit.py" "${audit_args[@]}"
     exit $?
 fi
 

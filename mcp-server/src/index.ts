@@ -21,6 +21,12 @@
  *   - preview_upgrade     Run `install.sh <dir> --upgrade` (plan-only, writes nothing).
  *   - preview_uninstall   Run `install.sh <dir> --uninstall --dry-run` (plan-only).
  *   - uninstall           Run `install.sh <dir> --uninstall` (destructive — preview first).
+ *   - audit_project       Run `install.sh audit <dir> --json`: install freshness plus
+ *                         rule-violation hotspots, each mapped to a rule and a skill.
+ *
+ * Prompts:
+ *   - sync_and_audit      The end-to-end agent workflow (playbooks/sync-and-audit.md):
+ *                         recommend → preview → apply → audit → deep reviews → report.
  *
  * Communicates over stdio (the standard MCP transport for local subprocess servers).
  * Configure a client by pointing at the compiled `dist/index.js`.
@@ -30,6 +36,8 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
     CallToolRequestSchema,
+    GetPromptRequestSchema,
+    ListPromptsRequestSchema,
     ListToolsRequestSchema,
     McpError,
     ErrorCode,
@@ -52,6 +60,7 @@ const REPO_ROOT = resolve(__dirname, "..", "..");
 const INSTALL_SH = join(REPO_ROOT, "install.sh");
 const RULES_DIR = join(REPO_ROOT, ".claude", "rules");
 const SKILLS_DIR = join(REPO_ROOT, ".claude", "skills");
+const PLAYBOOK = join(REPO_ROOT, "playbooks", "sync-and-audit.md");
 
 // --- Category metadata --------------------------------------------------------
 //
@@ -353,6 +362,27 @@ async function toolRecommend(args: { target_dir: string }) {
     return { content: [{ type: "text" as const, text: JSON.stringify(parsed, null, 2) }] };
 }
 
+async function toolAudit(args: { target_dir: string }) {
+    if (!args.target_dir) {
+        throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
+    }
+    // Read-only. Returns findings with rule/skill paths the agent reads next.
+    const result = await runCommand("bash", [INSTALL_SH, "audit", args.target_dir, "--json"]);
+    if (result.code !== 0) {
+        throw new McpError(
+            ErrorCode.InternalError,
+            `install.sh audit exited with code ${result.code}: ${result.stderr}`
+        );
+    }
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(result.stdout);
+    } catch {
+        throw new McpError(ErrorCode.InternalError, `audit did not return JSON:\n${result.stdout}`);
+    }
+    return { content: [{ type: "text" as const, text: JSON.stringify(parsed, null, 2) }] };
+}
+
 async function toolUninstall(args: {
     target_dir: string;
     dry_run?: boolean;
@@ -397,7 +427,7 @@ const server = new Server(
         version: "0.1.0",
     },
     {
-        capabilities: { tools: {} },
+        capabilities: { tools: {}, prompts: {} },
     }
 );
 
@@ -478,6 +508,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             }
         },
         {
+            name: "audit_project",
+            description: "Audit a repo against the AppBootstrapAI bundle. Read-only. Returns { mode (new|existing), install {state, up_to_date, command[], preview_command[]}, summary, findings[], skills_to_run[] }. Each finding has severity, file:line locations, a one-line fix, and the rule_path / skill_path to read for a deep review. Findings are regex/file-presence hotspots: confirm or dismiss each by reading the code and the rule. Follow the sync_and_audit prompt for the full workflow.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    target_dir: { type: "string", description: "Absolute path to the repo to audit. Required." },
+                },
+                required: ["target_dir"],
+                additionalProperties: false
+            }
+        },
+        {
             name: "preview_uninstall",
             description: "Plan-only `install.sh <target_dir> --uninstall --dry-run`. Lists what an uninstall WOULD delete vs. keep (unchanged tracked files deleted; locally-edited files and CLAUDE.md/settings.json kept) without writing anything. Use before `uninstall`.",
             inputSchema: {
@@ -520,6 +562,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
             case "preview_upgrade":   return await toolPreviewUpgrade(args as any);
             case "preview_uninstall": return await toolUninstall({ ...(args as any), dry_run: true });
             case "uninstall":         return await toolUninstall(args as any);
+            case "audit_project":     return await toolAudit(args as any);
             default:
                 throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }
@@ -530,6 +573,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
             `${name} failed: ${e instanceof Error ? e.message : String(e)}`
         );
     }
+});
+
+// --- Prompts -------------------------------------------------------------------
+//
+// One prompt, sourced from the playbook file so the MCP path and the plain
+// "read this Markdown" path never diverge.
+
+server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+    prompts: [{
+        name: "sync_and_audit",
+        description: "Bring a repo up to the latest AppBootstrapAI bundle, then audit it against the bundle's rules and skills and write a report. Previews before writing; never commits.",
+        arguments: [
+            { name: "target_dir", description: "Absolute path to the repo. Defaults to the current working directory.", required: false },
+        ],
+    }],
+}));
+
+server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    if (request.params.name !== "sync_and_audit") {
+        throw new McpError(ErrorCode.InvalidParams, `Unknown prompt: ${request.params.name}`);
+    }
+    const target = request.params.arguments?.target_dir || "the current working directory";
+    const playbook = await readFile(PLAYBOOK, "utf-8");
+    const text = [
+        `Run this playbook against ${target}. BUNDLE is ${REPO_ROOT}.`,
+        "Use the appbootstrap MCP tools where they map to a step: recommend_setup for `recommend`, preview_upgrade / preview_install for the preview, install for adopt, audit_project for `audit`. Use the shell for `upgrade --apply`.",
+        "",
+        playbook,
+    ].join("\n");
+    return {
+        description: "AppBootstrapAI sync and audit",
+        messages: [{ role: "user", content: { type: "text", text } }],
+    };
 });
 
 // Load the canonical category set from install.sh before accepting requests.

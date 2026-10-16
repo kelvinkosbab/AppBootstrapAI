@@ -10,6 +10,15 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Agent sync-and-audit flow.** `install.sh audit` scans a repo (read-only) for
+  rule hotspots on both platforms (`try!`, `@unchecked Sendable`, `GlobalScope`,
+  `print`, raw `android.util.Log`, AI brand names in UI strings, hardcoded API
+  keys, missing privacy manifest or scene lifecycle, …), maps each to its rule
+  and skill, and lists the skills to run; `--json` for agents, `--fail-on` for
+  CI. `playbooks/sync-and-audit.md` is a vendor-neutral workflow any agent can
+  follow: sync, audit, triage, deep review, report. The MCP server adds an
+  `audit_project` tool and a `sync_and_audit` prompt.
+
 - **Regional store compliance — 2 rules + 1 skill (new `compliance` category,
   in `recommended`).** `apple-regional-compliance.md` and
   `android-regional-compliance.md` cover per-storefront availability, China
