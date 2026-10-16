@@ -2,7 +2,7 @@
 
 A drop-in bundle of **AI agent steering** — rules, skills (Claude), and MCP recipes — for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) and Android in one bundle, so single-platform and mixed-stack teams can share one source of truth. Works with **Claude Code, GitHub Copilot, Cursor, Gemini CLI, Codex CLI, and Amazon Kiro** out of the box (`./install.sh --agents <name>` writes the right files per agent).
 
-One `install.sh` bootstraps modern review, testing, style, accessibility, and localization guidance into any new or existing app repo — and keeps it up to date with `--upgrade`. Day-one consistency without writing the rules yourself; day-N reproducibility without drifting from upstream.
+One `install.sh` bootstraps modern review, testing, style, accessibility, localization, and regional store-compliance guidance into any new or existing app repo — and keeps it up to date with `--upgrade`. Day-one consistency without writing the rules yourself; day-N reproducibility without drifting from upstream.
 
 **Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex,kiro` (or `all`) and `install.sh` drops the right file shape per agent: `.github/copilot-instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`. Skills stay Claude-only. For Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) below.
 
@@ -756,6 +756,7 @@ Notable changes are tracked in [`CHANGELOG.md`](CHANGELOG.md), following the [Ke
   - [`swiftui-agent-skill`](https://github.com/twostraws/swiftui-agent-skill)
   - [`swiftdata-agent-skill`](https://github.com/twostraws/swiftdata-agent-skill)
   - …and more on his profile. Author attribution is retained in each `SKILL.md` frontmatter.
+  - Bundled copies track upstream; `swiftui-pro` is synced to upstream 2.0.0 (Xcode 27.2 / iPhone Duo).
 - Android skills (`android-gradle-architecture-pro`, `xml-to-compose-migration-pro`, `r8-shrink-pro`) authored by AppBootstrapAI contributors. Grounded in [Android's Now in Android](https://github.com/android/nowinandroid) reference app and the official [Android Developers documentation](https://developer.android.com/build) for AGP, Compose, and R8 — the canonical primary sources. Licensed MIT.
 
 ## License
