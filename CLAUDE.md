@@ -85,6 +85,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 Plus, at the repo root:
 
 - `install.sh` — one-command bootstrap into any target repo (`--platform apple|android|both`).
+- `playbooks/sync-and-audit.md` — vendor-neutral agent workflow: sync a repo to the latest bundle, run `install.sh audit`, triage findings against the rules, run the listed skills, and write a report.
 - `templates/CLAUDE.template.apple.md` — starter `CLAUDE.md` for Apple-only projects.
 - `templates/CLAUDE.template.android.md` — starter `CLAUDE.md` for Android-only projects.
 - `templates/CLAUDE.template.md` — starter `CLAUDE.md` for cross-platform projects.

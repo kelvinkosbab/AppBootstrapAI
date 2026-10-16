@@ -1906,6 +1906,31 @@ b="$("$INSTALL" --recommend "$t" 2>&1)"
     || { red "FAIL: --recommend alias should match the recommend verb"; FAIL=$((FAIL + 1)); }
 rm -rf "$t"
 
+# --- audit (rule hotspots → findings + skills to run) ------------------------
+
+bold "==> audit: flags try! in sources, skips it in tests, gates with --fail-on"
+t="$(mktemp -d)"
+touch "$t/Package.swift"
+mkdir -p "$t/Sources" "$t/Tests"
+printf 'let x = try! load()\n' > "$t/Sources/A.swift"
+printf 'let y = try! load()\n' > "$t/Tests/ATests.swift"
+out="$("$INSTALL" audit "$t" 2>&1)"; rc=$?
+js="$("$INSTALL" audit "$t" --json 2>&1)"
+set +e; "$INSTALL" audit "$t" --fail-on high > /dev/null 2>&1; gate=$?; set -e
+if [[ "$rc" -eq 0 && "$gate" -eq 2 ]] && grep -q "Sources/A.swift:1" <<<"$out" \
+   && python3 -c "import json,sys; d=json.loads(sys.argv[1]); f=[x for x in d['findings'] if x['id']=='swift-force-try'][0]; assert f['count']==1 and 'Tests' not in f['locations'][0]; assert d['skills_to_run']" "$js" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: audit should flag source try!, skip test try!, emit JSON, and exit 2 under --fail-on high"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> audit: --fail-on outside audit is rejected"
+set +e; "$INSTALL" upgrade . --fail-on high > /dev/null 2>&1; rc=$?; set -e
+[[ "$rc" -ne 0 ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: --fail-on without audit should error"; FAIL=$((FAIL + 1)); }
+
 # --- ai category is cross-platform; new skills land (v1.0 additions) ---------
 
 bold "==> ai: --platform android --features ai installs the android AI rule (was empty)"

@@ -27,11 +27,20 @@ call replaces grepping the tree yourself.** Trust its `command` / `preview_comma
 `recommend --json` returns:
 `{ state, platform, apple_language, features, action, feature_reasons, command[], preview_command[], notes[] }`.
 
+## Sync and audit an existing project
+
+To update a repo to the latest bundle **and** audit it, follow
+[`playbooks/sync-and-audit.md`](playbooks/sync-and-audit.md): `recommend` →
+preview → apply, then `audit --json`, triage each finding against its rule, run
+the listed skills, and write a report. It's vendor-neutral; any agent that can
+run a shell can follow it.
+
 ## Commands (verbs; each has a `--flag` alias, so old scripts keep working)
 
 | Verb | Does | Alias |
 |------|------|-------|
 | `recommend [dir] [--json]` | analyze a dir → suggested command | `--recommend` |
+| `audit [dir] [--json] [--fail-on high]` | rule hotspots → findings + skills to run (read-only) | `--audit` |
 | `install [dir] [flags]` | copy the bundle in (**default** verb — may be omitted) | — |
 | `upgrade <dir> [--apply]` | 3-way diff vs. the current bundle; preserves local edits | `--upgrade` |
 | `uninstall <dir>` | reverse an install | `--uninstall` |
@@ -94,7 +103,8 @@ Gradle build (there is no Android scaffolder; use convention plugins).
 This repo ships an MCP server (`mcp-server/`) exposing the same surface as typed
 tools — call **`recommend_setup`** first, then `preview_install` / `install`,
 `preview_upgrade`, `preview_uninstall` / `uninstall`, plus `list_categories` /
-`list_rules` / `list_skills`. See [mcp-server/README.md](mcp-server/README.md).
+`list_rules` / `list_skills`, and `audit_project`. The `sync_and_audit` prompt
+runs the whole playbook. See [mcp-server/README.md](mcp-server/README.md).
 
 ## Don't
 
