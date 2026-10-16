@@ -305,9 +305,9 @@ assert {'spatial', 'deployment', 'linting'} <= cat_names, f'categories missing s
 for c in data['categories']:
     assert 'name' in c and 'recommended' in c, f'category missing name/recommended: {c}'
     assert isinstance(c['recommended'], bool), f'recommended must be bool: {c}'
-# recommended preset must be exactly the 10 day-one categories
+# recommended preset must be exactly the 11 day-one categories
 recommended = {c['name'] for c in data['categories'] if c['recommended']}
-assert recommended == {'core','concurrency','ui','testing','docs','error-handling','packaging','logging','localization','linting'}, \
+assert recommended == {'core','concurrency','ui','testing','docs','error-handling','packaging','logging','localization','linting','compliance'}, \
     f'unexpected recommended set: {recommended}'
 # Every rule should have filename/category/installed/description
 for r in data['rules']:
@@ -2351,6 +2351,34 @@ else
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$t"
+
+# --- compliance category (regional store rules) ------------------------------
+
+bold "==> compliance: regional rules + store-compliance-pro land per platform in recommended"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple > /dev/null
+a_ok=$([[ -f "$t/.claude/rules/apple-regional-compliance.md" \
+       && ! -f "$t/.claude/rules/android-regional-compliance.md" \
+       && -f "$t/.claude/skills/store-compliance-pro/references/audit.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android > /dev/null
+b_ok=$([[ -f "$t/.claude/rules/android-regional-compliance.md" \
+       && ! -f "$t/.claude/rules/apple-regional-compliance.md" \
+       && -f "$t/.claude/skills/store-compliance-pro/SKILL.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features core,testing > /dev/null
+c_ok=$([[ ! -f "$t/.claude/rules/apple-regional-compliance.md" \
+       && ! -f "$t/.claude/rules/android-regional-compliance.md" \
+       && ! -d "$t/.claude/skills/store-compliance-pro" ]] && echo y)
+rm -rf "$t"
+if [[ "$a_ok" == "y" && "$b_ok" == "y" && "$c_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: compliance rules/skill should follow platform + compliance feature (apple=$a_ok android=$b_ok no-compliance=$c_ok)"
+    FAIL=$((FAIL + 1))
+fi
 
 # --- deployment category (TestFlight + Play beta) ----------------------------
 

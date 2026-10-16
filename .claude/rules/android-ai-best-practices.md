@@ -14,6 +14,7 @@ Rules for app code that calls generative models — the Android counterpart to [
 - **ML Kit GenAI APIs (Gemini Nano, on-device)** — high-level task APIs (summarization, proofreading, rewriting, image description) running on-device via AICore. Free, private, offline-capable — but **device-limited** (recent flagships) and task-constrained. Default here for cheap/private/offline turns.
 - **Firebase AI Logic (cloud Gemini)** — full Gemini capability from app code without running your own backend. Needs network, costs per token, and data leaves the device. Use for harder reasoning, long context, or devices Nano doesn't cover.
 - **Your own backend proxy** — when you need server-side prompt assembly, RAG, or multi-provider routing. The app talks to *your* API; the model key never ships in the APK.
+- **Provider choice is also a regional decision.** Cloud model providers aren't legal in every market (China requires a generative-AI filing and has no Google services), and naming a provider like ChatGPT in strings or listings fails review there. Gate through a store-country `RegionPolicy`; see [`android-regional-compliance.md`](./android-regional-compliance.md).
 - **Pick per use-case, not globally.** Wrap model access behind one interface so a turn can route on-device first and fall back to cloud (or vice versa) without touching call sites.
 
 ## API Keys — the Non-Negotiable

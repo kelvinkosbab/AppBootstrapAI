@@ -37,6 +37,7 @@ Guidance:
 - **Availability gating applies per model.** On-device → `SystemLanguageModel.default.availability`; PCC / external → reachability plus your own credential / quota checks. Expose a single `isAvailable` for the *currently selected* model.
 - **Don't leak provider choice into the View.** Model selection lives in the `@MainActor @Observable` session holder; the View just sends prompts.
 - **An external or PCC model means data leaves the device.** Get user consent and don't send more context than the task needs — same posture as any network upload.
+- **Provider choice is also a regional decision.** External providers (and Apple Intelligence itself) aren't available or legal in every storefront; China mainland rejects apps that use or even name unfiled generative-AI services. Gate providers through a storefront-based `RegionPolicy` and keep provider names out of user-facing strings. See [`apple-regional-compliance.md`](./apple-regional-compliance.md).
 - **Profile with the Foundation Models Instrument** (new in Xcode 27) — it traces instructions, prompts, responses, token usage, and inference latency. Use it to catch context-window bloat and slow turns before users do, and to compare on-device vs. PCC cost.
 
 ## Multimodal Input (Images, Beta)
