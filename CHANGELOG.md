@@ -94,6 +94,14 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Changed
 
+- **`swiftui-pro` synced to upstream 2.0.0** (Paul Hudson's
+  [`swiftui-agent-skill`](https://github.com/twostraws/swiftui-agent-skill),
+  Xcode 27.2 / iPhone Duo update). Adds `resizability.md`, `localization.md`,
+  and an opt-in `performance-plus.md` for deep performance reviews, and
+  refreshes the other references for iOS 27 APIs and toolbars.
+- **`swift-testing-pro` synced to upstream**: `.serialized` on a suite now
+  serializes every test and sub-suite, not just parameterized ones.
+
 - **iPhone Duo support refreshed against the shipped Xcode 27.1 / iOS 27.1 SDK.**
   The original rule was written from release-candidate material and hedged its
   API spellings; several were imprecise. Corrected and expanded:
