@@ -1931,6 +1931,76 @@ set +e; "$INSTALL" upgrade . --fail-on high > /dev/null 2>&1; rc=$?; set -e
 [[ "$rc" -ne 0 ]] && PASS=$((PASS + 1)) \
     || { red "FAIL: --fail-on without audit should error"; FAIL=$((FAIL + 1)); }
 
+bold "==> audit baseline: accepted findings don't trip --fail-on; new ones do"
+t="$(mktemp -d)"
+touch "$t/Package.swift"
+mkdir -p "$t/Sources"
+printf 'let a = try! f()\nlet b = try! g()\n' > "$t/Sources/A.swift"
+"$INSTALL" audit "$t" --write-baseline --baseline-reason "legacy" > /dev/null 2>&1
+bl="$t/.claude/appbootstrap-audit-baseline.json"
+set +e; "$INSTALL" audit "$t" --fail-on high > /dev/null 2>&1; accepted=$?; set -e
+printf 'let c = try! h()\n' >> "$t/Sources/A.swift"
+set +e; "$INSTALL" audit "$t" --fail-on high > /dev/null 2>&1; added=$?; set -e
+js="$("$INSTALL" audit "$t" --json 2>&1)"
+all="$("$INSTALL" audit "$t" --no-baseline --json 2>&1)"
+if [[ "$accepted" -eq 0 && "$added" -eq 2 ]] \
+   && python3 -c "import json,sys; b=json.load(open(sys.argv[1])); e=[x for x in b['entries'] if x['id']=='swift-force-try'][0]; assert e['count']==2 and e['reason']=='legacy' and e['file']=='Sources/A.swift'" "$bl" 2>/dev/null \
+   && python3 -c "import json,sys; d=json.loads(sys.argv[1]); f=[x for x in d['findings'] if x['id']=='swift-force-try'][0]; assert f['count']==1 and f['baselined']==2; a=json.loads(sys.argv[2]); assert a['baseline'] is None and [x for x in a['findings'] if x['id']=='swift-force-try'][0]['count']==3" "$js" "$all" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: baseline should accept 2 try!, gate only the 3rd, and --no-baseline should show all 3"
+    FAIL=$((FAIL + 1))
+fi
+rm -f "$t/Sources/A.swift"
+out="$("$INSTALL" audit "$t" 2>&1)"
+grep -q "fixed: re-run with --write-baseline" <<<"$out" && PASS=$((PASS + 1)) \
+    || { red "FAIL: baseline entries for fixed code should be reported as stale"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
+bold "==> audit baseline: flags are audit-only and validated"
+set +e
+"$INSTALL" upgrade . --write-baseline > /dev/null 2>&1; r1=$?
+"$INSTALL" audit . --no-baseline --write-baseline > /dev/null 2>&1; r2=$?
+"$INSTALL" audit . --baseline-reason x > /dev/null 2>&1; r3=$?
+set -e
+[[ "$r1" -ne 0 && "$r2" -ne 0 && "$r3" -ne 0 ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: baseline flags should be rejected outside audit or in bad combinations"; FAIL=$((FAIL + 1)); }
+
+# --- /appbootstrap-sync commands + bundle location ---------------------------
+
+bold "==> install: writes /appbootstrap-sync per agent and records the bundle"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --agents claude,cursor,copilot,gemini,codex > /dev/null 2>&1
+m="$t/.claude/.appbootstrap-manifest.json"
+if [[ -f "$t/.claude/commands/appbootstrap-sync.md" && -f "$t/.cursor/commands/appbootstrap-sync.md" \
+      && -f "$t/.github/prompts/appbootstrap-sync.prompt.md" && -f "$t/.gemini/commands/appbootstrap-sync.toml" ]] \
+   && grep -q "playbooks/sync-and-audit.md" "$t/AGENTS.md" \
+   && python3 -c "import json,sys; m=json.load(open(sys.argv[1])); assert m['bundle']['path']==sys.argv[2] and m['bundle']['repo'].startswith(('https://','git@')); assert len([f for f in m['files'] if f['type']=='agent-command'])==4" "$m" "$REPO_ROOT" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: install should write four /appbootstrap-sync commands and record bundle.path/repo"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> upgrade: adds the sync command to an install that predates it"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple > /dev/null 2>&1
+rm -rf "$t/.claude/commands"
+python3 -c "import json,sys; p=sys.argv[1]; m=json.load(open(p)); m['files']=[f for f in m['files'] if f['type']!='agent-command']; m.pop('bundle'); json.dump(m,open(p,'w'))" "$t/.claude/.appbootstrap-manifest.json"
+"$INSTALL" upgrade "$t" --apply > /dev/null 2>&1
+if [[ -f "$t/.claude/commands/appbootstrap-sync.md" ]] \
+   && python3 -c "import json,sys; m=json.load(open(sys.argv[1])); assert m['bundle']['path']" "$t/.claude/.appbootstrap-manifest.json" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: upgrade --apply should add the missing sync command and record the bundle"
+    FAIL=$((FAIL + 1))
+fi
+"$INSTALL" uninstall "$t" > /dev/null 2>&1
+[[ ! -e "$t/.claude/commands/appbootstrap-sync.md" ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: uninstall should remove the sync command"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
 # --- ai category is cross-platform; new skills land (v1.0 additions) ---------
 
 bold "==> ai: --platform android --features ai installs the android AI rule (was empty)"

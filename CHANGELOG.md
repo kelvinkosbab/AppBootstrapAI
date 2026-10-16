@@ -19,6 +19,21 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   follow: sync, audit, triage, deep review, report. The MCP server adds an
   `audit_project` tool and a `sync_and_audit` prompt.
 
+- **`/appbootstrap-sync` command.** The install writes it for Claude Code,
+  Cursor, GitHub Copilot, and Gemini CLI (tracked in the manifest, so upgrade
+  and uninstall handle it); Codex and Kiro rule files get a pointer instead.
+  It runs the sync-and-audit playbook with no bundle path to type.
+
+- **Bundle location in the manifest.** `bundle.path` and `bundle.repo`
+  (credentials stripped) let agents find or re-clone the bundle. The MCP server
+  now honors `$APPBOOTSTRAP_BUNDLE` and can be packed for `npx` with the bundle
+  inside (`npm pack` in `mcp-server/`; not yet published).
+
+- **Audit baseline.** `install.sh audit --write-baseline [--baseline-reason …]`
+  accepts current findings into `.claude/appbootstrap-audit-baseline.json` as
+  per-file counts with reasons. Accepted findings are reported separately and
+  don't trip `--fail-on`; new occurrences do. `--no-baseline` shows everything.
+
 - **Regional store compliance — 2 rules + 1 skill (new `compliance` category,
   in `recommended`).** `apple-regional-compliance.md` and
   `android-regional-compliance.md` cover per-storefront availability, China

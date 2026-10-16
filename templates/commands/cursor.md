@@ -1,0 +1,12 @@
+# AppBootstrapAI sync
+
+Sync this project with the AppBootstrapAI bundle and audit it.
+
+1. **Find the bundle** (the directory that holds `install.sh`), in this order:
+   - `$APPBOOTSTRAP_BUNDLE`, if set.
+   - `bundle.path` in `.claude/.appbootstrap-manifest.json`, if that directory still has `install.sh`. Run `git -C <path> pull --ff-only` so it's current.
+   - Otherwise clone `bundle.repo` from the manifest (default `https://github.com/kelvinkosbab/AppBootstrapAI`) with `git clone --depth 1` into a temp directory outside this repo.
+2. **Follow `playbooks/sync-and-audit.md` in that bundle** step by step, with BUNDLE set to the bundle path and TARGET set to this repo's root. Skip its "Find the bundle" step; you just did it. Pass `--agents` including `cursor` when you upgrade so the Cursor rules stay current.
+3. Don't commit, push, or pass `--force`, `--force-conflicts`, or `--prune` unless I ask.
+
+Any text after the command is extra instructions (for example "audit only").
