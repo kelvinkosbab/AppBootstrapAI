@@ -59,6 +59,8 @@ file_category() {
             echo "deployment" ;;
         android-mvvm-architecture.md|apple-repository-pattern.md|android-repository-pattern.md)
             echo "architecture" ;;
+        apple-regional-compliance.md|android-regional-compliance.md|store-compliance-pro)
+            echo "compliance" ;;
         apple-objc-best-practices.md)
             echo "objc-gated" ;;
         *)
@@ -137,6 +139,11 @@ should_install_skill() {
         cross-platform-*)
             # Cross-platform skill — needs both platforms in scope.
             [[ "$PLATFORM" == "both" ]] && is_in_features "$name"
+            ;;
+        store-compliance-pro)
+            # Store-submission skill for either platform. Like every skill, it
+            # needs Swift or Android in scope (ObjC-only installs ship no skills).
+            { [[ "$PLATFORM" != "apple" ]] || [[ "$APPLE_LANG" != "objc" ]]; } && is_in_features "$name"
             ;;
         android-adaptive-layout-pro)
             # Form-factor skill — also needs `tablet` in --android-platforms.

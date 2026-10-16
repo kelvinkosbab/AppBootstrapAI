@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 13 Apple, 9 Android, 1 cross-platform — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 13 Apple, 9 Android, 2 cross-platform — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -27,6 +27,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-mvvm-architecture.md               # Android: MVVM / UDF, UiState, Route vs Screen (opt-in)
 │   ├── android-play-beta-deployment.md            # Android: Play beta tracks, signing, CI
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
+│   ├── android-regional-compliance.md             # Android: per-country Play / China store rules
 │   ├── android-repository-pattern.md              # Android: data layer / repositories (opt-in)
 │   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
@@ -42,6 +43,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-modular-architecture.md              # Apple: thin app shell + fat local SPM package
 │   ├── apple-objc-accessibility-best-practices.md # Apple: UIKit a11y in Objective-C
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
+│   ├── apple-regional-compliance.md               # Apple: per-storefront App Store rules
 │   ├── apple-repository-pattern.md                # Apple: data layer / repositories (opt-in)
 │   ├── apple-spm-package-conventions.md           # Apple: Package.swift authoring
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.4 strict concurrency
@@ -63,6 +65,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── cross-platform-parity-pro/          # Both: port features, audit drift, set up a two-platform repo
 │   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
+│   ├── store-compliance-pro/               # Both: regional store-rejection audit + response
 │   ├── swift-accessibility-pro/            # Apple: VoiceOver / keyboard / contrast audit
 │   ├── swift-adaptive-layout-pro/          # Apple: resizable / iPhone Duo audit
 │   ├── swift-concurrency-pro/              # Apple: Swift concurrency review
@@ -146,11 +149,11 @@ Use the installer from the target repo. It takes a **command verb** —
 # Preview catalog with category tags
 /path/to/AppBootstrapAI/install.sh --list --platform apple --features all
 
-# Full help — enumerates all 17 feature categories
+# Full help — enumerates all 18 feature categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`, `compliance`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
 
 The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
@@ -187,6 +190,8 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `r8-shrink-pro` to audit my ProGuard rules before release."
 - "Use `cross-platform-parity-pro` to port the iOS task list to Android."
 - "Use `cross-platform-parity-pro` to audit the two apps for drift in strings, icons, and analytics events."
+- "Use `store-compliance-pro` to check the app and its App Store metadata before shipping to China."
+- "Use `store-compliance-pro` to respond to this rejection for the China mainland storefront."
 
 Each skill produces a file-by-file findings report with before/after code fixes and a prioritized summary.
 
@@ -271,6 +276,19 @@ Specialized opt-in (`--features ...,deployment`). Operational rule — fires on 
 - **Upload tools**: Triple-T `gradle-play-publisher` (Kotlin DSL, lowest-friction for Gradle projects) or fastlane `supply` (consistent CLI with the iOS side).
 - **ProGuard / R8**: `isMinifyEnabled = true` on Release. `mapping.txt` auto-uploads to Play Console with the AAB; verify Crashlytics/Sentry plugins also upload (or release crashes show as `a.a.b()`).
 - **Keystores never in source.** Decode from a base64 CI secret to disk; clean up on job exit.
+
+### Regional store compliance (`apple-regional-compliance.md`, `android-regional-compliance.md`)
+
+In `recommended` (compliance). Written after KozBon was rejected for the China mainland storefront over ChatGPT mentions in the app and its metadata.
+
+- **Availability is a per-region decision**, recorded in `docs/compliance/regions.md`; exclude a storefront or country rather than ship a feature that's illegal or unlicensed there.
+- **China mainland**: ICP filing; generative AI needs a CAC filing, so no third-party AI brand names (ChatGPT, Claude, Gemini, …) in the UI or metadata and no calls to unfiled foreign model APIs; game licenses; CallKit off; approved maps. Android ships through non-Play stores with consent before any data collection and a GMS-free flavor.
+- **Elsewhere**: EU DSA trader status on both stores, Android developer verification, per-country licensing for gambling, loans, crypto, and VPNs, age assurance (with the deployment rules).
+- **Trademarks and AI consent everywhere**: describe capabilities, not providers; name the provider only on the region-gated 5.1.2(i) consent screen.
+- **Gate by storefront, not locale**: one injected `RegionPolicy` built from `Storefront.countryCode` (alpha-3) or Play's `BillingConfig.countryCode` (alpha-2), failing closed when unknown and covering shortcuts, widgets, and notifications too.
+- **Metadata is reviewed per storefront**, and unlocalized storefronts show the primary language; keep listings neutral and in the repo.
+
+The `store-compliance-pro` skill audits the app and listing for these risks and runs the regional-rejection playbook.
 
 ### Apple iconography (`apple-iconography.md`)
 
