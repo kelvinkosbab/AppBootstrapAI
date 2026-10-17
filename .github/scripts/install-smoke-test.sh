@@ -1966,6 +1966,36 @@ set -e
 [[ "$r1" -ne 0 && "$r2" -ne 0 && "$r3" -ne 0 ]] && PASS=$((PASS + 1)) \
     || { red "FAIL: baseline flags should be rejected outside audit or in bad combinations"; FAIL=$((FAIL + 1)); }
 
+bold "==> audit: --no-install-check audits a library without the install findings"
+t="$(mktemp -d)"
+touch "$t/Package.swift"
+mkdir -p "$t/Sources"
+printf 'let x = try! load()\n' > "$t/Sources/A.swift"
+js="$("$INSTALL" audit "$t" --no-install-check --json 2>&1)"
+full="$("$INSTALL" audit "$t" --json 2>&1)"
+set +e; "$INSTALL" upgrade . --no-install-check > /dev/null 2>&1; bad=$?; set -e
+if [[ "$bad" -ne 0 && -z "$(ls -A "$t/.claude" 2>/dev/null)" ]] \
+   && python3 -c "
+import json, sys
+d = json.loads(sys.argv[1]); f = json.loads(sys.argv[2])
+ids = [x['id'] for x in d['findings']]
+skills = [s['skill'] for s in d['skills_to_run']]
+assert d['kind'] == 'package' and d['playbook'].endswith('playbooks/audit.md')
+assert 'bundle-not-installed' not in ids and 'no-compliance-register' not in ids
+assert 'swift-package-pro' in skills and 'swift-design-system-pro' not in skills
+assert 'bundle-not-installed' in [x['id'] for x in f['findings']]
+" "$js" "$full" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --no-install-check should drop install findings, tag a Package.swift repo as a package, and suggest library reviews"
+    FAIL=$((FAIL + 1))
+fi
+mkdir -p "$t/App.xcodeproj"
+js="$("$INSTALL" audit "$t" --no-install-check --json 2>&1)"
+python3 -c "import json,sys; assert json.loads(sys.argv[1])['kind']=='app'" "$js" 2>/dev/null && PASS=$((PASS + 1)) \
+    || { red "FAIL: a repo with an .xcodeproj should audit as an app"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
 # --- /appbootstrap-sync commands + bundle location ---------------------------
 
 bold "==> install: writes /appbootstrap-sync per agent and records the bundle"

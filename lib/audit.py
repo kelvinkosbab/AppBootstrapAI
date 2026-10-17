@@ -16,7 +16,11 @@ Invoked by install.sh's `audit` verb:
     python3 lib/audit.py --target DIR --bundle /abs/bundle/root \\
         --bundle-commit SHA --recommended "<cats>" --all "<cats>" \\
         [--json] [--fail-on high|medium|low] \\
-        [--baseline PATH | --no-baseline] [--write-baseline [--baseline-reason TEXT]]
+        [--baseline PATH | --no-baseline] [--write-baseline [--baseline-reason TEXT]] \\
+        [--no-install-check]
+
+--no-install-check drops the "not installed / outdated" findings, for auditing
+a repo without adopting the bundle (playbooks/audit.md).
 
 A baseline (default .claude/appbootstrap-audit-baseline.json) records
 accepted findings as per-file counts, each with a reason. Baselined findings
@@ -315,7 +319,7 @@ def _finding(findings: dict, c: Check, ext: str) -> Finding:
     return findings[c.id]
 
 
-def _structural(target, platforms, facts, findings) -> None:
+def _structural(target, platforms, facts, findings, kind) -> None:
     def add(id_, title, sev, rule, skill, fix, loc):
         f = findings.setdefault(id_, Finding(id_, title, sev, rule, skill, fix))
         f.add(loc)
@@ -366,7 +370,8 @@ def _structural(target, platforms, facts, findings) -> None:
                 "Add .editorconfig with ktlint_code_style and run ktlintCheck, detekt, and lintDebug in CI.",
                 ".editorconfig")
 
-    if platforms and facts["source_files"] and not os.path.isfile(
+    # A library never ships to a store, so it has no regions to record.
+    if kind == "app" and platforms and facts["source_files"] and not os.path.isfile(
             os.path.join(target, "docs", "compliance", "regions.md")):
         rule = ("apple-regional-compliance.md" if "apple" in platforms
                 else "android-regional-compliance.md")
@@ -431,6 +436,31 @@ NEW_PROJECT_SKILLS = {
     "apple": ["swift-modularization-pro", "swift-design-system-pro"],
     "android": ["android-modularization-pro", "android-design-system-pro"],
 }
+# Libraries: API surface, manifest, and docs matter more than app scaffolding.
+PACKAGE_SKILLS = {
+    "apple": ["swift-package-pro", "swift-concurrency-pro", "swift-testing-pro", "swift-docc-pro"],
+    "android": ["android-gradle-architecture-pro", "android-coroutines-pro", "r8-shrink-pro"],
+}
+
+
+def project_kind(target: str) -> str:
+    """'package' for a library (Swift package or Android library), else 'app'."""
+    def found(pattern):
+        return any(not (set(p.split(os.sep)) & recommend.SKIP_DIRS)
+                   for p in glob.glob(os.path.join(target, "**", pattern), recursive=True))
+
+    if found("*.xcodeproj") or found("*.xcworkspace"):
+        return "app"
+    scripts = " ".join(_read(p) for pat in ("build.gradle", "build.gradle.kts")
+                       for p in glob.glob(os.path.join(target, "**", pat), recursive=True)
+                       if not (set(p.split(os.sep)) & recommend.SKIP_DIRS))
+    if re.search(r"com\.android\.application|android\.application\b|\bapplicationId\b", scripts):
+        return "app"
+    if os.path.isfile(os.path.join(target, "Package.swift")):
+        return "package"
+    if re.search(r"com\.android\.library|android\.library\b", scripts):
+        return "package"
+    return "app"
 
 
 def load_baseline(path):
@@ -499,18 +529,21 @@ def write_baseline(path, ordered, previous, reason):
 
 
 def build(target, bundle, bundle_commit, recommended, all_cats,
-          baseline_path=None, write_baseline_reason=None):
+          baseline_path=None, write_baseline_reason=None, install_check=True):
     target = os.path.abspath(target)
     rec = recommend.build(target, recommended, all_cats, os.path.join(bundle, "install.sh"))
     platform = rec["platform"] or ""
     platforms = {"apple", "android"} if platform in ("both", "") else {platform}
+    kind = project_kind(target) if os.path.isdir(target) else "app"
 
     findings: dict = {}
     facts = scan_sources(target, platforms, findings) if os.path.isdir(target) else {"source_files": 0}
     if os.path.isdir(target):
         # Project-shape checks need to know the platform; skip them when it's unknown.
-        _structural(target, platforms if platform else set(), facts, findings)
+        _structural(target, platforms if platform else set(), facts, findings, kind)
     status, bundle_findings = bundle_status(target, rec, bundle_commit)
+    if not install_check:
+        bundle_findings = []
 
     installed_paths = _installed_paths(target)
     ordered = bundle_findings + sorted(findings.values(),
@@ -535,13 +568,14 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
             })
 
     checks = [_finding_json(f, bundle, installed_paths) for f in ordered]
-    skills = _skill_plan(ordered, platforms, mode, bundle)
+    skills = _skill_plan(ordered, platforms, mode, kind, bundle)
     summary = {s: sum(1 for f in ordered if f.severity == s) for s in SEVERITIES}
 
     return {
         "target": target,
         "bundle": bundle,
         "mode": mode,
+        "kind": kind,
         "platform": platform or None,
         "source_files": facts["source_files"],
         "install": status,
@@ -549,7 +583,8 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
         "findings": checks,
         "skills_to_run": skills,
         "baseline": baseline_info,
-        "playbook": os.path.join(bundle, "playbooks", "sync-and-audit.md"),
+        "playbook": os.path.join(bundle, "playbooks",
+                                 "sync-and-audit.md" if install_check else "audit.md"),
     }
 
 
@@ -574,7 +609,7 @@ def _finding_json(f: Finding, bundle, installed_paths):
     return d
 
 
-def _skill_plan(ordered, platforms, mode, bundle):
+def _skill_plan(ordered, platforms, mode, kind, bundle):
     plan, seen = [], set()
 
     def add(name, reason, files):
@@ -587,8 +622,12 @@ def _skill_plan(ordered, platforms, mode, bundle):
     for f in ordered:
         if f.skill:
             add(f.skill, f"{f.severity}: {f.title}", f.locations)
-    extra = NEW_PROJECT_SKILLS if mode == "new" else BASELINE_SKILLS
-    label = "set up the foundation (new project)" if mode == "new" else "baseline deep review"
+    if kind == "package":
+        extra, label = PACKAGE_SKILLS, "baseline deep review (library)"
+    elif mode == "new":
+        extra, label = NEW_PROJECT_SKILLS, "set up the foundation (new project)"
+    else:
+        extra, label = BASELINE_SKILLS, "baseline deep review"
     for p in sorted(platforms):
         for name in extra.get(p, []):
             add(name, label, [])
@@ -599,7 +638,7 @@ def _skill_plan(ordered, platforms, mode, bundle):
 
 def render_human(r) -> str:
     out = [f"==> AppBootstrapAI audit — {r['target']}",
-           f"    mode:      {r['mode']} ({r['source_files']} source files)",
+           f"    mode:      {r['mode']} ({r['source_files']} source files), {r['kind']}",
            f"    platform:  {r['platform'] or 'unknown'}",
            f"    install:   {r['install']['state']}"
            + ("" if r["install"]["up_to_date"] is None
@@ -651,6 +690,8 @@ def main(argv=None) -> int:
                     help="accept all current findings into the baseline")
     ap.add_argument("--baseline-reason", default="",
                     help="reason recorded on new baseline entries")
+    ap.add_argument("--no-install-check", action="store_true",
+                    help="skip the bundle install-state findings (audit without adopting)")
     args = ap.parse_args(argv)
 
     if not os.path.isdir(args.target):
@@ -661,7 +702,8 @@ def main(argv=None) -> int:
         baseline_path = os.path.abspath(args.baseline or os.path.join(args.target, DEFAULT_BASELINE))
     r = build(args.target, os.path.abspath(args.bundle), args.bundle_commit,
               args.recommended.split(), args.all.split(), baseline_path,
-              args.baseline_reason if args.write_baseline else None)
+              args.baseline_reason if args.write_baseline else None,
+              install_check=not args.no_install_check)
     print(json.dumps(r, indent=2) if args.json else render_human(r))
     if args.fail_on:
         limit = SEV_RANK[args.fail_on]
