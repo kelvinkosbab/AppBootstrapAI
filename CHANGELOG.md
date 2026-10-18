@@ -10,6 +10,17 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **AI steering audit.** `install.sh audit` now inventories a repo's AI
+  steering files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Copilot, Cursor, and
+  Kiro rules, `.claude/` rules, skills, and settings) and flags stale paths and
+  commands, unfilled placeholders, secrets, oversized or duplicated files,
+  lines that contradict a bundle rule, unscoped rules, and permissive settings.
+  Files the bundle installed are skipped. `--steering-only` audits just these
+  files. The new `ai-steering-files.md` rule (core) is the guide, and
+  `playbooks/audit.md` gains a steering review step that recommends
+  improvements without editing them. The MCP `audit_project` tool returns the
+  `steering` block and accepts `steering_only`.
+
 - **Audit without installing.** `playbooks/audit.md` is a read-only workflow
   for an agent told "use kelvinkosbab/AppBootstrapAI to audit my package": clone
   the bundle to a temp dir, run `install.sh audit <repo> --no-install-check`,

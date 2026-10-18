@@ -22,7 +22,8 @@
  *   - preview_uninstall   Run `install.sh <dir> --uninstall --dry-run` (plan-only).
  *   - uninstall           Run `install.sh <dir> --uninstall` (destructive — preview first).
  *   - audit_project       Run `install.sh audit <dir> --json`: install freshness plus
- *                         rule-violation hotspots, each mapped to a rule and a skill.
+ *                         rule-violation hotspots, each mapped to a rule and a skill,
+ *                         plus checks on the repo's own AI steering files.
  *
  * Prompts:
  *   - sync_and_audit      The end-to-end agent workflow (playbooks/sync-and-audit.md):
@@ -371,7 +372,7 @@ async function toolRecommend(args: { target_dir: string }) {
     return { content: [{ type: "text" as const, text: JSON.stringify(parsed, null, 2) }] };
 }
 
-async function toolAudit(args: { target_dir: string; no_baseline?: boolean; skip_install_check?: boolean }) {
+async function toolAudit(args: { target_dir: string; no_baseline?: boolean; skip_install_check?: boolean; steering_only?: boolean }) {
     if (!args.target_dir) {
         throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
     }
@@ -379,6 +380,7 @@ async function toolAudit(args: { target_dir: string; no_baseline?: boolean; skip
     const cmd = [INSTALL_SH, "audit", args.target_dir, "--json"];
     if (args.no_baseline) cmd.push("--no-baseline");
     if (args.skip_install_check) cmd.push("--no-install-check");
+    if (args.steering_only) cmd.push("--steering-only");
     const result = await runCommand("bash", cmd);
     if (result.code !== 0) {
         throw new McpError(
@@ -521,13 +523,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         {
             name: "audit_project",
-            description: "Audit a repo against the AppBootstrapAI bundle. Read-only. Returns { mode (new|existing), install {state, up_to_date, command[], preview_command[]}, summary, findings[], skills_to_run[] }. Each finding has severity, file:line locations, a one-line fix, and the rule_path / skill_path to read for a deep review. Findings accepted in the repo's audit baseline (.claude/appbootstrap-audit-baseline.json) are listed under baseline.suppressed instead; pass no_baseline to see everything. Pass skip_install_check when auditing a repo the user doesn't want the bundle installed into. kind is package (a library) or app. Findings are regex/file-presence hotspots: confirm or dismiss each by reading the code and the rule. Follow the audit prompt (audit only) or sync_and_audit prompt (install + audit) for the full workflow.",
+            description: "Audit a repo against the AppBootstrapAI bundle. Read-only. Returns { mode (new|existing), install {state, up_to_date, command[], preview_command[]}, summary, findings[], skills_to_run[], steering }. Each finding has severity, file:line locations, a one-line fix, and the rule_path / skill_path to read for a deep review. Findings accepted in the repo's audit baseline (.claude/appbootstrap-audit-baseline.json) are listed under baseline.suppressed instead; pass no_baseline to see everything. Pass skip_install_check when auditing a repo the user doesn't want the bundle installed into. kind is package (a library) or app. steering inventories the repo's AI steering files (CLAUDE.md, AGENTS.md, Cursor / Copilot / Kiro rules, skills) with the agent, load kind, size, and owner of each; steering-* findings flag stale paths and commands, placeholders, secrets, oversized or duplicated files, and lines that contradict a bundle rule. Pass steering_only to audit just those files. Findings are regex/file-presence hotspots: confirm or dismiss each by reading the code and the rule. Follow the audit prompt (audit only) or sync_and_audit prompt (install + audit) for the full workflow.",
             inputSchema: {
                 type: "object",
                 properties: {
                     target_dir: { type: "string", description: "Absolute path to the repo to audit. Required." },
                     no_baseline: { type: "boolean", description: "Ignore the audit baseline and report every finding." },
                     skip_install_check: { type: "boolean", description: "Audit without the bundle installed: drop the not-installed / outdated findings." },
+                    steering_only: { type: "boolean", description: "Audit only the repo's AI steering files; skip the code checks and deep reviews." },
                 },
                 required: ["target_dir"],
                 additionalProperties: false

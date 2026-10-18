@@ -70,9 +70,15 @@ Then:
 "$BUNDLE/install.sh" audit "$TARGET" --json
 ```
 
-Then follow steps 3 and 4 of [`audit.md`](audit.md): triage each finding
-against its rule, and run the deep reviews in `skills_to_run`. That file also
-describes the JSON fields and the audit baseline. After a successful sync the
+Then follow steps 3 to 5 of [`audit.md`](audit.md): triage each finding
+against its rule, run the deep reviews in `skills_to_run`, and review the
+project's own AI steering files. That file also describes the JSON fields and
+the audit baseline.
+
+The steering review matters most right after a sync: the bundle's rules now
+reach the agent on their own, so passages in the project's `CLAUDE.md` or
+`AGENTS.md` that restate them are pure context cost. List them as cuts, but
+keep anything that records a project-specific exception. After a successful sync the
 output has no `bundle-outdated` or `bundle-not-installed` finding; if one is
 there, the apply step didn't take.
 
@@ -81,7 +87,7 @@ there, the apply step didn't take.
 Write the report to `$TARGET/docs/appbootstrap/audit-<YYYY-MM-DD>.md`
 (create the directory). Start with a **Sync** section (the action taken, the
 files changed, and anything skipped or in conflict), then the sections from
-step 5 of [`audit.md`](audit.md). If the user wants dismissed findings gone
+step 6 of [`audit.md`](audit.md). If the user wants dismissed findings gone
 for good, offer to accept them into the baseline (see below).
 
 Then tell the user, in a few lines, where the report is and what you'd fix
@@ -92,6 +98,8 @@ first.
 - Offer to fix the confirmed `high` findings. Apply fixes only after the user
   agrees, one finding (or one file) at a time, and build or test after each
   (`swift build` / `swift test`, `xcodebuild`, `./gradlew test lintDebug`).
+- Offer the steering-file improvements the same way: one file at a time, only
+  what the user approves (see step 7 of [`audit.md`](audit.md)).
 - Re-run `"$BUNDLE/install.sh" audit "$TARGET"` at the end to show what
   cleared.
 

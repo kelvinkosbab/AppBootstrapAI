@@ -51,6 +51,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-testflight-deployment.md             # Apple: TestFlight, ASC API, signing, CI
 │   ├── apple-testing-strategy.md                  # Apple: test strategy + coverage
 │   ├── apple-visionos-best-practices.md           # Apple: visionOS / RealityKit / spatial UX
+│   ├── ai-steering-files.md                       # Cross-platform: CLAUDE.md / AGENTS.md / agent rules
 │   ├── concise-comments-and-commits.md            # Cross-platform: terse comments + commits
 │   ├── cross-platform-development.md              # Cross-platform: Apple + Android together with AI (--platform both)
 │   └── project-documentation.md                   # Cross-platform: README/CHANGELOG/ADR
@@ -85,7 +86,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 Plus, at the repo root:
 
 - `install.sh` — one-command bootstrap into any target repo (`--platform apple|android|both`).
-- `playbooks/audit.md` — vendor-neutral, read-only audit for a developer who only found the repo on GitHub ("use kelvinkosbab/AppBootstrapAI to audit my package"): clone to a temp dir, `install.sh audit <repo> --no-install-check`, triage, deep reviews, report in chat. The audit tags the target `kind: package|app`; libraries skip store-only checks and get `swift-package-pro` / `android-gradle-architecture-pro` reviews.
+- `playbooks/audit.md` — vendor-neutral, read-only audit for a developer who only found the repo on GitHub ("use kelvinkosbab/AppBootstrapAI to audit my package"): clone to a temp dir, `install.sh audit <repo> --no-install-check`, triage, deep reviews, report in chat. The audit tags the target `kind: package|app`; libraries skip store-only checks and get `swift-package-pro` / `android-gradle-architecture-pro` reviews. It also reviews the target's own AI steering files (`steering` JSON block, `steering-*` findings from `lib/steering.py`) against `ai-steering-files.md` and recommends improvements without editing them; `--steering-only` audits just those files.
 - `playbooks/sync-and-audit.md` — vendor-neutral agent workflow: sync a repo to the latest bundle, run `install.sh audit`, triage findings against the rules, run the listed skills, and write a report. Agents start it with `/appbootstrap-sync`, which the install writes per agent from `templates/commands/`; the manifest's `bundle.path` / `bundle.repo` tell it where the bundle is. Accepted audit findings go in `.claude/appbootstrap-audit-baseline.json` (`install.sh audit --write-baseline`).
 - `templates/CLAUDE.template.apple.md` — starter `CLAUDE.md` for Apple-only projects.
 - `templates/CLAUDE.template.android.md` — starter `CLAUDE.md` for Android-only projects.
@@ -453,6 +454,18 @@ In `recommended`. Fires on `.kt`/`.kts`. Encodes:
 - Suspend functions: document cancellation behavior and dispatcher requirements.
 - Deprecate with mandatory `message =` and `replaceWith = ReplaceWith(...)`. Escalate `WARNING` → `ERROR` → `HIDDEN` over releases.
 - Wire Dokka `externalDocumentationLink` to AndroidX/stdlib so symbols like `[Activity]` resolve.
+
+### AI steering files (`ai-steering-files.md`)
+
+In `core`. Fires on `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursor/rules/**`, `.kiro/steering/**`, and `.claude/` rules, skills, and settings. Encodes:
+
+- **What earns a place**: working commands, the module map, project decisions that differ from defaults, gotchas, what needs a human. Leave out generic advice, restated lint or bundle rules, secrets, personal preferences, history.
+- **Always-loaded files stay under ~300 lines**; topic guidance is path-scoped per agent (`globs:`, `applyTo:`, `alwaysApply`, Kiro `inclusion`), long procedures become skills.
+- **One source across agents** (`AGENTS.md` imported by `CLAUDE.md`, or `.claude/rules/` fanned out); generated files say so; retire `.cursorrules`.
+- **Keep it true**: every path and command exists, placeholders filled, minimal committed permissions.
+- **Improve in order**: fix what's false, remove what's unsafe, cut noise, add what's missing, restructure.
+
+`install.sh audit` runs `steering-*` checks on the project's own steering files (stale paths and commands, placeholders, secrets, oversized or duplicated files, contradictions with bundle rules, unscoped rules, permissive settings), skipping files the bundle installed.
 
 ### Project-level documentation (`project-documentation.md`)
 

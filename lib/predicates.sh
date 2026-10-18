@@ -25,7 +25,7 @@
 # --apple-language, not --features.
 file_category() {
     case "$1" in
-        project-documentation.md|concise-comments-and-commits.md|cross-platform-development.md|cross-platform-parity-pro)
+        project-documentation.md|concise-comments-and-commits.md|ai-steering-files.md|cross-platform-development.md|cross-platform-parity-pro)
             echo "core" ;;
         apple-swift6-strict-concurrency.md|swift-concurrency-pro|android-coroutines-best-practices.md|android-coroutines-pro)
             echo "concurrency" ;;

@@ -12,7 +12,7 @@
 #   ./install.sh recommend [TARGET_DIR] [--json]     # analyze a dir → suggested command
 #   ./install.sh audit [TARGET_DIR] [--json] [--fail-on high|medium|low]
 #                      [--write-baseline [--baseline-reason TEXT] | --no-baseline]
-#                      [--no-install-check]
+#                      [--no-install-check] [--steering-only]
 #   ./install.sh upgrade TARGET_DIR [--apply ...]    # update a prior install
 #   ./install.sh uninstall TARGET_DIR [...]          # remove a prior install
 #   ./install.sh list [--json] [--features ...] [--platform ...]
@@ -38,6 +38,12 @@
 #                findings (keeping existing reasons); --no-baseline shows all.
 #                --no-install-check audits a repo you don't want to install
 #                into (no "not installed" finding). Agents: playbooks/audit.md.
+#                It also checks the repo's own AI steering files (CLAUDE.md,
+#                AGENTS.md, GEMINI.md, Copilot/Cursor/Kiro rules, skills,
+#                settings) for stale paths and commands, placeholders, copies
+#                across agents, oversized or unscoped files, broad permissions,
+#                and secrets (steering-* findings). --steering-only skips the
+#                code checks.
 #   upgrade      3-way diff a prior install vs. the current bundle (plan-only;
 #                add --apply to write). Alias: the --upgrade flag.
 #   uninstall    Reverse a prior install. Alias: the --uninstall flag.

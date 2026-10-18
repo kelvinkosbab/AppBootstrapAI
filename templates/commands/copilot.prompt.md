@@ -12,4 +12,4 @@ Sync this project with the AppBootstrapAI bundle and audit it.
 2. **Follow `playbooks/sync-and-audit.md` in that bundle** step by step, with BUNDLE set to the bundle path and TARGET set to this repo's root. Skip its "Find the bundle" step; you just did it. Pass `--agents` including `copilot` when you upgrade so `.github/copilot-instructions.md` stays current.
 3. Don't commit, push, or pass `--force`, `--force-conflicts`, or `--prune` unless I ask.
 
-Any text after the command is extra instructions (for example "audit only").
+Any text after the command is extra instructions (for example "audit only" or "review the AI steering files only").

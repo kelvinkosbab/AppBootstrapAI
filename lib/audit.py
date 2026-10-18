@@ -17,10 +17,15 @@ Invoked by install.sh's `audit` verb:
         --bundle-commit SHA --recommended "<cats>" --all "<cats>" \\
         [--json] [--fail-on high|medium|low] \\
         [--baseline PATH | --no-baseline] [--write-baseline [--baseline-reason TEXT]] \\
-        [--no-install-check]
+        [--no-install-check] [--steering-only]
 
 --no-install-check drops the "not installed / outdated" findings, for auditing
 a repo without adopting the bundle (playbooks/audit.md).
+
+The repo's own AI steering files (CLAUDE.md, AGENTS.md, Cursor/Copilot/Kiro
+rules, skills, settings) are checked too; see lib/steering.py. Their findings
+have ids starting with `steering-`, and the `steering` key inventories the
+files. --steering-only skips the code checks and reports just those.
 
 A baseline (default .claude/appbootstrap-audit-baseline.json) records
 accepted findings as per-file counts, each with a reason. Baselined findings
@@ -43,6 +48,7 @@ from dataclasses import dataclass, field
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import recommend  # noqa: E402  (sibling module; shares detection logic)
+import steering  # noqa: E402  (AI steering-file checks)
 
 SEVERITIES = ("high", "medium", "low")
 SEV_RANK = {s: i for i, s in enumerate(SEVERITIES)}
@@ -61,6 +67,8 @@ SCAN_EXTS = {".swift", ".m", ".mm", ".h", ".kt", ".kts", ".gradle", ".xml",
 
 # Files whose embedded API keys are public by design (Firebase client config).
 PUBLIC_KEY_FILES = {"google-services.json", "GoogleService-Info.plist"}
+
+SECRET_PATTERN = re.compile(r"AIza[0-9A-Za-z_\-]{35}|sk-ant-[A-Za-z0-9_\-]{20,}|\bsk-(?:proj-)?[A-Za-z0-9]{32,}")
 
 AI_BRANDS = r"\b(ChatGPT|OpenAI|Anthropic|Claude|Gemini|Grok|Copilot)\b"
 
@@ -230,8 +238,7 @@ CHECKS = [
     Check("hardcoded-secret", "API key or token committed in source",
           "high", "any", _exts(".swift", ".m", ".kt", ".kts", ".gradle", ".plist", ".xml",
                                ".json", ".properties"),
-          re.compile(r"AIza[0-9A-Za-z_\-]{35}|sk-ant-[A-Za-z0-9_\-]{20,}|\bsk-(?:proj-)?[A-Za-z0-9]{32,}"),
-          None, None,
+          SECRET_PATTERN, None, None,
           "Remove it, rotate the key, and route calls through a backend or Firebase App Check.",
           path_ok=lambda rel: os.path.basename(rel) not in PUBLIC_KEY_FILES),
     Check("ai-brand-in-ui", "Third-party AI brand name in user-facing text",
@@ -529,7 +536,8 @@ def write_baseline(path, ordered, previous, reason):
 
 
 def build(target, bundle, bundle_commit, recommended, all_cats,
-          baseline_path=None, write_baseline_reason=None, install_check=True):
+          baseline_path=None, write_baseline_reason=None, install_check=True,
+          steering_only=False):
     target = os.path.abspath(target)
     rec = recommend.build(target, recommended, all_cats, os.path.join(bundle, "install.sh"))
     platform = rec["platform"] or ""
@@ -537,18 +545,28 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
     kind = project_kind(target) if os.path.isdir(target) else "app"
 
     findings: dict = {}
-    facts = scan_sources(target, platforms, findings) if os.path.isdir(target) else {"source_files": 0}
-    if os.path.isdir(target):
+    scan = os.path.isdir(target) and not steering_only
+    facts = scan_sources(target, platforms, findings) if scan else {"source_files": 0}
+    if scan:
         # Project-shape checks need to know the platform; skip them when it's unknown.
         _structural(target, platforms if platform else set(), facts, findings, kind)
+    steering_summary = None
+    if os.path.isdir(target):
+        s_findings, steering_summary = steering.run(
+            target, bundle, platforms if platform else set(), _manifest_files(target), SECRET_PATTERN)
+        for sf in s_findings:
+            f = Finding(sf["id"], sf["title"], sf["severity"], sf["rule"], None, sf["fix"])
+            for loc in sf["locations"]:
+                f.add(loc)
+            findings[f.id] = f
     status, bundle_findings = bundle_status(target, rec, bundle_commit)
-    if not install_check:
+    if not install_check or steering_only:
         bundle_findings = []
 
     installed_paths = _installed_paths(target)
     ordered = bundle_findings + sorted(findings.values(),
                                        key=lambda f: (SEV_RANK[f.severity], -f.count, f.id))
-    mode = "new" if facts["source_files"] < 10 else "existing"
+    mode = "steering" if steering_only else ("new" if facts["source_files"] < 10 else "existing")
 
     baseline_info = None
     if baseline_path:
@@ -568,7 +586,7 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
             })
 
     checks = [_finding_json(f, bundle, installed_paths) for f in ordered]
-    skills = _skill_plan(ordered, platforms, mode, kind, bundle)
+    skills = [] if steering_only else _skill_plan(ordered, platforms, mode, kind, bundle)
     summary = {s: sum(1 for f in ordered if f.severity == s) for s in SEVERITIES}
 
     return {
@@ -582,18 +600,23 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
         "summary": summary,
         "findings": checks,
         "skills_to_run": skills,
+        "steering": steering_summary,
         "baseline": baseline_info,
         "playbook": os.path.join(bundle, "playbooks",
                                  "sync-and-audit.md" if install_check else "audit.md"),
     }
 
 
-def _installed_paths(target):
+def _manifest_files(target):
     try:
         with open(os.path.join(target, ".claude", ".appbootstrap-manifest.json")) as fh:
-            return [e.get("path", "") for e in json.load(fh).get("files", [])]
+            return [e for e in json.load(fh).get("files", []) if isinstance(e, dict)]
     except (OSError, ValueError):
         return []
+
+
+def _installed_paths(target):
+    return [e.get("path", "") for e in _manifest_files(target)]
 
 
 def _finding_json(f: Finding, bundle, installed_paths):
@@ -667,6 +690,18 @@ def render_human(r) -> str:
         if b["stale"]:
             out.append(f"    {len(b['stale'])} entr{'y is' if len(b['stale']) == 1 else 'ies are'}"
                        " fixed: re-run with --write-baseline to drop them.")
+    st = r.get("steering")
+    if st:
+        own = [f for f in st["files"] if f["owner"] == "project" and f["kind"] != "config"]
+        cost = ", ".join(f"{a} ~{t}" for a, t in sorted(st["always_loaded_tokens_est"].items()))
+        out += ["", f"  AI steering: {st['project_files']} project file(s), {st['bundle_files']} from the bundle;"
+                    f" agents: {', '.join(st['agents']) or 'none'}",
+                f"    always-loaded tokens per agent (est.): {cost or 'none'}"]
+        for f in own[:12]:
+            out.append(f"    - {f['path']:<44} {f['agent']:<10} {f['kind']:<10} {f['lines']} lines")
+        if len(own) > 12:
+            out.append(f"    … {len(own) - 12} more")
+        out.append(f"    review guide: {st['rule_path']}")
     if r["skills_to_run"]:
         out += ["", "  Deep reviews to run (load each SKILL.md and review the listed files):"]
         for s in r["skills_to_run"]:
@@ -692,6 +727,8 @@ def main(argv=None) -> int:
                     help="reason recorded on new baseline entries")
     ap.add_argument("--no-install-check", action="store_true",
                     help="skip the bundle install-state findings (audit without adopting)")
+    ap.add_argument("--steering-only", action="store_true",
+                    help="check only the repo's AI steering files, not its code")
     args = ap.parse_args(argv)
 
     if not os.path.isdir(args.target):
@@ -703,7 +740,7 @@ def main(argv=None) -> int:
     r = build(args.target, os.path.abspath(args.bundle), args.bundle_commit,
               args.recommended.split(), args.all.split(), baseline_path,
               args.baseline_reason if args.write_baseline else None,
-              install_check=not args.no_install_check)
+              install_check=not args.no_install_check, steering_only=args.steering_only)
     print(json.dumps(r, indent=2) if args.json else render_human(r))
     if args.fail_on:
         limit = SEV_RANK[args.fail_on]

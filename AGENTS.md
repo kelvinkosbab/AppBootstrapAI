@@ -22,8 +22,10 @@ git clone --depth 1 https://github.com/kelvinkosbab/AppBootstrapAI "${TMPDIR:-/t
 "${TMPDIR:-/tmp}/AppBootstrapAI/install.sh" audit <their-repo> --no-install-check --json
 ```
 
-Then triage each finding against its `rule_path`, run the `skills_to_run`, and
-report in chat. Don't install unless they ask. The rest of this file covers
+Then triage each finding against its `rule_path`, run the `skills_to_run`,
+review their AI steering files (`CLAUDE.md`, `AGENTS.md`, Cursor / Copilot
+rules) against `.claude/rules/ai-steering-files.md`, and report in chat. For
+"audit my AI rules" alone, add `--steering-only`. Don't install unless they ask. The rest of this file covers
 installing the bundle.
 
 ## Golden path — do this
