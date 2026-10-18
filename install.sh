@@ -59,6 +59,7 @@ FAIL_ON=""              # audit --fail-on high|medium|low: exit 2 at/above that 
 BASELINE_PATH=""        # audit --baseline PATH (default: .claude/appbootstrap-audit-baseline.json)
 NO_BASELINE="false"     # audit --no-baseline: report every finding
 NO_INSTALL_CHECK="false" # audit --no-install-check: audit only, skip "not installed / outdated"
+STEERING_ONLY="false"   # audit --steering-only: check only the repo's AI steering files
 WRITE_BASELINE="false"  # audit --write-baseline: accept current findings
 BASELINE_REASON=""      # audit --baseline-reason TEXT: reason on new baseline entries
 
@@ -158,6 +159,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-install-check)
             NO_INSTALL_CHECK="true"
+            shift
+            ;;
+        --steering-only)
+            STEERING_ONLY="true"
             shift
             ;;
         --write-baseline)
@@ -273,6 +278,10 @@ if [[ -n "$FAIL_ON" ]]; then
 fi
 if [[ "$NO_INSTALL_CHECK" == "true" && "$ACTION" != "audit" ]]; then
     echo "error: --no-install-check requires audit" >&2
+    exit 1
+fi
+if [[ "$STEERING_ONLY" == "true" && "$ACTION" != "audit" ]]; then
+    echo "error: --steering-only requires audit" >&2
     exit 1
 fi
 if [[ -n "$BASELINE_PATH" || "$NO_BASELINE" == "true" || "$WRITE_BASELINE" == "true" || -n "$BASELINE_REASON" ]]; then
@@ -442,6 +451,7 @@ if [[ "$ACTION" == "audit" ]]; then
     [[ -n "$BASELINE_PATH" ]] && audit_args+=(--baseline "$BASELINE_PATH")
     [[ "$NO_BASELINE" == "true" ]] && audit_args+=(--no-baseline)
     [[ "$NO_INSTALL_CHECK" == "true" ]] && audit_args+=(--no-install-check)
+    [[ "$STEERING_ONLY" == "true" ]] && audit_args+=(--steering-only)
     [[ "$WRITE_BASELINE" == "true" ]] && audit_args+=(--write-baseline --baseline-reason "$BASELINE_REASON")
     python3 "$SCRIPT_DIR/lib/audit.py" "${audit_args[@]}"
     exit $?

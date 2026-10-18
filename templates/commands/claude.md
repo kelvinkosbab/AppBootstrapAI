@@ -1,6 +1,6 @@
 ---
 description: Sync this project with the latest AppBootstrapAI bundle, then audit it against the bundle's rules
-argument-hint: "[extra instructions, e.g. 'audit only' or 'fix the high findings']"
+argument-hint: "[extra instructions, e.g. 'audit only', 'steering files only', or 'fix the high findings']"
 ---
 
 Sync this project with the AppBootstrapAI bundle and audit it.

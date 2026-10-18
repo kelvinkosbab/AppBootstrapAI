@@ -1957,6 +1957,48 @@ grep -q "fixed: re-run with --write-baseline" <<<"$out" && PASS=$((PASS + 1)) \
     || { red "FAIL: baseline entries for fixed code should be reported as stale"; FAIL=$((FAIL + 1)); }
 rm -rf "$t"
 
+bold "==> audit steering: flags project steering files, skips bundle-installed ones"
+t="$(mktemp -d)"
+touch "$t/Package.swift"
+mkdir -p "$t/Sources" "$t/.cursor/rules"
+printf 'let x = 1\n' > "$t/Sources/A.swift"
+"$INSTALL" "$t" --platform apple --features core > /dev/null 2>&1
+cat > "$t/AGENTS.md" <<'MD'
+# <PROJECT_NAME>
+
+- Run `./scripts/build.sh` before committing.
+- Shared code lives in `Sources/Gone/Helpers.swift`.
+- Use `DispatchQueue.main.async` for UI updates.
+- Follow best practices.
+MD
+printf -- '---\ndescription: testing\n---\nUse XCTest.\n' > "$t/.cursor/rules/testing.mdc"
+printf '# Team\n\nUse tabs.\n' > "$t/.claude/rules/team.md"
+js="$("$INSTALL" audit "$t" --json 2>&1)"
+only="$("$INSTALL" audit "$t" --steering-only --json 2>&1)"
+if python3 -c "
+import json,sys
+d=json.loads(sys.argv[1]); ids={f['id'] for f in d['findings']}
+need={'steering-placeholder','steering-stale-command','steering-stale-path','steering-contradicts-bundle','steering-vague','steering-unscoped-rule'}
+assert need <= ids, need - ids
+st=d['steering']; owners={f['path']: f['owner'] for f in st['files']}
+assert owners['AGENTS.md']=='project' and any(o=='bundle' for p,o in owners.items() if p.startswith('.claude/rules/'))
+bundle={p for p,o in owners.items() if o=='bundle'}
+assert not any(l.split(':')[0] in bundle for f in d['findings'] if f['id'].startswith('steering-') for l in f['locations'])
+o=json.loads(sys.argv[2]); assert o['mode']=='steering' and not o['skills_to_run']
+assert all(f['id'].startswith('steering-') for f in o['findings'])
+" "$js" "$only" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: audit should flag project steering files, skip bundle-installed rules, and --steering-only should report steering findings only"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> audit steering: --steering-only outside audit is rejected"
+set +e; "$INSTALL" upgrade . --steering-only > /dev/null 2>&1; rc=$?; set -e
+[[ "$rc" -ne 0 ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: --steering-only without audit should error"; FAIL=$((FAIL + 1)); }
+
 bold "==> audit baseline: flags are audit-only and validated"
 set +e
 "$INSTALL" upgrade . --write-baseline > /dev/null 2>&1; r1=$?

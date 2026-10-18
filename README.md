@@ -6,7 +6,7 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, locali
 
 **Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex,kiro` (or `all`) and `install.sh` drops the right file shape per agent: `.github/copilot-instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`. Skills stay Claude-only. For Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) below.
 
-**Audit your package or app without installing anything:** tell your AI agent *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this repo."* Any agent that can run a shell (Claude Code, Codex, Gemini CLI, Cursor, Copilot, Kiro) clones the bundle to a temp directory and follows [`playbooks/audit.md`](playbooks/audit.md): it scans for rule hotspots, checks each one against the rule that covers it, runs the matching deep-review skills, and reports in chat. Your repo is left untouched. Agents: start at [`AGENTS.md`](AGENTS.md).
+**Audit your package or app without installing anything:** tell your AI agent *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this repo."* Any agent that can run a shell (Claude Code, Codex, Gemini CLI, Cursor, Copilot, Kiro) clones the bundle to a temp directory and follows [`playbooks/audit.md`](playbooks/audit.md): it scans for rule hotspots, checks each one against the rule that covers it, runs the matching deep-review skills, reviews your own AI steering files (`CLAUDE.md`, `AGENTS.md`, Cursor / Copilot / Kiro rules) with suggested improvements, and reports in chat. Your repo is left untouched. Agents: start at [`AGENTS.md`](AGENTS.md).
 
 **Get started in one line:** `./install.sh setup` runs a guided flow that detects whether you're creating, adopting, or updating — and walks you through the rest. Prefer flags? See [Getting started](#getting-started).
 
@@ -102,9 +102,10 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Cross-platform — 3 rules + 2 skills</strong> (click to expand)</summary>
+<summary><strong>Cross-platform — 4 rules + 2 skills</strong> (click to expand)</summary>
 
 - **`concise-comments-and-commits.md`** *(core)* — fires on all Swift/Kotlin/ObjC source: in-code comments default to *none* (write only what code can't express — why, traps, ticket refs; never narration, diff commentary, or commented-out code), and commit messages stay short (imperative ≤72-char subject; body only when the why isn't in the diff — never file-by-file inventories or process reports). Aimed squarely at AI-assistant verbosity.
+- **`ai-steering-files.md`** *(core)* — fires on `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Copilot / Cursor / Kiro rules, and `.claude/` rules, skills, and settings: what earns a place (working commands, the module map, project-specific decisions, gotchas) and what doesn't (generic advice, restated lint or bundle rules, secrets), the ~300-line budget for always-loaded files, per-agent path scoping, one source across agents, keeping paths and commands true, minimal committed permissions, and the order to improve an existing set in. `install.sh audit` checks a repo's steering files against it.
 - **`cross-platform-development.md`** *(core; installs only with `--platform both`)* — building one app on Apple and Android at once with AI agents: native × 2 vs Kotlin Multiplatform as a recorded decision, a monorepo with nested `CLAUDE.md` files per platform, spec-first features (`docs/features/`), one vocabulary of names across platforms (types, modules, string keys, icons, events, flags), single sources of truth for the API (OpenAPI), design tokens, strings, analytics, flags, and deep links, parity as behavior-not-pixels, `docs/parity.md`, and CI path filters.
 - **`cross-platform-parity-pro` skill** *(core; `--platform both`)* — ports a feature from one platform to the other (spec → reference behavior → idiomatic target code → verify both), audits drift with scripts that diff string keys, icon vocabularies, analytics events, flags, and deep links, and sets up the repo: root + per-platform `CLAUDE.md`, `apple-engineer` / `android-engineer` subagents, shared-contract generation, PR template, CI. Includes a Swift ↔ Kotlin / SwiftUI ↔ Compose concept map and a Kotlin Multiplatform guide (share logic, never UI; a Swift adapter at the boundary).
 - **`store-compliance-pro` skill** *(compliance; Apple and/or Android)* — audits an app and its store listings for regional rejection risks: third-party AI brand mentions in strings and metadata, storefront gating (locale misuse, fail-open defaults, ungated shortcuts), consent-before-collection for Chinese Android stores, licensed categories, and a console checklist. Respond mode classifies a regional rejection, picks exclude / gate / license, sweeps the app and listing, and drafts the Resolution Center reply and review notes.
@@ -390,6 +391,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 | Goal | Prompt |
 |------|--------|
 | Audit a repo without installing | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this package. Don't change any files."* |
+| Review and improve your AI rules | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit our CLAUDE.md, AGENTS.md, and Cursor rules and suggest improvements."* (`install.sh audit . --steering-only`) |
 | Bootstrap a new Apple SwiftUI app with the recommended set | *"Run `/path/to/AppBootstrapAI/install.sh . --platform apple` in this directory, then walk me through what landed."* |
 | Bootstrap an Android Compose app with everything | *"Run `/path/to/AppBootstrapAI/install.sh . --platform android --features all` and summarize the new files."* |
 | Pick categories interactively | *"Show me `./install.sh --list --features all`, then ask me which categories to install."* |
@@ -661,6 +663,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-testflight-deployment.md             # TestFlight, ASC API, signing, CI (deployment)
 │   │   ├── apple-testing-strategy.md                  # Apple test strategy + coverage
 │   │   ├── apple-visionos-best-practices.md           # visionOS / RealityKit / spatial UX (spatial)
+│   │   ├── ai-steering-files.md                       # CLAUDE.md / AGENTS.md / agent rules: scope, size, truth (core)
 │   │   ├── concise-comments-and-commits.md            # terse comments + commit messages (core)
 │   │   ├── cross-platform-development.md              # Apple + Android together with AI (core, --platform both)
 │   │   └── project-documentation.md                   # README/CHANGELOG/ADR/inline comments
