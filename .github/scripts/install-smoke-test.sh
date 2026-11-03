@@ -1926,6 +1926,43 @@ else
 fi
 rm -rf "$t"
 
+bold "==> audit: Android large-screen restrictions flagged, games exempt"
+t="$(mktemp -d)"; touch "$t/build.gradle.kts" "$t/gradlew"
+mkdir -p "$t/app/src/main/java/a" "$t/game/src/main"
+cat > "$t/app/src/main/AndroidManifest.xml" <<'XML'
+<manifest>
+  <application android:supportsRtl="true">
+    <property android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY" android:value="true" />
+    <activity android:name=".Main" android:screenOrientation="userPortrait" android:resizeableActivity="false" />
+  </application>
+</manifest>
+XML
+cat > "$t/game/src/main/AndroidManifest.xml" <<'XML'
+<manifest>
+  <application android:appCategory="game" android:supportsRtl="true">
+    <activity android:name=".Game" android:screenOrientation="landscape" />
+  </application>
+</manifest>
+XML
+printf 'val tablet = resources.configuration.smallestScreenWidthDp >= 600\nval w = currentWindowAdaptiveInfo().windowSizeClass\nval v = currentWindowAdaptiveInfoV2()\nrequestedOrientation = 1\n' \
+    > "$t/app/src/main/java/a/Main.kt"
+js="$("$INSTALL" audit "$t" --json 2>&1)"
+if python3 -c "
+import json,sys
+d={f['id']:f for f in json.loads(sys.argv[1])['findings']}
+for i in ('android-orientation-lock','android-resizability-restricted','android-resizability-optout',
+          'kt-device-heuristic','kt-requested-orientation','kt-window-size-class-v1'):
+    assert d[i]['count']==1, i
+    assert 'game/' not in d[i]['locations'][0], i
+assert d['kt-window-size-class-v1']['locations']==['app/src/main/java/a/Main.kt:2']
+" "$js" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: audit should flag manifest restrictions, the opt-out, and device heuristics, and skip game manifests"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
 bold "==> audit: --fail-on outside audit is rejected"
 set +e; "$INSTALL" upgrade . --fail-on high > /dev/null 2>&1; rc=$?; set -e
 [[ "$rc" -ne 0 ]] && PASS=$((PASS + 1)) \
