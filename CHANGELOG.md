@@ -10,6 +10,8 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **App-agnostic name check.** The install smoke test fails if the bundle mentions a
+  specific company or program (`FORBIDDEN_NAMES`); Kiro is now named without its vendor.
 - **Multitasking and multiple windows on iPhone Duo.** `apple-adaptive-layout.md`
   covers Split View and the stacked video layout, multiple windows (none can be
   opened from Duo's outer display, so use `UIWindowScene.ActivationAction` and
@@ -342,7 +344,7 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   file shape (`.github/copilot-instructions.md`, `.cursor/rules/*.mdc`,
   `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`) from the same rule source.
   Skills stay Claude-only.
-- **Amazon Kiro support (`--agents kiro`)** — writes per-rule
+- **Kiro support (`--agents kiro`)** — writes per-rule
   [steering files](https://kiro.dev/docs/steering/) to `.kiro/steering/<name>.md`,
   rewriting each rule's `globs` frontmatter into Kiro's
   `inclusion: fileMatch` + `fileMatchPattern` (single glob, or an inline array

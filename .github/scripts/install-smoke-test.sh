@@ -2868,6 +2868,22 @@ else
     FAIL=$((FAIL + 1))
 fi
 
+# The bundle is app- and company-agnostic: no employer, product, or program
+# names in rules, skills, docs, templates, or tooling. Add new terms to
+# FORBIDDEN_NAMES; this file is excluded so the list itself doesn't match.
+bold "==> no app- or company-specific names in the bundle"
+
+FORBIDDEN_NAMES='amazon|kuiper|\bleo\b'
+forbidden_hits="$(grep -rniIE --exclude-dir=.git --exclude="$(basename "${BASH_SOURCE[0]}")" \
+    "$FORBIDDEN_NAMES" "$REPO_ROOT" || true)"
+if [[ -z "$forbidden_hits" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: app- or company-specific names found (use a generic example instead):"
+    printf '%s\n' "$forbidden_hits"
+    FAIL=$((FAIL + 1))
+fi
+
 echo
 if [[ "$FAIL" -eq 0 ]]; then
     green "PASSED: $PASS assertions across every install combination."

@@ -1,6 +1,6 @@
 # AppBootstrapAI
 
-A drop-in bundle of **AI agent steering** — rules, skills (Claude), and MCP recipes — for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) and Android in one bundle, so single-platform and mixed-stack teams can share one source of truth. Works with **Claude Code, GitHub Copilot, Cursor, Gemini CLI, Codex CLI, and Amazon Kiro** out of the box (`./install.sh --agents <name>` writes the right files per agent).
+A drop-in bundle of **AI agent steering** — rules, skills (Claude), and MCP recipes — for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS) and Android in one bundle, so single-platform and mixed-stack teams can share one source of truth. Works with **Claude Code, GitHub Copilot, Cursor, Gemini CLI, Codex CLI, and Kiro** out of the box (`./install.sh --agents <name>` writes the right files per agent).
 
 One `install.sh` bootstraps modern review, testing, style, accessibility, localization, and regional store-compliance guidance into any new or existing app repo — and keeps it up to date with `--upgrade`. Day-one consistency without writing the rules yourself; day-N reproducibility without drifting from upstream.
 
@@ -577,7 +577,7 @@ To set expectations honestly: scoping the install down won't dramatically cut yo
 # Cursor — writes per-rule .cursor/rules/<name>.mdc files
 /path/to/AppBootstrapAI/install.sh . --agents cursor
 
-# Amazon Kiro — writes per-rule .kiro/steering/<name>.md files
+# Kiro — writes per-rule .kiro/steering/<name>.md files
 /path/to/AppBootstrapAI/install.sh . --agents kiro
 
 # Mixed team — install for Claude + Copilot + Cursor in one go
@@ -596,7 +596,7 @@ Per-agent file shape:
 | Cursor | `cursor`  | `.cursor/rules/<name>.mdc`             | Per-rule files (1:1 with `.claude/rules/*.md`, just renamed) |
 | Gemini CLI | `gemini`  | `GEMINI.md`                         | One concatenated markdown file |
 | Codex CLI / `AGENTS.md`-aware tools | `codex`   | `AGENTS.md`                          | One concatenated markdown file |
-| Amazon Kiro | `kiro`    | `.kiro/steering/<name>.md`           | Per-rule [steering files](https://kiro.dev/docs/steering/); each rule's `globs` becomes `inclusion: fileMatch` + `fileMatchPattern`, so a rule loads only when a matching file is open |
+| Kiro | `kiro`    | `.kiro/steering/<name>.md`           | Per-rule [steering files](https://kiro.dev/docs/steering/); each rule's `globs` becomes `inclusion: fileMatch` + `fileMatchPattern`, so a rule loads only when a matching file is open |
 
 **How it works:**
 
