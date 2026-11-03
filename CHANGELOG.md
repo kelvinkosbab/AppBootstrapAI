@@ -10,6 +10,15 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Multitasking and multiple windows on iPhone Duo.** `apple-adaptive-layout.md`
+  covers Split View and the stacked video layout, multiple windows (none can be
+  opened from Duo's outer display, so use `UIWindowScene.ActivationAction` and
+  handle activation errors), per-scene state, and scene accessories
+  (`CameraCaptureAccessory`). `swift-adaptive-layout-pro` gains a
+  `multitasking-and-scenes.md` reference. `install.sh audit` adds three checks:
+  orientation-driven layout, force-unwrapped hinges, and symmetric safe-area
+  math.
+
 - **Touch on Mac.** New `apple-mac-touch.md` rule (ui, gated by `macos` in
   `--apple-platforms`) for the touchscreen MacBook Pro and Sidecar touch on
   macOS 27: 36pt hit targets without bigger controls, SwiftUI
@@ -148,6 +157,14 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   specific enough to pass App Review.
 
 ### Changed
+
+- **Adaptive layout refreshed for Xcode 27.2.** Xcode 27.2 is now the
+  recommended toolchain for iPhone Duo, since its iOS 27.2 SDK includes the
+  27.1 APIs. The rule and skill cover two changes existing code feels on the
+  27.1+ SDK: `UIView` layout margins default to zero, and iOS 27.1 APIs need a
+  `#if !targetEnvironment(macCatalyst)` guard in Catalyst targets. They also
+  add the UIKit hinge and reserved-region APIs, vertical-bar item ordering and
+  overflow, and Device Hub's 27.2 additions and Duo known issues.
 
 - **`swiftui-pro` synced to upstream 2.0.0** (Paul Hudson's
   [`swiftui-agent-skill`](https://github.com/twostraws/swiftui-agent-skill),
