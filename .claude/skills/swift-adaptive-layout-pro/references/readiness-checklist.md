@@ -29,7 +29,12 @@ The app runs on iPhone Duo without recompiling, but the experience improves with
 |---|---|
 | Pre-iOS 27 | Runs; conservative use of the inner display |
 | **iOS 27** | **Resizable by default**; content extends left of the status bar on the inner display |
-| **iOS 27.1** | Content reaches the screen edge; vertical toolbar layout; `ArrangementView`, `onHingeChange`, and reserved regions available — the Duo-ready level |
+| **iOS 27.1** | Content reaches the screen edge; vertical bar layout; `ArrangementView`, `onHingeChange` / `UIHingeInteraction`, and reserved regions available — the Duo-ready level. **`UIView` default layout margins become zero.** |
+| **iOS 27.2** (Xcode 27.2) | Mainline SDK with every 27.1 API; no new Duo APIs. The toolchain to pin. |
+
+**Linking the iOS 27.1+ SDK changes UIKit layout margins.** Plain `UIView`s now default to zero layout margins; only a view controller's root view keeps `systemMinimumLayoutMargins`. Grep for `layoutMarginsGuide` and `directionalLayoutMargins` reads in subviews that don't set `preservesSuperviewLayoutMargins = true`. Content that used to sit inset now touches the edge. This is a degraded-tier finding that appears with no code change.
+
+**Mac Catalyst targets.** In Xcode 27.2, iOS 27.1 APIs fail to compile for Catalyst, and a Catalyst deployment target of 27.1 or 27.2 misbehaves. Check that Duo code is wrapped in `#if !targetEnvironment(macCatalyst)` and the Catalyst minimum stays at 27.0 or lower.
 
 Report the project's deployment target and SDK alongside findings — "this is fine today because you build against iOS 26" is real context, and so is "you're on the iOS 27 SDK, so resizability is already live for your users."
 
@@ -43,17 +48,18 @@ Report the project's deployment target and SDK alongside findings — "this is f
 ## Test coverage
 
 - **Device Hub** (Xcode 27) replaced the separate Simulator and Devices & Simulators windows. It rotates, screenshots, toggles dark mode, changes font size, **resizes freely by dragging edges**, and launches onto connected hardware. **Xcode Previews gained the same resize mode**, plus a Display group for previewing on an alternative display — size-class branches can be exercised without booting a simulator.
-- **iPhone Duo simulator (Xcode 27.1).** Install the iOS 27.1 runtime via Settings ▸ Components, then select iPhone Duo as a normal build destination. Toolbar buttons fold/unfold; **hold ⌥ Option for a precise hinge-angle slider**. A review should name which poses were exercised: folded, unfolded, partially open, each orientation, split view, free resize.
+- **iPhone Duo simulator.** Install the iPhone Duo runtime via Settings ▸ Components (Xcode 27.2 recommended), then select iPhone Duo as a normal build destination. Toolbar buttons fold/unfold; **hold ⌥ Option for a precise hinge-angle slider**. A review should name which poses were exercised: folded, unfolded, partially open, each orientation, Split View on each side, a second window, free resize.
+- **Xcode 27.2 Device Hub** adds StandBy on Duo, multi-finger touch through Sidecar or a touchscreen Mac, and hardware-keyboard simulation. Known Duo issues: VoiceOver and the Accessibility Inspector can't read its screen (do accessibility passes on a device), screenshots may be black for a few minutes after boot, and modifier keys can stop after an outer↔inner switch.
 - **The recipe that finds real bugs**: navigate several screens deep, open a sheet, start typing — *then* fold and unfold while it's live, in both directions. Most continuity findings only appear this way.
 - **What the simulator cannot cover** — flag these as device-only rather than letting a simulator pass stand in: camera transitions between outer / inner / rear cameras, one-handed reachability in partially folded poses, haptics, thermal behavior, and the physical appearance of the fold.
 - **Xcode 27.1's "App Resizability" coding-agent skill** (renamed from "App Modernization") auto-detects and fixes common resizability issues in SwiftUI and UIKit. Recommend it as a first pass on a large legacy codebase — then review its edits; it is an agent, not an oracle.
-- App Store Connect accepts TestFlight builds made with the iOS 27.1 SDK, so a Duo-ready build can go to testers without waiting for a later toolchain.
+- Build TestFlight candidates with Xcode 27.2: it carries the Duo APIs in the mainline SDK, so one toolchain covers Duo and every other device.
 - Where the project has UI tests, suggest launching at more than one window size rather than asserting against a single fixed geometry.
 
 ## Audit sequence
 
-1. Scene manifest + legacy-window code → launch-blocking findings.
+1. Scene manifest + legacy-window code → launch-blocking findings. Catalyst build with unguarded 27.1 APIs → build-breaking.
 2. `UIRequiresFullScreen` and orientation keys → what fixed-size assumption do they protect?
 3. Deployment target / SDK → how live are these findings for users today?
-4. Launch screen + asset catalogs → mis-sized first frame.
+4. Launch screen + asset catalogs → mis-sized first frame. UIKit layout-margin reads → content against the edge on the 27.1+ SDK.
 5. Name the untested poses and window sizes.

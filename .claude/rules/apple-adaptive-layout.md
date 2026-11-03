@@ -1,5 +1,5 @@
 ---
-description: Adaptive layout for resizable iOS apps and iPhone Duo — size classes over idiom, the iOS 27 resizability default, the UIScene mandate, ArrangementView and hinge APIs, reserved regions, vertical toolbars, fold continuity, and simulator testing
+description: Adaptive layout for resizable iOS apps and iPhone Duo — size classes over idiom, the iOS 27 resizability default, the UIScene mandate, multitasking and multiple windows, ArrangementView and hinge APIs, reserved regions, vertical bars, zero UIKit layout margins, fold continuity, and Device Hub testing
 globs: "**/*.{swift,h,m,mm}"
 ---
 
@@ -10,7 +10,12 @@ globs: "**/*.{swift,h,m,mm}"
 - **The UIScene lifecycle is mandatory.** An app still using only the legacy app lifecycle **will not launch** when built with the latest SDKs. Migrate to `UIScene` first; nothing below matters until it launches.
 - **`UIRequiresFullScreen` no longer opts you out.** On iPhone under iOS 27 it's honored as *discrete* resizing — the system transitions the scene to a new configuration matching each size, honoring your supported orientations. It's a rendering-quality escape hatch for games, not a way to stay fixed-size.
 
-> **Toolchain.** iPhone Duo support ships in the **iOS 27.1 SDK / Xcode 27.1** (Apple silicon, macOS Tahoe 26.6+ — the minimum rises across 27.x point releases, so check the release notes for the version you pin). The 27.1 APIs below (`ArrangementView`, `onHingeChange`, reserved regions, toolbar axis behavior) are new; App Store Connect accepts TestFlight builds made with the 27.1 SDK. Verify spellings against the SDK you actually build against — beta symbols can still shift.
+> **Toolchain.** The iPhone Duo APIs below (`ArrangementView`, `onHingeChange` / `UIHingeInteraction`, reserved regions, vertical bars, `CameraCaptureAccessory`) are **iOS 27.1** APIs. Xcode 27.1 introduced them with the iPhone Duo simulator; **Xcode 27.2 is the mainline toolchain that includes them** (iOS 27.2 SDK, Swift 6.4, Apple silicon, macOS Tahoe 26.6+). Pin Xcode 27.2 rather than keeping a separate 27.1 install. Gate the APIs with `if #available(iOS 27.1, *)` while the deployment target is lower, and verify spellings against the SDK you build with.
+
+## Building With Xcode 27.2 — Two Changes Existing Code Feels
+
+- **`UIView` default layout margins are zero on iOS 27.1+.** A view controller's root view still gets `systemMinimumLayoutMargins` (which vary by presentation context), but plain subviews no longer inherit margins. Subviews that pin to `layoutMarginsGuide` and expect inset content must set `preservesSuperviewLayoutMargins = true`, or pin to `safeAreaLayoutGuide` / explicit constants instead. Re-check margin-based UIKit layouts after the SDK bump.
+- **Mac Catalyst doesn't compile the iOS 27.1 APIs yet** (Xcode 27.2 known issue). Wrap Duo-only code in `#if !targetEnvironment(macCatalyst)` (`#if !TARGET_OS_MACCATALYST` in Objective-C) on top of the availability check, and don't set a Catalyst deployment target of 27.1 or 27.2. Remove the guards once Apple ships the fix.
 
 ## Branch on Space, Never on Device
 
@@ -77,6 +82,7 @@ ArrangementView {
 }
 ```
 
+- **UIKit:** add a `UIHingeInteraction(updateHandler:)` to the view; each `UIHingeInteraction.Update` carries an optional `hinge` (`UIHinge`, with `angle` and `status`).
 - **`context.hinge` is optional** — every non-folding device, and the Duo's own outer display, has none. Code that force-unwraps it is broken on the entire rest of the lineup.
 - **Never drive layout from the raw hinge angle.** Use size classes and arrangements for structure; spend the angle on *optional* polish — Apple's own "unfold effect" animates the outer display into feeling like a window onto the inner one.
 - `hinge.status` gives the coarse state; `hinge.angle.degrees` the continuous value. Treat status as a layout-adjacent signal and the angle purely as animation input — layouts that snap per degree read as jitter.
@@ -94,17 +100,41 @@ GeometryReader { proxy in
 }
 ```
 
-- **`.division`** = the display is logically split (content shouldn't straddle it). **`.occlusion`** = something covers part of the display.
+- **UIKit:** `view.reservedRegions(kind: .division)` returns the regions overlapping that view. Re-read them in `layoutSubviews` / `viewDidLayoutSubviews`, not once.
+- **`.division`** = the display is logically split (content shouldn't straddle it). **`.occlusion`** = something covers part of the display: the outer front camera always, the inner front camera while it's in use.
 - Check **`.isActive`** — regions exist but aren't always in effect; pass `.includeInactive` only when you deliberately want to plan for a region that isn't currently applied.
 - **Never let an interactive control land in a division or occlusion.** A custom layout that partially closes can otherwise put a button *underneath the fold* — unreachable, and invisible in a screenshot test.
 
-## Vertical Toolbars (iOS 27.1)
+## Vertical Bars (iOS 27.1)
 
-On the inner display the system may lay toolbars out vertically. System containers do this for you; override per item only when an item genuinely can't rotate:
+On the outer display, and in the detail column on the inner display, the system merges navigation bar, toolbar, and tab bar into one vertical bar on the hardware side. Only bars owned by a container participate: SwiftUI `.toolbar` inside `NavigationStack` / `NavigationSplitView` / `TabView`; UIKit items on a view controller inside `UINavigationController` / `UITabBarController`. A hand-made `UIToolbar` / `UINavigationBar` / `UITabBar` stays horizontal.
 
-- `.axisBehavior(.horizontalOnly)` forces horizontal; `.axisBehavior(.verticalPreferred)` opts in.
-- Read `toolbarVerticalEdge` from the environment when content must know which edge it's on.
-- `.toolbarVerticalBehavior(.disabled)` turns the system behavior off — a last resort, not a default.
+- **Give every item a title and an icon.** Vertical bars show icons, overflow menus show both, and a title-only or custom-view item never goes vertical.
+- **Order by purpose:** Back/Close first (`.cancellationAction`; UIKit `leadingItemGroups`), then the prominent action (`.topBarPinnedTrailing`; UIKit `navigationItem.pinnedTrailingGroup`).
+- **Plan the overflow.** `.visibilityPriority(.high)` (UIKit `item.visibilityPriority`) keeps frequent and badged items visible longest; put extra actions in `ToolbarOverflowMenu` (UIKit `navigationItem.additionalOverflowItems`), not a second ellipsis menu.
+- **Per-item axis:** `.axisBehavior(.horizontalOnly)` keeps an item horizontal; `.verticalPreferred` lets a custom view that fits the bar width go vertical. UIKit: `item.axisBehavior`.
+- **Custom UI near the bar** reads `@Environment(\.toolbarVerticalEdge)` / `traitCollection.verticalBarEdge`. The edge follows the hardware, not the layout direction, so never hardcode it.
+- **Task-focused screens** can let tabs compress first: `.toolbarVerticalCompressionBehavior(.prefersToolbarItems)` / `navigationItem.verticalBarCompressionBehavior = .prefersBarItems`.
+- **Opting out** (`.toolbarVerticalBehavior(.disabled)`, UIKit `preferredVerticalBarBehavior` returning `.disabled`) is for close-only sheets and bottom-heavy single screens like a dial pad. It's a last resort, not a default.
+
+## Multitasking and Multiple Windows
+
+Every app takes part in multitasking on iPhone Duo: side-by-side Split View on the inner display, and a stacked layout of video plus an app. iPhone Mirroring on the Mac resizes apps too. None of these needs special code beyond size classes and scene geometry, but each exposes code that doesn't use them.
+
+- **Treat every size as reachable at any moment.** A Split View slot is narrower than the full inner display and can drop to compact width; the full inner display is regular/regular. Dragging the divider resizes the scene live.
+- **Vertical bars can sit on either side** of a Split View slot, so safe areas are asymmetric there even on the inner display.
+- **Multiple windows are now an iPhone feature.** Duo is the first iPhone that runs several scenes of one app. iPad multi-window support carries over, so set `UIApplicationSupportsMultipleScenes` deliberately.
+- **New windows can't be opened from the outer display.** The ability comes and goes as the device folds. In UIKit use `UIWindowScene.ActivationAction` for "Open in New Window" menu items, because it hides itself when unavailable, and always pass an `errorHandler` to `activateSceneSession(for:errorHandler:)`. In SwiftUI gate the action on `@Environment(\.supportsMultipleWindows)` and don't assume `openWindow` succeeded.
+- **Closing the device keeps only the most recently used window active** and backgrounds the others. Each scene must save its own state (`@SceneStorage`, `NSUserActivity`) when it backgrounds.
+- **Keep per-window state per scene.** A singleton "current document" breaks the moment two windows show different ones.
+
+## Scene Accessories (iOS 27)
+
+`.sceneAccessory { … }` attaches supplementary content to a view's scene on another display: `ExternalNonInteractiveAccessory` for an external display, `CameraCaptureAccessory` (iOS 27.1) for Duo's outer display while the app captures with the rear camera, full screen on the inner display.
+
+- **Availability is dynamic and system-controlled.** Observe it with `.onAvailabilityChange { … }` and disable the matching control instead of assuming it shows.
+- **Attach the accessory to the view that owns the content**, such as the camera view, so it appears and disappears with it.
+- Don't plan app content on both Duo displays at once. Outside capture accessories, the outer display shows nothing from your app while the device is open.
 
 ## Folded ↔ Unfolded: Continuity Is the Requirement
 
@@ -129,11 +159,13 @@ Where it breaks:
 
 ## Testing
 
-**Simulator (Xcode 27.1).** Install the iOS 27.1 runtime via Settings ▸ Components, then pick iPhone Duo as a normal build destination. Toolbar buttons at the bottom fold and unfold it; **hold ⌥ Option to get a slider for precise hinge angles**. Device Hub (Xcode 27) also resizes a running app by dragging its edges, and Xcode Previews gained the same resize mode plus a Display group for previewing on an alternative display.
+**Simulator (Device Hub).** Install the iPhone Duo runtime via Settings ▸ Components and pick iPhone Duo as a build destination. Toolbar buttons fold and unfold it; **hold ⌥ Option for a precise hinge-angle slider**. To test Split View, drag the app by its home indicator to one side of the inner display, then to the other. Device Hub also resizes any running app by dragging its edges, and Previews has the same resize mode plus a Display group for the alternative display. Xcode 27.2 adds StandBy on iPhone Duo, real multi-finger touch through Sidecar or a touchscreen Mac (for pinch and rotate), and hardware-keyboard simulation.
 
-**The test recipe that actually finds bugs**: navigate several screens deep, open a sheet, start typing — *then* fold and unfold while it's all live. Repeat in both directions and in each orientation. Add split view and free resize.
+**Xcode 27.2 Device Hub known issues for Duo:** VoiceOver and the Accessibility Inspector can't read the Duo simulator's screen, so accessibility checks need a device; screenshots can be black for a few minutes after boot; modifier keys can stop working after an outer↔inner switch (click the visible screen).
 
-**What the simulator can't tell you** — budget physical-device time for: camera transitions between outer / inner / rear cameras, one-handed reachability in partially folded poses, haptics, thermal behavior, and how the fold actually looks.
+**The test recipe that actually finds bugs**: navigate several screens deep, open a sheet, start typing — *then* fold and unfold while it's all live. Repeat in both directions and in each orientation. Add Split View on each side, a second window, and free resize.
+
+**What the simulator can't tell you** — budget physical-device time for: VoiceOver and other assistive tech on Duo, camera transitions between outer / inner / rear cameras, one-handed reachability in partially folded poses, haptics, thermal behavior, and how the fold actually looks.
 
 ## Common Pitfalls
 
@@ -148,4 +180,8 @@ Where it breaks:
 - **Hardcoded sizes, aspect ratios, or corner radii** — multiple display shapes now, and the window is not the display. Use `ConcentricRectangle()` / `UICornerConfiguration` for corners.
 - **State lost, animations interrupted, or navigation jumping on fold** — the transition is rebuilding instead of updating.
 - **Navigation containers inside an `ArrangementView`**, or an arrangement inside a `List` / scroll view.
+- **Custom `UIToolbar` / `UINavigationBar` / `UITabBar`** instead of container-owned bars — they never go vertical. Title-only items don't either.
+- **An "Open in New Window" action that ignores availability**, or `activateSceneSession` without an `errorHandler` — it fails on Duo's outer display.
+- **UIKit subviews relying on inherited layout margins** after moving to the iOS 27.1+ SDK — they're zero now.
+- **iOS 27.1 APIs in a Mac Catalyst target without `#if !targetEnvironment(macCatalyst)`** — the Catalyst build fails on Xcode 27.2.
 - **Shipping without physical-device testing** of camera, reachability, and haptics — the simulator covers none of them.
