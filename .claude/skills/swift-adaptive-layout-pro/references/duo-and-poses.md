@@ -2,7 +2,9 @@
 
 iPhone Duo is a book-style foldable: a 5.4″ outer display that behaves like a standard iPhone, and a 7.6″ inner display that reports **regular width and regular height**. Most Duo bugs are ordinary resizability bugs made visible on a phone; a smaller set are genuinely fold-specific.
 
-> **iOS 27.1 surface.** `ArrangementView`, `onHingeChange`, reserved regions, and toolbar axis behavior ship in the iOS 27.1 SDK (Xcode 27.1). Verify spellings against the SDK in use before flagging their absence.
+> **iOS 27.1 surface.** `ArrangementView`, `onHingeChange` / `UIHingeInteraction`, reserved regions, and vertical bars are iOS 27.1 APIs, introduced in Xcode 27.1 and included in Xcode 27.2's iOS 27.2 SDK. Verify spellings against the SDK in use before flagging their absence.
+>
+> **Mac Catalyst.** Xcode 27.2 can't compile these APIs for Catalyst yet. A shared iOS/Catalyst target that uses them without `#if !targetEnvironment(macCatalyst)` is a build-breaking finding.
 
 ## Arrangements — the two-view container
 
@@ -16,7 +18,9 @@ ArrangementView {
 ```
 
 - **`.split`** (default) divides the bounds, both regions unobscured. **`.overlay`** floats secondary over primary.
-- **UIKit:** `UIArrangementViewController` as the **root view controller of a `UINavigationController`**, with primary and secondary view controllers.
+- **UIKit:** `UIArrangementViewController` as the **root view controller of a `UINavigationController`**; set children with `setViewController(_:for: .primary / .secondary)` and the style with `updateArrangement(.split.axes(.horizontal))`.
+- **Overlay z-order:** in an overlay arrangement the primary reads `@Environment(\.overlayArrangementZIndex)` (UIKit: `state(for: .primary)?.zIndex`) — 1 while stacked above the secondary, 0 once the fold separates them. Use it to collapse or expand content, not to infer the fold.
+- **When the split can't fit** (outer display in landscape), only the primary shows. Essential secondary content needs another route.
 - The canonical fit: media in primary, controls in secondary — in tabletop pose the content sits above the fold and the controls below it.
 
 Findings to raise:
@@ -38,6 +42,7 @@ Findings to raise:
 }
 ```
 
+- **UIKit:** `UIHingeInteraction(updateHandler:)` added to a view; each `UIHingeInteraction.Update` has an optional `hinge: UIHinge` with `angle` and `status`. Same rules as SwiftUI. Disable it (`isEnabled = false`) when the screen doesn't need it.
 - **`context.hinge` is optional.** Every non-folding device — and Duo's own outer display — has none. **Force-unwrapping it is a broken-tier finding** that breaks the whole rest of the lineup, not just an edge case.
 - **Layout must never depend on the raw angle.** Structure comes from size classes and arrangements; the angle is animation input only (Apple's "unfold effect" treats the outer display as a window onto the inner one). Flag any layout branch keyed to `angle`.
 - `hinge.status` is the coarse signal, `hinge.angle.degrees` the continuous one. Per-degree layout changes read as jitter.
@@ -53,17 +58,23 @@ GeometryReader { proxy in
 }
 ```
 
-- **`.division`** = content shouldn't straddle this (the fold). **`.occlusion`** = something covers the display here.
+- **UIKit:** `view.reservedRegions(kind:options:)` on the view being laid out; re-query in `layoutSubviews` / `viewDidLayoutSubviews`.
+- **`.division`** = content shouldn't straddle this (the fold). **`.occlusion`** = something covers the display here: the outer front camera always, the inner front camera while it's in use (touches there are suppressed).
 - Check **`.isActive`**; `.includeInactive` only when deliberately planning for a region not currently applied.
 - **The high-value finding: an interactive control that can land in a division or occlusion.** A partially-closed device puts it underneath the fold — unreachable, and invisible to screenshot tests. Any custom layout computing the fold's position by hand instead of querying is the same finding upstream.
 
-## Vertical toolbars
+## Vertical bars
 
-The inner display may lay toolbars out vertically. System containers handle it; per-item overrides exist for items that genuinely can't rotate:
+On the outer display, and in the detail column on the inner display, navigation bar, toolbar, and tab bar merge into one vertical bar. System containers handle it. Findings:
 
-- `.axisBehavior(.horizontalOnly)` / `.axisBehavior(.verticalPreferred)`
-- `toolbarVerticalEdge` from the environment when content must know its edge
-- `.toolbarVerticalBehavior(.disabled)` — last resort; flag it as a default
+- **Custom bars.** A hand-built `UIToolbar` / `UINavigationBar` / `UITabBar`, or a SwiftUI bar faked with an overlay, never goes vertical. Recommend container-owned bars.
+- **Items that can't go vertical.** Title-only items and custom views stay horizontal and push into overflow. Every item needs a title *and* an icon (`Button("Compose", systemImage: …)`; UIKit `UIBarButtonItem(title:image:…)`). Badges (`.badge(7)` / `item.badge = .count(7)`) turn text-plus-symbol items into symbol-only ones.
+- **Ordering.** Back/Close goes first (`.cancellationAction`; UIKit `leadingItemGroups` with `leftItemsSupplementBackButton = false`), then the prominent action (`.topBarPinnedTrailing`; UIKit `navigationItem.pinnedTrailingGroup`).
+- **Overflow.** Frequent and badged items need `.visibilityPriority(.high)` (UIKit `item.visibilityPriority`). A second custom "…" menu should become `ToolbarOverflowMenu` (UIKit `navigationItem.additionalOverflowItems`).
+- **Axis overrides.** `.axisBehavior(.horizontalOnly)` for paired items that must stay together, `.verticalPreferred` for a custom view that fits the bar width. UIKit `item.axisBehavior`.
+- **Custom UI near the bar** must read `toolbarVerticalEdge` (UIKit `traitCollection.verticalBarEdge`). The edge follows the hardware and doesn't mirror in RTL; a hardcoded edge is a finding.
+- **Opt-out** (`.toolbarVerticalBehavior(.disabled)` / `preferredVerticalBarBehavior` → `.disabled`) is legitimate only for close-only sheets and bottom-heavy single screens (dial pad, calculator, full-screen player). Flag it anywhere else, and flag it toggled at runtime.
+- **Compression.** `.toolbarVerticalCompressionBehavior(.prefersToolbarItems)` (UIKit `verticalBarCompressionBehavior = .prefersBarItems`) suits task-focused screens where actions matter more than tabs.
 
 ## Safe areas are asymmetric
 
@@ -114,4 +125,4 @@ Where it breaks:
 
 ## Simulator vs device
 
-Xcode 27.1's Duo simulator folds/unfolds from toolbar buttons, and **⌥ Option gives a precise hinge-angle slider**. It does **not** cover: camera transitions between outer / inner / rear cameras, one-handed reachability in partially folded poses, haptics, thermal behavior, or how the fold physically looks. Recommend device time for those rather than signing off from the simulator.
+The Duo simulator in Device Hub folds/unfolds from toolbar buttons, and **⌥ Option gives a precise hinge-angle slider**. Xcode 27.2 adds StandBy and multi-finger touch through Sidecar or a touchscreen Mac. It does **not** cover: VoiceOver and the Accessibility Inspector (they can't read the Duo simulator in Xcode 27.2), camera transitions between outer / inner / rear cameras, one-handed reachability in partially folded poses, haptics, thermal behavior, or how the fold physically looks. Recommend device time for those rather than signing off from the simulator.
