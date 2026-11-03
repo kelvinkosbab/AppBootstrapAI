@@ -4,6 +4,17 @@ A foldable is two size classes in one device plus a hinge. Most foldable bugs ar
 
 ## Observing the fold
 
+In Compose, prefer the Material 3 adaptive `Posture`; it's already computed alongside the size class:
+
+```kotlin
+val posture = currentWindowAdaptiveInfoV2().windowPosture
+val tabletop = posture.isTabletop                         // one half-opened horizontal hinge mid-window
+val bookSplit = posture.separatingVerticalHingeBounds     // List<Rect>, window coordinates
+val avoid = posture.occludingVerticalHingeBounds + posture.occludingHorizontalHingeBounds
+```
+
+Use `WindowInfoTracker` directly in View-based code or when you need the raw `FoldingFeature`:
+
 ```kotlin
 // At the screen root (or an Activity-scoped holder), not in leaf composables:
 val layoutInfo by WindowInfoTracker.getOrCreate(context)
@@ -17,7 +28,10 @@ val fold = layoutInfo?.displayFeatures?.filterIsInstance<FoldingFeature>()?.firs
 - `occlusionType == FULL` → the hinge hides content; keep controls and text off `bounds`.
 - `isSeparating` → the hinge splits the window into two logical areas — the signal to use a two-pane layout split at `bounds`.
 
-Findings: polling `Configuration` for fold state (there is none — only `FoldingFeature`); reading the tracker in multiple places; assuming a foldable is always `FLAT`.
+- `WindowInfoTracker.supportedPostures` (WindowManager 1.4+) reports whether the device supports tabletop at all, so a tabletop-specific control can be hidden on devices that can't use it.
+- Compose's experimental `mediaQuery { windowPosture == UiMediaScope.Posture.Tabletop }` (behind `ComposeUiFlags.isMediaQueryIntegrationEnabled`) is a newer way to ask the same question. Don't require it while it's experimental.
+
+Findings: polling `Configuration` for fold state (there is none — only `FoldingFeature` / `Posture`); reading the tracker in multiple places; assuming a foldable is always `FLAT`; hinge bounds used as layout coordinates without converting from window coordinates.
 
 ## Posture layouts
 
@@ -47,7 +61,7 @@ Findings: polling `Configuration` for fold state (there is none — only `Foldin
 
 ## Audit sequence
 
-1. Find the `WindowInfoTracker` observation (or note its absence where posture matters).
+1. Find the `Posture` / `WindowInfoTracker` observation (or note its absence where posture matters).
 2. For media/camera/reader screens: is there a tabletop/book response? For everything else: is there *unnecessary* posture code?
 3. Trace state across Activity recreation for every screen (input, scroll, selection, in-flight work).
 4. Walk the outer→inner navigation continuity path.

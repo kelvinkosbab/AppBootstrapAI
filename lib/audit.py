@@ -240,11 +240,27 @@ CHECKS = [
           "low", "android", _exts(".kts", ".gradle", ".toml"), re.compile(r"material-icons-extended"),
           "android-iconography.md", "android-design-system-pro",
           "Import the Material Symbols you use as vector drawables behind AppIcons."),
-    Check("android-orientation-lock", "Orientation lock (ignored on large screens since Android 16)",
-          "medium", "android", _exts(".xml"), re.compile(r"android:screenOrientation=\"(portrait|landscape|sensorPortrait)\""),
+    Check("kt-requested-orientation", "Runtime orientation lock (ignored on large screens since Android 16)",
+          "medium", "android", KOTLIN, re.compile(r"\brequestedOrientation\s*=|setRequestedOrientation\("),
           "android-large-screen-best-practices.md", "android-adaptive-layout-pro",
-          "Remove the lock and adapt the layout with window size classes.",
-          path_ok=lambda rel: rel.endswith("AndroidManifest.xml")),
+          "Remove the call and adapt the layout with window size classes.", skip_tests=True),
+    Check("kt-device-heuristic", "Device-type check instead of a window size class",
+          "medium", "android", KOTLIN,
+          re.compile(r"\bsmallestScreenWidthDp\b|SCREENLAYOUT_SIZE_(LARGE|XLARGE)|\bisTablet\b"),
+          "android-large-screen-best-practices.md", "android-adaptive-layout-pro",
+          "Branch on currentWindowAdaptiveInfoV2().windowSizeClass, read once at the screen root.",
+          skip_tests=True),
+    Check("kt-window-size-class-v1", "Deprecated window size class API",
+          "low", "android", KOTLIN,
+          re.compile(r"\bWindow(Width|Height)SizeClass\.|\bcurrentWindowAdaptiveInfo\("),
+          "android-large-screen-best-practices.md", "android-adaptive-layout-pro",
+          "Use currentWindowAdaptiveInfoV2() and isWidthAtLeastBreakpoint(...); it includes large and extra-large."),
+    Check("kt-display-metrics", "Display metrics used where the window size matters",
+          "low", "android", KOTLIN,
+          re.compile(r"\.defaultDisplay\b|displayMetrics\.(widthPixels|heightPixels)"),
+          "android-large-screen-best-practices.md", "android-adaptive-layout-pro",
+          "Use WindowMetricsCalculator, LocalWindowInfo, or the size class; the window isn't the display.",
+          skip_tests=True),
 
     # --- Both ----------------------------------------------------------------
     Check("hardcoded-secret", "API key or token committed in source",
@@ -338,6 +354,36 @@ def _finding(findings: dict, c: Check, ext: str) -> Finding:
     return findings[c.id]
 
 
+# Values Android 16+ ignores on sw600dp+ screens (games exempt).
+_LOCKED_ORIENTATION = re.compile(
+    r'android:screenOrientation="(portrait|reversePortrait|sensorPortrait|userPortrait|'
+    r'landscape|reverseLandscape|sensorLandscape|userLandscape)"')
+_RESTRICTED_RESIZE = re.compile(
+    r'android:resizeableActivity="false"|android:(min|max)AspectRatio="')
+
+
+def _large_screen_restrictions(rel, text, add) -> None:
+    """Manifest restrictions that large screens ignore (Android 16) and can't opt out of (Android 17)."""
+    if 'android:appCategory="game"' in text:
+        return
+    rule, skill = "android-large-screen-best-practices.md", "android-adaptive-layout-pro"
+    for n, line in enumerate(text.splitlines(), 1):
+        loc = f"{rel}:{n}"
+        if _LOCKED_ORIENTATION.search(line):
+            add("android-orientation-lock", "Orientation lock (ignored on large screens since Android 16)",
+                "medium", rule, skill,
+                "Remove the lock and adapt the layout with window size classes.", loc)
+        if _RESTRICTED_RESIZE.search(line):
+            add("android-resizability-restricted",
+                "Resizability or aspect-ratio limit (ignored on large screens since Android 16)",
+                "medium", rule, skill,
+                "Remove it; large screens and desktop windows resize the app anyway.", loc)
+        if "PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY" in line:
+            add("android-resizability-optout", "Large-screen opt-out property (removed in Android 17)",
+                "high", rule, skill,
+                "Delete the property and make the layout adaptive before targeting API 37.", loc)
+
+
 def _structural(target, platforms, facts, findings, kind) -> None:
     def add(id_, title, sev, rule, skill, fix, loc):
         f = findings.setdefault(id_, Finding(id_, title, sev, rule, skill, fix))
@@ -378,6 +424,7 @@ def _structural(target, platforms, facts, findings, kind) -> None:
                 add("android-no-rtl", "Manifest doesn't set android:supportsRtl=\"true\"", "low",
                     "android-localization-best-practices.md", None,
                     "Set supportsRtl on <application> and use start/end modifiers.", rel)
+            _large_screen_restrictions(rel, text, add)
         for rel, text in facts["launcher_icons"]:
             if "<monochrome" not in text:
                 add("android-icon-no-monochrome", "Adaptive launcher icon has no monochrome layer", "low",

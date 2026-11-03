@@ -19,7 +19,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-documentation-strategy.md          # Android: KDoc strategy + Dokka
 │   ├── android-gradle-conventions.md              # Android: Gradle DSL / version catalogs / modules
 │   ├── android-iconography.md                     # Android: Material Symbols, adaptive/themed launcher icons
-│   ├── android-large-screen-best-practices.md     # Android: tablets / foldables (tablet-gated)
+│   ├── android-large-screen-best-practices.md     # Android: tablets / foldables / desktop windows (tablet-gated)
 │   ├── android-linting-strategy.md                # Android: ktlint + detekt + Android Lint
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
 │   ├── android-logging-strategy.md                # Android: Timber, levels, release-stripping

@@ -10,6 +10,21 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Android large screens, updated for Android 17 and desktop windows.**
+  `android-large-screen-best-practices.md` now covers Android 17 removing the
+  large-screen opt-out (`PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY`),
+  `currentWindowAdaptiveInfoV2()` and the large / extra-large width classes,
+  Navigation 3 scene strategies, `Posture`, multi-resume and multi-instance,
+  desktop windowing, connected displays, and Play's adaptive quality tiers.
+  `android-adaptive-layout-pro` gains a `multi-window-and-desktop.md`
+  reference. `install.sh audit` flags manifest resizability limits
+  (`android-resizability-restricted`), the removed opt-out
+  (`android-resizability-optout`), runtime orientation locks
+  (`kt-requested-orientation`), device-type checks (`kt-device-heuristic`),
+  the deprecated size-class API (`kt-window-size-class-v1`), and display
+  metrics used for layout (`kt-display-metrics`). `android-orientation-lock`
+  covers every ignored orientation value, and manifests for games are skipped.
+
 - **Touch on Mac.** New `apple-mac-touch.md` rule (ui, gated by `macos` in
   `--apple-platforms`) for the touchscreen MacBook Pro and Sidecar touch on
   macOS 27: 36pt hit targets without bigger controls, SwiftUI
