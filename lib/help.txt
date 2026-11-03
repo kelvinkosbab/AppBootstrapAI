@@ -93,11 +93,12 @@
 #                          ios, macos, tvos, watchos, visionos   (or `all`)
 #                        Default: ios,macos,tvos,watchos (every platform except
 #                        visionOS — the lean default for typical app projects).
-#                        Only meaningful when Apple is in scope. Today the only
-#                        platform-specific rule is visionOS, so this is kept in
-#                        sync with the `spatial` feature: naming `visionos`
+#                        Only meaningful when Apple is in scope. `visionos` is
+#                        kept in sync with the `spatial` feature: naming it
 #                        installs the visionOS rule; omitting it keeps it out.
 #                        (`--features ...,spatial` is the equivalent older form.)
+#                        `macos` (in the default) gates the touch-on-Mac rule
+#                        (apple-mac-touch.md) — drop it for an iOS-only app.
 #                        Other tokens are recorded for the manifest + future use.
 #
 #   --android-platforms  Which Android form factors you target, CSV of:

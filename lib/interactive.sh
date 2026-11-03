@@ -110,7 +110,8 @@ run_interactive() {
 
         echo ""
         echo "    Apple platforms you target (CSV: ios, macos, tvos, watchos, visionos | all)."
-        echo "    Default covers everything except visionOS — name 'visionos' to add the visionOS rule."
+        echo "    Default covers everything except visionOS — name 'visionos' to add the visionOS rule;"
+        echo "    'macos' adds the touch-on-Mac rule."
         local aplats
         _iask aplats "Apple platforms" "ios,macos,tvos,watchos"
         if [[ "$aplats" != "ios,macos,tvos,watchos" ]]; then

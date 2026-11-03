@@ -19,15 +19,15 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   orientation-driven layout, force-unwrapped hinges, and symmetric safe-area
   math.
 
-### Changed
-
-- **Adaptive layout refreshed for Xcode 27.2.** Xcode 27.2 is now the
-  recommended toolchain for iPhone Duo, since its iOS 27.2 SDK includes the
-  27.1 APIs. The rule and skill cover two changes existing code feels on the
-  27.1+ SDK: `UIView` layout margins default to zero, and iOS 27.1 APIs need a
-  `#if !targetEnvironment(macCatalyst)` guard in Catalyst targets. They also
-  add the UIKit hinge and reserved-region APIs, vertical-bar item ordering and
-  overflow, and Device Hub's 27.2 additions and Duo known issues.
+- **Touch on Mac.** New `apple-mac-touch.md` rule (ui, gated by `macos` in
+  `--apple-platforms`) for the touchscreen MacBook Pro and Sidecar touch on
+  macOS 27: 36pt hit targets without bigger controls, SwiftUI
+  `GestureInputKinds` and `directTouchSystemGesturesDisabled()`, touch reveals
+  for hover-only controls, AppKit gesture recognizers in place of mouse
+  overrides and tracking loops, `NSIsTouchNative`, games, and Sidecar testing.
+  `swiftui-pro` gains a `mac-touch.md` review reference, and `install.sh audit`
+  flags mouse-method overrides (`swift-mouse-override`) and event-tracking
+  loops (`swift-tracking-loop`).
 
 - **AI steering audit.** `install.sh audit` now inventories a repo's AI
   steering files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Copilot, Cursor, and
@@ -157,6 +157,14 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   specific enough to pass App Review.
 
 ### Changed
+
+- **Adaptive layout refreshed for Xcode 27.2.** Xcode 27.2 is now the
+  recommended toolchain for iPhone Duo, since its iOS 27.2 SDK includes the
+  27.1 APIs. The rule and skill cover two changes existing code feels on the
+  27.1+ SDK: `UIView` layout margins default to zero, and iOS 27.1 APIs need a
+  `#if !targetEnvironment(macCatalyst)` guard in Catalyst targets. They also
+  add the UIKit hinge and reserved-region APIs, vertical-bar item ordering and
+  overflow, and Device Hub's 27.2 additions and Duo known issues.
 
 - **`swiftui-pro` synced to upstream 2.0.0** (Paul Hudson's
   [`swiftui-agent-skill`](https://github.com/twostraws/swiftui-agent-skill),

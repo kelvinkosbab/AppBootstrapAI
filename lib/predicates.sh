@@ -29,7 +29,7 @@ file_category() {
             echo "core" ;;
         apple-swift6-strict-concurrency.md|swift-concurrency-pro|android-coroutines-best-practices.md|android-coroutines-pro)
             echo "concurrency" ;;
-        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|apple-adaptive-layout.md|swiftui-pro|swift-accessibility-pro|swift-adaptive-layout-pro|android-compose-best-practices.md|android-accessibility-best-practices.md|android-compose-pro|android-accessibility-pro|android-large-screen-best-practices.md|android-adaptive-layout-pro|apple-iconography.md|apple-design-system.md|swift-design-system-pro|android-iconography.md|android-design-system.md|android-design-system-pro)
+        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|apple-adaptive-layout.md|apple-mac-touch.md|swiftui-pro|swift-accessibility-pro|swift-adaptive-layout-pro|android-compose-best-practices.md|android-accessibility-best-practices.md|android-compose-pro|android-accessibility-pro|android-large-screen-best-practices.md|android-adaptive-layout-pro|apple-iconography.md|apple-design-system.md|swift-design-system-pro|android-iconography.md|android-design-system.md|android-design-system-pro)
             echo "ui" ;;
         apple-testing-strategy.md|swift-testing-pro|android-testing-strategy.md)
             echo "testing" ;;
@@ -91,6 +91,16 @@ android_platform_selected() {
     return 1
 }
 
+# Whether an Apple sub-platform token (ios/macos/tvos/watchos/visionos) is in
+# the resolved --apple-platforms set. `macos` gates the touch-on-Mac rule.
+apple_platform_selected() {
+    local p
+    for p in $SELECTED_APPLE_PLATFORMS; do
+        [[ "$p" == "$1" ]] && return 0
+    done
+    return 1
+}
+
 # --- Inclusion predicates -----------------------------------------------------
 # Decide whether a given rule file should be installed for the current
 # (PLATFORM, APPLE_LANG, FEATURES) combination.
@@ -107,6 +117,11 @@ should_install_rule() {
             # Other ObjC-specific rules (e.g., apple-objc-accessibility-best-practices.md)
             # are categorized — gated by BOTH --apple-language AND --features.
             [[ "$PLATFORM" != "android" ]] && [[ "$APPLE_LANG" != "swift" ]] && is_in_features "$name"
+            ;;
+        apple-mac-touch.md)
+            # Sub-platform rule: gated by --features (ui) AND `macos` in
+            # --apple-platforms (the default includes it).
+            [[ "$PLATFORM" != "android" ]] && [[ "$APPLE_LANG" != "objc" ]] && is_in_features "$name" && apple_platform_selected macos
             ;;
         apple-*)
             # Other apple-* rules are Swift-side: include if Apple in scope and

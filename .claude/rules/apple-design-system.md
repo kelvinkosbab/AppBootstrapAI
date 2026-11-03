@@ -44,7 +44,7 @@ An app without a design system accretes `Color(red:green:blue:)`, `.font(.system
 - **A small spacing scale** (`Spacing.xs = 4 … xl = 32`) as `CGFloat` constants. Pick from the scale; a `13` in a view is a finding.
 - **Spacing that sits next to text scales with it** — `@ScaledMetric(relativeTo: .body) private var rowSpacing = Spacing.m`.
 - **Corners follow their container** — `ConcentricRectangle()` / `.containerShape(_:)` so nested rounded shapes stay concentric with the device and window corners on iOS 26+. A hardcoded `cornerRadius: 12` inside a sheet looks wrong next to the system's.
-- **Minimum hit target 44×44pt** for every control, regardless of glyph size.
+- **Minimum hit target 44×44pt** for every control, regardless of glyph size. On macOS the touch target is **36×36pt** with the control's size unchanged — see [`apple-mac-touch.md`](./apple-mac-touch.md).
 
 ## Liquid Glass (iOS 26+ SDKs)
 
