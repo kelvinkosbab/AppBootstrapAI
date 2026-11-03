@@ -291,8 +291,8 @@ _split_top_level_commas() {
     }'
 }
 
-# Transform a .claude/rules/<name>.md into a Kiro steering file (Amazon Kiro,
-# https://kiro.dev/docs/steering/). Kiro steering lives in .kiro/steering/*.md
+# Transform a .claude/rules/<name>.md into a Kiro steering file
+# (https://kiro.dev/docs/steering/). Kiro steering lives in .kiro/steering/*.md
 # with YAML frontmatter using `inclusion` + `fileMatchPattern` (glob), NOT our
 # `description`/`globs` keys — so we rewrite the frontmatter and keep the body.
 # Each rule's `globs` maps directly to `fileMatchPattern` (single quoted string,

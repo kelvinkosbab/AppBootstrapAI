@@ -271,7 +271,7 @@ if agents_has cursor; then
 fi
 
 if agents_has kiro; then
-    # Amazon Kiro uses per-rule steering files under .kiro/steering/*.md, with
+    # Kiro uses per-rule steering files under .kiro/steering/*.md, with
     # `inclusion: fileMatch` + `fileMatchPattern` frontmatter (see
     # kiro_steering_from_rule in lib/predicates.sh). The frontmatter is rewritten
     # from each rule's globs, so the file is generated — we hash the generated
