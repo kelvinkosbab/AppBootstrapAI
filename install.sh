@@ -503,12 +503,11 @@ done
 
 # --- --apple-platforms resolution + spatial sync ------------------------------
 #
-# Apple sub-platforms you target. Only the visionOS rule is platform-specific
-# today, so the selector is kept consistent with the `spatial` feature category:
-# targeting `visionos` pulls in the visionOS rule; the default (everything except
-# visionOS) keeps it out — which is the lean default for typical iOS/macOS apps.
-# Other tokens (ios/macos/tvos/watchos) are recorded but don't change today's
-# (universal) Apple rules; they're a forward-looking framework + documentation.
+# Apple sub-platforms you target. The selector is kept consistent with the
+# `spatial` feature category: targeting `visionos` pulls in the visionOS rule;
+# the default (everything except visionOS) keeps it out — the lean default for
+# typical iOS/macOS apps. `macos` gates the touch-on-Mac rule (apple-mac-touch.md).
+# Other tokens (ios/tvos/watchos) are recorded for future platform-specific rules.
 ALL_APPLE_PLATFORMS="ios macos tvos watchos visionos"
 # The lean default: every Apple platform EXCEPT visionOS (opt in by naming it).
 DEFAULT_APPLE_PLATFORMS="ios macos tvos watchos"

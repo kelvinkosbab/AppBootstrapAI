@@ -10,6 +10,16 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Touch on Mac.** New `apple-mac-touch.md` rule (ui, gated by `macos` in
+  `--apple-platforms`) for the touchscreen MacBook Pro and Sidecar touch on
+  macOS 27: 36pt hit targets without bigger controls, SwiftUI
+  `GestureInputKinds` and `directTouchSystemGesturesDisabled()`, touch reveals
+  for hover-only controls, AppKit gesture recognizers in place of mouse
+  overrides and tracking loops, `NSIsTouchNative`, games, and Sidecar testing.
+  `swiftui-pro` gains a `mac-touch.md` review reference, and `install.sh audit`
+  flags mouse-method overrides (`swift-mouse-override`) and event-tracking
+  loops (`swift-tracking-loop`).
+
 - **AI steering audit.** `install.sh audit` now inventories a repo's AI
   steering files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Copilot, Cursor, and
   Kiro rules, `.claude/` rules, skills, and settings) and flags stale paths and

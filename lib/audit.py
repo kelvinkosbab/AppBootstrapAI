@@ -189,6 +189,18 @@ CHECKS = [
           "low", "apple", SWIFT, re.compile(r"\bText\(\s*\"[A-Za-z][^\"]*\s[^\"]*\"\s*\)"),
           "apple-localization-best-practices.md", "swiftui-pro",
           "Route UI strings through the typed Strings facade.", skip_tests=True),
+    Check("swift-mouse-override", "Mouse-method override gets only single-finger touch emulation",
+          "medium", "apple", OBJC_SWIFT,
+          re.compile(r"override\s+func\s+mouse(Down|Dragged|Up)\(with|-\s*\(void\)\s*mouse(Down|Dragged|Up):"),
+          "apple-mac-touch.md", "swiftui-pro",
+          "Use NSControl.Events, delegate methods, or a gesture recognizer (fine inside an NSGestureRecognizer subclass).",
+          skip_tests=True),
+    Check("swift-tracking-loop", "Event-tracking loop can't receive touch (macOS 27)",
+          "medium", "apple", OBJC_SWIFT,
+          re.compile(r"nextEvent\(matching:|trackEvents\(matching:|nextEventMatchingMask:|trackEventsMatchingMask:"),
+          "apple-mac-touch.md", "swiftui-pro",
+          "Replace with a gesture recognizer, or add a touch-only one (buttonMask = 0) beside the loop.",
+          skip_tests=True),
 
     # --- Android -------------------------------------------------------------
     Check("kt-global-scope", "`GlobalScope` outlives every lifecycle",

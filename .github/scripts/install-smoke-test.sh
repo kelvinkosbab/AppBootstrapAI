@@ -2764,6 +2764,29 @@ else
 fi
 rm -rf "$t"
 
+# --- --apple-platforms selector (macos gates the touch-on-Mac rule) ----------
+
+bold "==> --apple-platforms: default installs the touch-on-Mac rule; ios-only excludes it"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended > /dev/null
+def_ok=$([[ -f "$t/.claude/rules/apple-mac-touch.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features recommended --apple-platforms ios > /dev/null
+gate_ok=$([[ ! -f "$t/.claude/rules/apple-mac-touch.md" \
+          && -f "$t/.claude/rules/apple-adaptive-layout.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --apple-language objc --features recommended > /dev/null
+objc_ok=$([[ ! -f "$t/.claude/rules/apple-mac-touch.md" ]] && echo y)
+rm -rf "$t"
+if [[ "$def_ok" == "y" && "$gate_ok" == "y" && "$objc_ok" == "y" ]]; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: macos token should gate apple-mac-touch.md (def=$def_ok gate=$gate_ok objc=$objc_ok)"
+    FAIL=$((FAIL + 1))
+fi
+
 # --- --android-platforms selector (tablet gates the large-screen rule + skill) -
 
 bold "==> --android-platforms: default (phone,tablet) installs large-screen rule + skill; wear,tv excludes them"

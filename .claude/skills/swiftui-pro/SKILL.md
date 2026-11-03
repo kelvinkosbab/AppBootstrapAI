@@ -19,6 +19,7 @@ Review process:
 1. Ensure navigation is updated and performant using `references/navigation.md`.
 1. Ensure the code uses designs that are accessible and compliant with Apple's Human Interface Guidelines using `references/design.md`.
 1. Review layout behavior as windows resize, including iPad multitasking and folding iPhone Duo, using `references/resizability.md`.
+1. For macOS or Mac Catalyst targets, check touch support (touchscreen Mac and Sidecar) using `references/mac-touch.md`.
 1. Validate accessibility compliance including Dynamic Type, VoiceOver, and Reduce Motion using `references/accessibility.md`.
 1. Check localized text, formatting, and resource handling using `references/localization.md`.
 1. Ensure the code is able to run efficiently using `references/performance.md`.
@@ -35,6 +36,7 @@ Keep `references/performance-plus.md` out of routine reviews. Load it for a requ
 - iOS 27 exists, and is the default deployment target for new apps.
 - Xcode 27.1 and the corresponding 27.1 platform releases are available. Do not dismiss their APIs as speculative.
 - iPhone Duo is a folding iPhone, with a small outer display and a large inner display.
+- Macs accept direct touch on macOS 27, from the touchscreen MacBook Pro or a Sidecar iPad. Touch is a secondary input on Mac.
 - Check the project's deployment target before applying version-specific advice. Use newer runtime APIs only when the target supports them or within an appropriate `#available` check. Keep the existing target unchanged. Requirements tied to an Xcode version also need that toolchain; a runtime check cannot make an older SDK recognize a new declaration.
 - Target Swift 6.4 or later, using modern Swift concurrency.
 - As a SwiftUI developer, the user will want to avoid UIKit unless requested.
