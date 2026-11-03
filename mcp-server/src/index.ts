@@ -482,7 +482,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                 properties: {
                     platform: { type: "string", enum: ["apple", "android", "both"], description: "Default: both" },
                     apple_language: { type: "string", enum: ["swift", "objc", "both"], description: "Default: swift. Only relevant when platform includes apple." },
-                    apple_platforms: { type: "string", description: "Comma-separated Apple sub-platforms (ios, macos, tvos, watchos, visionos) or 'all'. Default: ios,macos,tvos,watchos (no visionOS). Naming 'visionos' adds the visionOS rule. Only relevant when platform includes apple." },
+                    apple_platforms: { type: "string", description: "Comma-separated Apple sub-platforms (ios, macos, tvos, watchos, visionos) or 'all'. Default: ios,macos,tvos,watchos (no visionOS). Naming 'visionos' adds the visionOS rule; 'macos' gates the touch-on-Mac rule (apple-mac-touch.md). Only relevant when platform includes apple." },
                     android_platforms: { type: "string", description: "Comma-separated Android form factors (phone, tablet, wear, tv, auto) or 'all'. Default: phone,tablet. 'tablet' gates the large-screen / foldable rule (android-large-screen-best-practices.md) and the android-adaptive-layout-pro skill; other tokens are recorded in the manifest for future form-factor rules. Only relevant when platform includes android." },
                     features: { type: "string", description: "Comma-separated category list, or one of: 'recommended' (default), 'all'." },
                 },
@@ -498,7 +498,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     target_dir: { type: "string", description: "Absolute path to the directory where AppBootstrapAI should be installed. Required." },
                     platform: { type: "string", enum: ["apple", "android", "both"], description: "Default: both" },
                     apple_language: { type: "string", enum: ["swift", "objc", "both"], description: "Default: swift. Only relevant when platform includes apple." },
-                    apple_platforms: { type: "string", description: "Comma-separated Apple sub-platforms (ios, macos, tvos, watchos, visionos) or 'all'. Default: ios,macos,tvos,watchos (no visionOS). Naming 'visionos' adds the visionOS rule. Only relevant when platform includes apple." },
+                    apple_platforms: { type: "string", description: "Comma-separated Apple sub-platforms (ios, macos, tvos, watchos, visionos) or 'all'. Default: ios,macos,tvos,watchos (no visionOS). Naming 'visionos' adds the visionOS rule; 'macos' gates the touch-on-Mac rule (apple-mac-touch.md). Only relevant when platform includes apple." },
                     android_platforms: { type: "string", description: "Comma-separated Android form factors (phone, tablet, wear, tv, auto) or 'all'. Default: phone,tablet. 'tablet' gates the large-screen / foldable rule (android-large-screen-best-practices.md) and the android-adaptive-layout-pro skill; other tokens are recorded in the manifest for future form-factor rules. Only relevant when platform includes android." },
                     features: { type: "string", description: "Comma-separated category list, or one of: 'recommended' (default), 'all'." },
                     agents: { type: "string", description: "Comma-separated AI agents to install for: claude (default), copilot, cursor, gemini, codex, kiro, or 'all'. Additive." },

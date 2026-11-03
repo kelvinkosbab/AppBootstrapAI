@@ -40,6 +40,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-linting-strategy.md                  # Apple: SwiftLint + formatter discipline
 │   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
 │   ├── apple-logging-strategy.md                  # Apple: os.Logger, privacy markers, levels
+│   ├── apple-mac-touch.md                         # Apple: touchscreen Mac / Sidecar touch (macos-gated)
 │   ├── apple-modular-architecture.md              # Apple: thin app shell + fat local SPM package
 │   ├── apple-objc-accessibility-best-practices.md # Apple: UIKit a11y in Objective-C
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
@@ -156,7 +157,7 @@ Use the installer from the target repo. It takes a **command verb** —
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`, `compliance`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`, `compliance`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; `macos` gates the touch-on-Mac rule `apple-mac-touch.md`; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
 
 The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
@@ -292,6 +293,17 @@ In `recommended` (compliance). Written after KozBon was rejected for the China m
 - **Metadata is reviewed per storefront**, and unlocalized storefronts show the primary language; keep listings neutral and in the repo.
 
 The `store-compliance-pro` skill audits the app and listing for these risks and runs the regional-rejection playbook.
+
+### Touch on Mac (`apple-mac-touch.md`)
+
+In `recommended` (ui), installed when `macos` is in `--apple-platforms` (the default). Fires on Swift, ObjC, and plists. Covers the touchscreen MacBook Pro and Sidecar touch on macOS 27:
+
+- **Touch is secondary input**: same layout and control sizes, **36pt hit targets** (not bigger controls), every action reachable by pointer and touch alike. Branch on the interaction, not on `NSScreen.touchCapabilities` (true for every display once Sidecar is connected).
+- **SwiftUI**: standard controls and gestures are touch-native. `GestureInputKinds` (`inputKinds:` on every gesture, default `.all`) narrows only touch-specific affordances. `.directTouchSystemGesturesDisabled()` (27.3 beta) is window-wide; use it only for 3+ simultaneous touches.
+- **Hover has no touch equivalent**: essential hover-only controls get a tap reveal that auto-hides, plus a context-menu entry. Tooltips can stay pointer-only.
+- **AppKit**: gesture recognizers are the only way to receive touches. `mouseDown(with:)` overrides and tracking loops get single-finger emulation only, and any mouse override on an `NSControl` subclass forces a tracking-loop fallback; use `NSControl.Events`, delegate drag methods, or a touch-only recognizer (`buttonMask = 0`). Custom recognizers must reach a terminal state and override `location(in:)`.
+- **`NSIsTouchNative`** is only for apps embedding a non-AppKit UI or game framework. Games follow TN3216.
+- **Test with Sidecar** (iPad on iPadOS 27). `install.sh audit` flags mouse-method overrides and tracking loops; `swiftui-pro` reviews with `references/mac-touch.md`.
 
 ### Apple iconography (`apple-iconography.md`)
 
