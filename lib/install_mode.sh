@@ -303,8 +303,8 @@ if agents_has kiro; then
     done
 fi
 
-# /appbootstrap-sync command per selected agent — never overwrite.
-echo "--> Installing /appbootstrap-sync commands"
+# /appbootstrap-sync and /appbootstrap-audit commands per selected agent — never overwrite.
+echo "--> Installing /appbootstrap-sync and /appbootstrap-audit commands"
 while IFS='|' read -r cmd_agent cmd_src cmd_rel; do
     agents_has "$cmd_agent" || continue
     if [[ -f "$TARGET/$cmd_rel" ]]; then

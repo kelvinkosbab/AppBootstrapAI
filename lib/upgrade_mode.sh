@@ -167,7 +167,7 @@ if [[ "$ACTION" == "upgrade" ]]; then
         _materialize_concat "AGENTS.md" "agent-file-codex" "Codex CLI and other AGENTS.md-aware tools"
     fi
 
-    # /appbootstrap-sync command files, one per selected agent.
+    # /appbootstrap-sync and /appbootstrap-audit command files, one per selected agent.
     while IFS='|' read -r cmd_agent cmd_src cmd_rel; do
         agents_has "$cmd_agent" || continue
         mkdir -p "$bundle_overlay_dir/$(dirname "$cmd_rel")"

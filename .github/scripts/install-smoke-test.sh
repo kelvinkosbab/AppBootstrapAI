@@ -2042,6 +2042,8 @@ mkdir -p "$t/Sources/App"
 printf 'final class Box: @unchecked Sendable {}\nlet w = UIScreen.main.bounds\n' > "$t/Sources/App/A.swift"
 conc="$("$INSTALL" audit "$t" --no-install-check --no-baseline --topic concurrency --json 2>&1)"
 arch="$("$INSTALL" audit "$t" --no-install-check --no-baseline --topic architecture --json 2>&1)"
+ui="$("$INSTALL" audit "$t" --no-install-check --no-baseline --topic ui --json 2>&1)"
+docs="$("$INSTALL" audit "$t" --no-install-check --no-baseline --topic docs --json 2>&1)"
 if python3 -c "
 import json, sys
 c, a = json.loads(sys.argv[1]), json.loads(sys.argv[2])
@@ -2051,7 +2053,11 @@ assert c['topic']['name'] == 'concurrency' and c['steering'] is None
 assert {s['skill'] for s in c['skills_to_run']} <= set(c['topic']['skills'])
 assert all(__import__('os').path.isfile(p) for p in c['topic']['rule_paths'] + c['topic']['skill_paths'])
 assert not a['findings'] and 'swift-modularization-pro' in [s['skill'] for s in a['skills_to_run']]
-" "$conc" "$arch" 2>/dev/null; then
+u, d = json.loads(sys.argv[3]), json.loads(sys.argv[4])
+uids = [f['id'] for f in u['findings']]
+assert 'swift-uiscreen-main' in uids and 'swift-unchecked-sendable' not in uids, uids
+assert 'project-documentation.md' in d['topic']['rules'] and 'swift-docc-pro' in d['topic']['skills']
+" "$conc" "$arch" "$ui" "$docs" 2>/dev/null; then
     PASS=$((PASS + 1))
 else
     red "FAIL: audit --topic should keep only that topic's findings and skills"
@@ -2107,17 +2113,19 @@ rm -rf "$t"
 
 # --- /appbootstrap-sync commands + bundle location ---------------------------
 
-bold "==> install: writes /appbootstrap-sync per agent and records the bundle"
+bold "==> install: writes /appbootstrap-sync and /appbootstrap-audit per agent and records the bundle"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform apple --agents claude,cursor,copilot,gemini,codex > /dev/null 2>&1
 m="$t/.claude/.appbootstrap-manifest.json"
 if [[ -f "$t/.claude/commands/appbootstrap-sync.md" && -f "$t/.cursor/commands/appbootstrap-sync.md" \
-      && -f "$t/.github/prompts/appbootstrap-sync.prompt.md" && -f "$t/.gemini/commands/appbootstrap-sync.toml" ]] \
+      && -f "$t/.github/prompts/appbootstrap-sync.prompt.md" && -f "$t/.gemini/commands/appbootstrap-sync.toml" \
+      && -f "$t/.claude/commands/appbootstrap-audit.md" && -f "$t/.cursor/commands/appbootstrap-audit.md" \
+      && -f "$t/.github/prompts/appbootstrap-audit.prompt.md" && -f "$t/.gemini/commands/appbootstrap-audit.toml" ]] \
    && grep -q "playbooks/sync-and-audit.md" "$t/AGENTS.md" \
-   && python3 -c "import json,sys; m=json.load(open(sys.argv[1])); assert m['bundle']['path']==sys.argv[2] and m['bundle']['repo'].startswith(('https://','git@')); assert len([f for f in m['files'] if f['type']=='agent-command'])==4" "$m" "$REPO_ROOT" 2>/dev/null; then
+   && python3 -c "import json,sys; m=json.load(open(sys.argv[1])); assert m['bundle']['path']==sys.argv[2] and m['bundle']['repo'].startswith(('https://','git@')); assert len([f for f in m['files'] if f['type']=='agent-command'])==8" "$m" "$REPO_ROOT" 2>/dev/null; then
     PASS=$((PASS + 1))
 else
-    red "FAIL: install should write four /appbootstrap-sync commands and record bundle.path/repo"
+    red "FAIL: install should write /appbootstrap-sync and /appbootstrap-audit for four agents and record bundle.path/repo"
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$t"
@@ -2128,7 +2136,7 @@ t="$(mktemp -d)"
 rm -rf "$t/.claude/commands"
 python3 -c "import json,sys; p=sys.argv[1]; m=json.load(open(p)); m['files']=[f for f in m['files'] if f['type']!='agent-command']; m.pop('bundle'); json.dump(m,open(p,'w'))" "$t/.claude/.appbootstrap-manifest.json"
 "$INSTALL" upgrade "$t" --apply > /dev/null 2>&1
-if [[ -f "$t/.claude/commands/appbootstrap-sync.md" ]] \
+if [[ -f "$t/.claude/commands/appbootstrap-sync.md" && -f "$t/.claude/commands/appbootstrap-audit.md" ]] \
    && python3 -c "import json,sys; m=json.load(open(sys.argv[1])); assert m['bundle']['path']" "$t/.claude/.appbootstrap-manifest.json" 2>/dev/null; then
     PASS=$((PASS + 1))
 else
@@ -2136,7 +2144,7 @@ else
     FAIL=$((FAIL + 1))
 fi
 "$INSTALL" uninstall "$t" > /dev/null 2>&1
-[[ ! -e "$t/.claude/commands/appbootstrap-sync.md" ]] && PASS=$((PASS + 1)) \
+[[ ! -e "$t/.claude/commands/appbootstrap-sync.md" && ! -e "$t/.claude/commands/appbootstrap-audit.md" ]] && PASS=$((PASS + 1)) \
     || { red "FAIL: uninstall should remove the sync command"; FAIL=$((FAIL + 1)); }
 rm -rf "$t"
 

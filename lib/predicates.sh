@@ -235,7 +235,7 @@ sha256_file() {
 #   banner_purpose is a short label like "GitHub Copilot" / "Gemini CLI" /
 #   "Codex (AGENTS.md)" that gets baked into the header so the generated
 #   file's first line tells you what tool it's for.
-# Per-agent /appbootstrap-sync command files, one per line:
+# Per-agent /appbootstrap-sync and /appbootstrap-audit command files, one per line:
 #   <agent>|<bundle source, relative to SCRIPT_DIR>|<target rel path>
 # Codex and Kiro have no project-level command directory; their concat /
 # steering files carry the sync pointer instead.
@@ -244,6 +244,10 @@ agent_command_files() {
     echo "cursor|templates/commands/cursor.md|.cursor/commands/appbootstrap-sync.md"
     echo "copilot|templates/commands/copilot.prompt.md|.github/prompts/appbootstrap-sync.prompt.md"
     echo "gemini|templates/commands/gemini.toml|.gemini/commands/appbootstrap-sync.toml"
+    echo "claude|templates/commands/audit-claude.md|.claude/commands/appbootstrap-audit.md"
+    echo "cursor|templates/commands/audit-cursor.md|.cursor/commands/appbootstrap-audit.md"
+    echo "copilot|templates/commands/audit-copilot.prompt.md|.github/prompts/appbootstrap-audit.prompt.md"
+    echo "gemini|templates/commands/audit-gemini.toml|.gemini/commands/appbootstrap-audit.toml"
 }
 
 concat_in_scope_rules() {

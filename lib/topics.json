@@ -1,5 +1,5 @@
 {
-  "_comment": "Audit topics: the rules and skills that cover one job. `install.sh audit --topic <name>` keeps only findings and deep reviews from this set, so an agent auditing one area reads only these files.",
+  "_comment": "Audit topics: the rules and skills that cover one job. `install.sh audit --topic <name>` keeps only findings and deep reviews from this set, so an agent auditing one area reads only these files. `shared` entries apply to every platform.",
   "concurrency": {
     "description": "Data-race safety and async correctness: Swift 6 strict concurrency, Kotlin coroutines and Flow.",
     "rules": {
@@ -21,5 +21,94 @@
       "apple": ["swift-modularization-pro", "swift-package-pro"],
       "android": ["android-modularization-pro", "android-gradle-architecture-pro"]
     }
+  },
+  "accessibility": {
+    "description": "Screen readers, keyboard and switch access, Dynamic Type and text scaling, contrast, reduce motion.",
+    "rules": {
+      "apple": ["apple-accessibility-best-practices.md", "apple-objc-accessibility-best-practices.md"],
+      "android": ["android-accessibility-best-practices.md"]
+    },
+    "skills": {
+      "apple": ["swift-accessibility-pro"],
+      "android": ["android-accessibility-pro"]
+    }
+  },
+  "ui": {
+    "description": "Views and composables, design system, icons, and adaptive layout: SwiftUI, Jetpack Compose, tokens, large screens.",
+    "rules": {
+      "apple": ["apple-swiftui-mvvm.md", "apple-design-system.md", "apple-iconography.md", "apple-adaptive-layout.md", "apple-mac-touch.md"],
+      "android": ["android-compose-best-practices.md", "android-design-system.md", "android-iconography.md", "android-large-screen-best-practices.md"]
+    },
+    "skills": {
+      "apple": ["swiftui-pro", "swift-design-system-pro", "swift-adaptive-layout-pro"],
+      "android": ["android-compose-pro", "android-design-system-pro", "android-adaptive-layout-pro"]
+    }
+  },
+  "localization": {
+    "description": "User-facing strings, plurals, formatters, and right-to-left layout: String Catalogs, strings.xml.",
+    "rules": {
+      "apple": ["apple-localization-best-practices.md", "apple-infoplist-localization.md"],
+      "android": ["android-localization-best-practices.md"]
+    },
+    "skills": {}
+  },
+  "testing": {
+    "description": "Test strategy, determinism, and coverage: Swift Testing and XCUITest, JUnit, Turbine, Compose UI tests.",
+    "rules": {
+      "apple": ["apple-testing-strategy.md"],
+      "android": ["android-testing-strategy.md"]
+    },
+    "skills": {
+      "apple": ["swift-testing-pro"]
+    }
+  },
+  "compliance": {
+    "description": "Per-region store rules and review risk: China mainland, EU DSA, licensing, AI provider names in UI and metadata.",
+    "rules": {
+      "apple": ["apple-regional-compliance.md"],
+      "android": ["android-regional-compliance.md"]
+    },
+    "skills": {
+      "shared": ["store-compliance-pro"]
+    }
+  },
+  "logging": {
+    "description": "Logging levels, privacy, and release behavior: os.Logger and Timber.",
+    "rules": {
+      "apple": ["apple-logging-strategy.md"],
+      "android": ["android-logging-strategy.md"]
+    },
+    "skills": {
+      "apple": ["swift-logging-pro"]
+    }
+  },
+  "docs": {
+    "description": "API documentation and project docs: DocC, KDoc and Dokka, README, CHANGELOG, ADRs.",
+    "rules": {
+      "apple": ["apple-documentation-strategy.md"],
+      "android": ["android-documentation-strategy.md"],
+      "shared": ["project-documentation.md"]
+    },
+    "skills": {
+      "apple": ["swift-docc-pro"]
+    }
+  },
+  "deployment": {
+    "description": "Beta and release shipping: versioning, signing, TestFlight, Play testing tracks, CI upload, R8.",
+    "rules": {
+      "apple": ["apple-testflight-deployment.md"],
+      "android": ["android-play-beta-deployment.md"]
+    },
+    "skills": {
+      "android": ["r8-shrink-pro"]
+    }
+  },
+  "linting": {
+    "description": "Formatter and linter setup and triage: SwiftLint and swift-format, ktlint, detekt, Android Lint.",
+    "rules": {
+      "apple": ["apple-linting-strategy.md"],
+      "android": ["android-linting-strategy.md"]
+    },
+    "skills": {}
   }
 }

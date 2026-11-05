@@ -18,6 +18,7 @@ Run in CI:      same — no dependencies beyond stdlib.
 from __future__ import annotations
 
 import glob
+import json
 import re
 import sys
 from pathlib import Path
@@ -118,6 +119,18 @@ def main() -> int:
                     f"{path.relative_to(REPO_ROOT)}: references 'references/{ref_name}' "
                     f"but it does not exist at {ref_path.relative_to(REPO_ROOT)}"
                 )
+
+    # Every rule and skill an audit topic names must exist.
+    topics = json.loads((REPO_ROOT / "lib" / "topics.json").read_text(encoding="utf-8"))
+    for name, spec in topics.items():
+        if name.startswith("_"):
+            continue
+        for rule in (r for rs in spec["rules"].values() for r in rs):
+            if not (RULES_DIR / rule).is_file():
+                errors.append(f"lib/topics.json: topic '{name}' names missing rule '{rule}'")
+        for skill in (s for ss in spec["skills"].values() for s in ss):
+            if not (SKILLS_DIR / skill / "SKILL.md").is_file():
+                errors.append(f"lib/topics.json: topic '{name}' names missing skill '{skill}'")
 
     # --- Report ---
     if errors:
