@@ -4,7 +4,7 @@ A drop-in bundle of **AI agent steering** — rules, skills (Claude), and MCP re
 
 One `install.sh` bootstraps modern review, testing, style, accessibility, localization, and regional store-compliance guidance into any new or existing app repo — and keeps it up to date with `--upgrade`. Day-one consistency without writing the rules yourself; day-N reproducibility without drifting from upstream.
 
-**Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex,kiro` (or `all`) and `install.sh` drops the right file shape per agent: `.github/copilot-instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`. Skills stay Claude-only. For Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) below.
+**Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex,kiro` (or `all`) and `install.sh` drops the right file shape per agent: `.github/instructions/*.instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`. Every agent gets rules scoped to the files they cover; Gemini and Codex, which can't scope by path, get a short index that names the rule to read for each file type. Skills stay Claude-only. For Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) below.
 
 **Audit your package or app without installing anything:** tell your AI agent *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this repo."* Any agent that can run a shell (Claude Code, Codex, Gemini CLI, Cursor, Copilot, Kiro) clones the bundle to a temp directory and follows [`playbooks/audit.md`](playbooks/audit.md): it scans for rule hotspots, checks each one against the rule that covers it, runs the matching deep-review skills, reviews your own AI steering files (`CLAUDE.md`, `AGENTS.md`, Cursor / Copilot / Kiro rules) with suggested improvements, and reports in chat. Your repo is left untouched. Agents: start at [`AGENTS.md`](AGENTS.md).
 
@@ -134,7 +134,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
   - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
   - `--with-mcps <csv>` writes one `mcpServers.<name>` entry per recipe into `.claude/settings.local.json`. Existing entries are never overwritten. Setup notes (auth, env vars) print after install. See [`mcp-recipes/`](mcp-recipes/) for the available recipes.
-  - `--agents <csv>` picks which AI agents to install for. Default `claude`; additive options: `copilot` (writes `.github/copilot-instructions.md`), `cursor` (writes `.cursor/rules/*.mdc`), `gemini` (writes `GEMINI.md`), `codex` (writes `AGENTS.md`), `kiro` (writes `.kiro/steering/*.md`), or `all`. Same rule content, per-agent file shape. Skills are Claude-only.
+  - `--agents <csv>` picks which AI agents to install for. Default `claude`; additive options: `copilot` (writes `.github/instructions/*.instructions.md`), `cursor` (writes `.cursor/rules/*.mdc`), `gemini` (writes a `GEMINI.md` index), `codex` (writes an `AGENTS.md` index), `kiro` (writes `.kiro/steering/*.md`), or `all`. Same rule content, per-agent file shape. Skills are Claude-only.
   - `--dry-run` shows what an install would do without writing any files
   - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope / rename. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. The header prints a GitHub compare URL when commits differ. See [Upgrading an existing install](#upgrading-an-existing-install).
   - `--uninstall` reverses install: deletes every tracked file whose current hash matches what was installed (locally-edited files kept unless `--force-conflicts`; `CLAUDE.md` / `settings.json` kept unless `--purge`). MCP entries are removed if unchanged, unless `--keep-mcps`. Strips the `.gitignore` block and the manifest itself. See [Removing the install](#removing-the-install).
@@ -303,7 +303,7 @@ repo:
 /path/to/AppBootstrapAI/install.sh --list-mcps
 
 # Install for a non-Claude agent — writes that agent's native file shape
-/path/to/AppBootstrapAI/install.sh . --agents copilot   # → .github/copilot-instructions.md
+/path/to/AppBootstrapAI/install.sh . --agents copilot   # → .github/instructions/*.instructions.md
 /path/to/AppBootstrapAI/install.sh . --agents cursor    # → .cursor/rules/*.mdc
 /path/to/AppBootstrapAI/install.sh . --agents gemini    # → GEMINI.md
 /path/to/AppBootstrapAI/install.sh . --agents codex     # → AGENTS.md
@@ -327,13 +327,13 @@ Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` li
 
 **The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint) + `compliance` (region-specific App Store / Play rules). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas), `architecture` (Android MVVM / unidirectional data flow + the repository pattern for both platforms).
 
-**The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|kiro|all` (additive CSV) and the installer also drops the matching file shape for those agents (one concat file for Copilot/Gemini/Codex; per-rule files for Cursor `.mdc` and Kiro `.kiro/steering/*.md`). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
+**The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|kiro|all` (additive CSV) and the installer also drops the matching file shape for those agents (per-rule files for Copilot `.instructions.md`, Cursor `.mdc`, and Kiro `.kiro/steering/*.md`; a short rule index for Gemini and Codex). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
 
 The installer:
 
 - Copies skills matching the platform/language/features intersection (Apple skills when `--agents claude` and Apple/Swift in scope; Android skills similarly). Skills are Claude-only — non-Claude agents get rules only.
 - Copies platform-matching `.claude/rules/` filtered by `--features` (when `--agents claude` is selected).
-- Generates per-agent files for each agent in `--agents` (e.g., `.github/copilot-instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`).
+- Generates per-agent files for each agent in `--agents` (e.g., `.github/instructions/*.instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`).
 - Copies `.claude/settings.json` (only if `--agents claude` and one doesn't already exist).
 - Renders the **platform-appropriate** `CLAUDE.template.*.md` into `CLAUDE.md` (only if `--agents claude` and missing): `apple` → `CLAUDE.template.apple.md`, `android` → `CLAUDE.template.android.md`, `both` → `CLAUDE.template.md`.
 - Appends platform-specific entries to `.gitignore`, deduped by marker. Adds `.cursor/state*` / `.cursor/.cache/` entries when `--agents cursor` is selected.
@@ -572,7 +572,7 @@ To set expectations honestly: scoping the install down won't dramatically cut yo
 # Default — Claude Code only (today's behavior)
 /path/to/AppBootstrapAI/install.sh .
 
-# GitHub Copilot — writes .github/copilot-instructions.md (concat of in-scope rules)
+# GitHub Copilot — writes .github/instructions/<name>.instructions.md per rule (applyTo-scoped)
 /path/to/AppBootstrapAI/install.sh . --agents copilot
 
 # Cursor — writes per-rule .cursor/rules/<name>.mdc files
@@ -593,15 +593,16 @@ Per-agent file shape:
 | Agent  | Token     | File(s) written                       | Format                       |
 |--------|-----------|---------------------------------------|------------------------------|
 | Claude Code  | `claude`  | `.claude/rules/`, `.claude/skills/`, `.claude/settings.json`, `CLAUDE.md` | Native — per-rule files + skill directories |
-| GitHub Copilot | `copilot` | `.github/copilot-instructions.md` | One concatenated markdown file with all in-scope rules |
+| GitHub Copilot | `copilot` | `.github/instructions/<name>.instructions.md`, `.github/copilot-instructions.md` | Per-rule [path-specific instructions](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions); each rule's `globs` becomes `applyTo` (brace lists expanded), and `copilot-instructions.md` is a short pointer |
 | Cursor | `cursor`  | `.cursor/rules/<name>.mdc`             | Per-rule files (1:1 with `.claude/rules/*.md`, just renamed) |
-| Gemini CLI | `gemini`  | `GEMINI.md`                         | One concatenated markdown file |
-| Codex CLI / `AGENTS.md`-aware tools | `codex`   | `AGENTS.md`                          | One concatenated markdown file |
+| Gemini CLI | `gemini`  | `GEMINI.md`, `.claude/rules/`        | A short index (about 6 KB): one line per rule with its paths, telling the agent which `.claude/rules/` file to read before editing a matching file |
+| Codex CLI / `AGENTS.md`-aware tools | `codex`   | `AGENTS.md`, `.claude/rules/`         | Same index as Gemini |
 | Kiro | `kiro`    | `.kiro/steering/<name>.md`           | Per-rule [steering files](https://kiro.dev/docs/steering/); each rule's `globs` becomes `inclusion: fileMatch` + `fileMatchPattern`, so a rule loads only when a matching file is open |
 
 **How it works:**
 
-- **Same source, multiple targets.** Every agent gets content derived from the same `.claude/rules/*.md` source-of-truth (gated by `--platform` / `--apple-language` / `--features`). Output is deterministic — concat agents (Copilot/Gemini/Codex) and per-rule agents (Cursor `.mdc`, Kiro steering with its rewritten `inclusion`/`fileMatchPattern` frontmatter) all produce the same bytes given the same inputs — so `--upgrade` can diff cleanly.
+- **Same source, multiple targets.** Every agent gets content derived from the same `.claude/rules/*.md` source-of-truth (gated by `--platform` / `--apple-language` / `--features`). Output is deterministic — the Gemini/Codex indexes and the per-rule files (Copilot with `applyTo`, Cursor `.mdc`, Kiro steering with its rewritten `inclusion`/`fileMatchPattern` frontmatter) all produce the same bytes given the same inputs — so `--upgrade` can diff cleanly.
+- **Only matching rules load.** An always-loaded file is paid for on every request, so no agent gets the full rule set up front. Gemini and Codex have no path scoping, so their index relies on the agent reading the named rule; it's about 6 KB instead of the 180 KB the full rule text used to be.
 - **Skills are Claude-only.** Skills are procedural sub-agents that only run inside Claude Code. Non-Claude agents get rules only. If you want a skill's checklist in another agent's context, copy it into the relevant rule manually.
 - **Existing files are never overwritten on install.** If you already have `.github/copilot-instructions.md` or `GEMINI.md`, install skips and prints a notice. `--upgrade` does the 3-way diff like any other tracked file.
 - **`--upgrade --apply` opts in / out of agents.** Pass `--agents` on the command line to opt into a new agent (its files show up as additions). Pass `--agents <fewer>` + `--prune` to drop an agent (its files appear as orphans and get deleted).
@@ -716,7 +717,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 ├── install.sh                         # CLI dispatcher (~450 lines): args, validation, mode dispatch
 ├── lib/                               # install.sh's sourced modules (keeps the entry point small)
 │   ├── help.txt                       # Full --help text (cat'd by the -h/--help handler)
-│   ├── predicates.sh                  # file_category, should_install_*, sha256, concat helpers
+│   ├── predicates.sh                  # file_category, should_install_*, sha256, agent-file generators
 │   ├── detect_platform.sh             # --platform auto-detection from target-dir signals
 │   ├── list_modes.sh                  # --list and --list-mcps handlers
 │   ├── install_mode.sh                # the install path (skills, rules, agents, gitignore, manifest)
