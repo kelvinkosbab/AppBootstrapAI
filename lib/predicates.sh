@@ -45,6 +45,8 @@ file_category() {
             echo "localization" ;;
         apple-linting-strategy.md|android-linting-strategy.md)
             echo "linting" ;;
+        apple-memory-management.md|apple-storage-management.md|swift-memory-storage-pro|android-memory-management.md|android-storage-management.md|android-memory-storage-pro)
+            echo "memory-storage" ;;
         coredata-swift6-pro|swiftdata-pro)
             echo "persistence" ;;
         apple-foundation-models.md|android-ai-best-practices.md)

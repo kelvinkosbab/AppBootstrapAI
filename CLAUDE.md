@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 13 Apple, 9 Android, 2 cross-platform — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 14 Apple, 10 Android, 2 cross-platform — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -23,12 +23,14 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-linting-strategy.md                # Android: ktlint + detekt + Android Lint
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
 │   ├── android-logging-strategy.md                # Android: Timber, levels, release-stripping
+│   ├── android-memory-management.md               # Android: leaks, bitmaps, caches, onTrimMemory
 │   ├── android-modular-architecture.md            # Android: thin :app over feature/core modules (NiA)
 │   ├── android-mvvm-architecture.md               # Android: MVVM / UDF, UiState, Route vs Screen (opt-in)
 │   ├── android-play-beta-deployment.md            # Android: Play beta tracks, signing, CI
 │   ├── android-project-rules.md                   # Android: Kotlin/Compose/MVVM/Hilt
 │   ├── android-regional-compliance.md             # Android: per-country Play / China store rules
 │   ├── android-repository-pattern.md              # Android: data layer / repositories (opt-in)
+│   ├── android-storage-management.md              # Android: scoped storage, DataStore, backup rules
 │   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
 │   ├── apple-adaptive-layout.md                   # Apple: resizable apps / iPhone Duo
@@ -41,12 +43,14 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
 │   ├── apple-logging-strategy.md                  # Apple: os.Logger, privacy markers, levels
 │   ├── apple-mac-touch.md                         # Apple: touchscreen Mac / Sidecar touch (macos-gated)
+│   ├── apple-memory-management.md                 # Apple: retain cycles, image decode size, jetsam
 │   ├── apple-modular-architecture.md              # Apple: thin app shell + fat local SPM package
 │   ├── apple-objc-accessibility-best-practices.md # Apple: UIKit a11y in Objective-C
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
 │   ├── apple-regional-compliance.md               # Apple: per-storefront App Store rules
 │   ├── apple-repository-pattern.md                # Apple: data layer / repositories (opt-in)
 │   ├── apple-spm-package-conventions.md           # Apple: Package.swift authoring
+│   ├── apple-storage-management.md                # Apple: directories, backup, Keychain, free space
 │   ├── apple-swift6-strict-concurrency.md         # Apple: Swift 6.4 strict concurrency
 │   ├── apple-swiftui-mvvm.md                      # Apple: SwiftUI MVVM conventions
 │   ├── apple-testflight-deployment.md             # Apple: TestFlight, ASC API, signing, CI
@@ -63,6 +67,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-coroutines-pro/             # Android: coroutines/Flow deep review
 │   ├── android-design-system-pro/          # Android: icons + theme + components bootstrap/audit
 │   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
+│   ├── android-memory-storage-pro/         # Android: leak, footprint, and storage audit
 │   ├── android-modularization-pro/         # Android: plan/migrate/audit a multi-module app
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── cross-platform-parity-pro/          # Both: port features, audit drift, set up a two-platform repo
@@ -75,6 +80,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── swift-docc-pro/                     # Apple: DocC documentation
 │   ├── swift-error-handling-pro/           # Apple: typed throws, Result
 │   ├── swift-logging-pro/                  # Apple: os.Logger review
+│   ├── swift-memory-storage-pro/           # Apple: leak, footprint, and storage audit
 │   ├── swift-modularization-pro/           # Apple: plan/migrate/audit a local SPM package
 │   ├── swift-package-pro/                  # Apple: SPM library design
 │   ├── swift-testing-pro/                  # Apple: Swift Testing code
@@ -153,11 +159,11 @@ Use the installer from the target repo. It takes a **command verb** —
 # Preview catalog with category tags
 /path/to/AppBootstrapAI/install.sh --list --platform apple --features all
 
-# Full help — enumerates all 18 feature categories
+# Full help — enumerates all 19 feature categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`, `compliance`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; `macos` gates the touch-on-Mac rule `apple-mac-touch.md`; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`, `compliance`, `memory-storage`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; `macos` gates the touch-on-Mac rule `apple-mac-touch.md`; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
 
 The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
@@ -178,6 +184,8 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `swift-docc-pro` to review documentation in this package."
 - "Use `swift-error-handling-pro` to review error types and throwing functions."
 - "Use `swift-logging-pro` to audit Logger usage."
+- "Use `swift-memory-storage-pro` to find why the photo grid gets killed on older iPhones."
+- "Use `android-memory-storage-pro` to audit leaks and what the app writes to disk and backs up."
 - "Use `swift-package-pro` to review `Package.swift` and the public API."
 - "Use `swift-modularization-pro` to plan moving this app's code into a local Swift package."
 - "Use `swift-modularization-pro` to audit the module graph in `MyAppPackages`."
@@ -448,6 +456,21 @@ In `recommended`. Fires on `.kt`/`.kts`. Encodes:
 - **Strip debug logs from release** — two layers: DebugTree only in debug, AND R8 `-assumenosideeffects` on `Log.v`/`Log.d` (never on `Log.e`/`Log.w`). See `r8-shrink-pro`.
 - **No PII/secrets/bodies** — log a hashed correlation ID; redact known-sensitive fields in the release tree before forwarding (Logcat is semi-public).
 - **Crash-reporter integration** — the release tree forwards `INFO`+ as breadcrumbs and `WARN`/`ERROR` `Throwable`s as non-fatals (`recordException` / Sentry). Don't double-report at the call site.
+
+### Memory and storage (`apple-memory-management.md`, `apple-storage-management.md`, `android-memory-management.md`, `android-storage-management.md`)
+
+In `recommended` (memory-storage). Short checklists; examples and the audit workflow live in the `swift-memory-storage-pro` and `android-memory-storage-pro` skills. `install.sh audit --topic memory` and `--topic storage` audit each half.
+
+- **Leaks**: Apple, a cycle needs a stored closure, a long-lived `Task`, a Combine subscription, a target-retaining timer, or a strong delegate pointing back at `self`; Android, no Activity / View / Context in singletons, objects, or ViewModels, and every registration has a matching unregister. LeakCanary in Android debug builds; a leak test per Apple view model with closures or Tasks.
+- **Footprint**: decode images at display size (decoded bytes are width × height × 4), bounded in-memory caches (`NSCache` with a cost limit, `LruCache` from `memoryClass`), release caches on memory warnings / `onTrimMemory`, lazy lists and paging, no `largeHeap`. Extensions and watchOS have far smaller budgets; jetsam and low-memory kills leave no crash log.
+- **Locations**: Documents / Application Support / Caches / tmp on Apple, `filesDir` / `cacheDir` / `noBackupFilesDir` / `getExternalFilesDir` on Android, chosen by whether the data is user-created, rebuildable, or device-specific. Offline content excluded from backup, not in a cache.
+- **Secrets and preferences**: Keychain / Android Keystore for credentials; UserDefaults and DataStore for small values only; `security-crypto` is deprecated.
+- **Shared storage on Android**: MediaStore, the Photo Picker, and SAF instead of broad storage permissions; `MANAGE_EXTERNAL_STORAGE` and `READ_MEDIA_IMAGES`/`VIDEO` need a Play declaration.
+- **Backup**: iCloud backup excludes caches and re-downloadable data; Android Auto Backup gets data extraction rules that exclude caches, tokens, and Keystore-encrypted files.
+- **Writing**: atomic writes, I/O off the main thread, free-space checks before large writes, a size cap on every disk cache, app size watched per release.
+- **Privacy manifest**: disk-space and file-timestamp APIs need their required-reason categories.
+
+`install.sh audit` flags target-retaining timers, `assign(to:on: self)`, strong delegates, full-size image decodes, credentials in UserDefaults or preferences, caches in Documents, undeclared disk-space / timestamp APIs, `StaticFieldLeak`, ViewModels holding UI, `largeHeap`, `commit()`, deprecated `security-crypto` and external-storage APIs, Room main-thread queries, broad storage and media permissions, unscoped Auto Backup, and a missing LeakCanary.
 
 ### Apple documentation strategy (`apple-documentation-strategy.md`)
 

@@ -20,6 +20,23 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Memory and storage.** A new `memory-storage` category (in
+  `recommended`) with four short checklist rules,
+  `apple-memory-management.md`, `apple-storage-management.md`,
+  `android-memory-management.md`, and `android-storage-management.md`, and
+  two audit skills, `swift-memory-storage-pro` and
+  `android-memory-storage-pro`, whose references hold the depth (retain
+  cycles and leaks, footprint, storage layout, measuring). Two audit topics,
+  `memory` and `storage`, split the work; a finding whose rule belongs to one
+  of them no longer leaks into the other through the shared skill.
+  `install.sh audit` gains checks for target-retaining timers,
+  `assign(to:on: self)`, strong delegates, full-size image decodes,
+  credentials in UserDefaults or preferences, caches in Documents,
+  disk-space and file-timestamp APIs missing from the privacy manifest,
+  `StaticFieldLeak`, ViewModels holding UI, `largeHeap`, `commit()`,
+  deprecated `security-crypto` and external-storage APIs, Room main-thread
+  queries, broad storage and media permissions, Auto Backup without rules,
+  and a missing LeakCanary.
 - **`install.sh audit --topic <name>`** audits one area. `lib/topics.json`
   maps each topic (`concurrency`, `architecture`) to its rules and skills;
   the audit keeps only that area's findings and deep reviews, skips the
