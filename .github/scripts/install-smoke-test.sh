@@ -201,8 +201,11 @@ assert_file_exists "$target_rec/.claude/rules/android-storage-management.md"    
 assert_dir_exists  "$target_rec/.claude/skills/swift-memory-storage-pro"                    "recommended includes memory/storage skill (apple)"
 assert_dir_exists  "$target_rec/.claude/skills/android-memory-storage-pro"                  "recommended includes memory/storage skill (android)"
 assert_dir_exists  "$target_rec/.claude/skills/swift-package-pro"                           "recommended includes packaging skill"
+assert_dir_exists  "$target_rec/.claude/skills/instruments-profiling-pro"                   "recommended includes performance skill"
 
-# recommended EXCLUDES: persistence, ai, migration, shrinking.
+# recommended EXCLUDES: persistence, ai, migration, shrinking, intents, security.
+assert_dir_empty_or_missing "$target_rec/.claude/skills/app-intents-pro"                    "recommended excludes intents"
+assert_file_absent "$target_rec/.claude/rules/apple-build-security.md"                      "recommended excludes security"
 assert_file_absent "$target_rec/.claude/rules/apple-foundation-models.md"                   "recommended excludes ai (Foundation Models)"
 assert_dir_empty_or_missing "$target_rec/.claude/skills/coredata-swift6-pro"                "recommended excludes persistence (Core Data)"
 assert_dir_empty_or_missing "$target_rec/.claude/skills/xml-to-compose-migration-pro"       "recommended excludes migration"
@@ -309,9 +312,9 @@ assert {'spatial', 'deployment', 'linting'} <= cat_names, f'categories missing s
 for c in data['categories']:
     assert 'name' in c and 'recommended' in c, f'category missing name/recommended: {c}'
     assert isinstance(c['recommended'], bool), f'recommended must be bool: {c}'
-# recommended preset must be exactly the 12 day-one categories
+# recommended preset must be exactly the 13 day-one categories
 recommended = {c['name'] for c in data['categories'] if c['recommended']}
-assert recommended == {'core','concurrency','ui','testing','docs','error-handling','packaging','logging','localization','linting','compliance','memory-storage'}, \
+assert recommended == {'core','concurrency','ui','testing','docs','error-handling','packaging','logging','localization','linting','compliance','memory-storage','performance'}, \
     f'unexpected recommended set: {recommended}'
 # Every rule should have filename/category/installed/description
 for r in data['rules']:

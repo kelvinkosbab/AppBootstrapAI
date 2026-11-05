@@ -132,5 +132,30 @@
       "apple": ["swift-memory-storage-pro"],
       "android": ["android-memory-storage-pro"]
     }
+  },
+  "intents": {
+    "description": "App Intents, App Shortcuts, and Siri tools: perform() isolation and restarts, entity ids and queries, enum raw values, errors, phrases, openAppWhenRun and @Assistant* migration.",
+    "rules": {
+      "apple": ["apple-app-intents.md"]
+    },
+    "skills": {
+      "apple": ["app-intents-pro"]
+    }
+  },
+  "security": {
+    "description": "Xcode build security: security warnings, analyzer checks, Enhanced Security and pointer authentication, hardened-process entitlements, C bounds safety.",
+    "rules": {
+      "apple": ["apple-build-security.md"]
+    },
+    "skills": {
+      "apple": ["xcode-security-pro"]
+    }
+  },
+  "performance": {
+    "description": "Profiling: Instruments and xctrace traces, call trees, symbolication, and hang triage.",
+    "rules": {},
+    "skills": {
+      "apple": ["instruments-profiling-pro"]
+    }
   }
 }

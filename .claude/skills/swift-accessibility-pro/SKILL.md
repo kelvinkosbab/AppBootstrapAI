@@ -4,8 +4,8 @@ description: Deep-reviews Apple app accessibility — the VoiceOver surface (lab
 license: MIT
 metadata:
   author: AppBootstrapAI contributors
-  version: "1.0"
-  grounded_in: "Apple Accessibility developer documentation, WCAG 2.2 AA, App Store Accessibility Nutrition Label criteria"
+  version: "1.1"
+  grounded_in: "Apple Accessibility developer documentation, WCAG 2.2 AA, App Store Accessibility Nutrition Label criteria, and the VoiceOver, Dynamic Type, and Sufficient Contrast agent skills Apple ships with Xcode 27 (as published by Artem Novichkov in artemnovichkov/xcode-skills)"
 ---
 
 Review Apple app accessibility for correctness and completeness. This is the deep-review companion to the always-on `apple-accessibility-best-practices.md` (SwiftUI) and `apple-objc-accessibility-best-practices.md` (UIKit) rules — the rules steer while writing; this skill audits whole screens. Report only genuine problems; don't nitpick.
@@ -17,7 +17,7 @@ Review process:
 1. Audit the VoiceOver surface using `references/voiceover.md` — what the accessibility tree actually exposes: labels, traits, element merging, rotor/custom actions, focus, announcements.
 2. Audit Bluetooth assistive input using `references/bluetooth-input.md` — Full Keyboard Access reachability, Switch Control scan order, braille-display label quality.
 3. Audit visual accessibility using `references/visual.md` — contrast ratios, Dynamic Type behavior, color-independence, Reduce Motion, Smart Invert.
-4. If the app declares (or plans to declare) App Store Accessibility Nutrition Labels, verify each claimed feature against what the audit found — a VoiceOver claim requires all common tasks to complete with VoiceOver on.
+4. If the app declares (or plans to declare) App Store Accessibility Nutrition Labels, give each screen a VoiceOver, Larger Text, and Sufficient Contrast verdict with `references/nutrition-label-audit.md` (PASS / FAIL, or NEEDS VERIFICATION for unresolved colors), then verify each claimed feature against what the audit found — a VoiceOver claim requires all common tasks to complete with VoiceOver on.
 
 If doing a partial review, load only the relevant reference files.
 

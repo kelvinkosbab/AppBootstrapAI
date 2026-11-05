@@ -4,8 +4,8 @@ description: Deep-reviews Apple apps for resizable-window and iPhone Duo readine
 license: MIT
 metadata:
   author: AppBootstrapAI contributors
-  version: "1.1"
-  grounded_in: "Apple Developer Tech Talks 'Prepare your app for iPhone Duo', 'Raise the bar with iPhone Duo', 'Strike a pose with adaptive layouts on iPhone Duo', and 'Leverage multiple displays and scenes on iPhone Duo'; 'Preparing your app for iPhone Duo' docs; HIG 'Designing for iPhone Duo'; iOS 27.2 and Xcode 27.2 release notes"
+  version: "1.2"
+  grounded_in: "Apple Developer Tech Talks 'Prepare your app for iPhone Duo', 'Raise the bar with iPhone Duo', 'Strike a pose with adaptive layouts on iPhone Duo', and 'Leverage multiple displays and scenes on iPhone Duo'; 'Preparing your app for iPhone Duo' docs; HIG 'Designing for iPhone Duo'; iOS 27.2 and Xcode 27.2 release notes; TN3192, TN3208; Apple's Xcode 27 app-resizability agent skill (as published by Artem Novichkov in artemnovichkov/xcode-skills)"
 ---
 
 Review Apple app code for resizable-window and foldable readiness. This is the deep-review companion to the always-on `apple-adaptive-layout.md` rule — the rule steers while writing; this skill audits whole screens and the project's launch configuration. The Apple sibling of `android-adaptive-layout-pro`. Report only genuine problems; don't nitpick.
@@ -18,6 +18,7 @@ Review process:
 2. Audit layout branching using `references/size-classes-and-idiom.md` — size classes vs idiom/orientation, `UIScreen.main` and global geometry, which containers already adapt.
 3. Audit foldable-specific behavior using `references/duo-and-poses.md` — arrangements, hinge and reserved regions, vertical bars, safe-area asymmetry, state continuity across fold and resize.
 4. Audit multitasking using `references/multitasking-and-scenes.md` — Split View and stacked layouts, multiple windows and their dynamic availability on Duo, per-scene state, scene accessories.
+5. When fixing UIKit findings, apply the replacements in `references/uikit-api-replacements.md` — `UIScreen.main` scale and bounds, idiom and orientation branches, hardcoded safe-area values, and moving lifecycle methods to the scene delegate — one deprecation per change.
 
 If doing a partial review, load only the relevant reference files.
 

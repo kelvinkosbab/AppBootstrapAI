@@ -1,5 +1,7 @@
 # Launch & resizability readiness
 
+> Launch-screen, iPad-orientation, and `UIRequiresFullScreen` handling also draw on Apple's Xcode 27 app-resizability agent skill, as published by [Artem Novichkov](https://github.com/artemnovichkov) in [`artemnovichkov/xcode-skills`](https://github.com/artemnovichkov/xcode-skills).
+
 Audit this first. A layout finding is moot if the app doesn't launch, and the resizability posture determines whether every other finding is theoretical or shipping today.
 
 ## The UIScene mandate (launch-blocking)
@@ -20,6 +22,7 @@ Under iOS 27 on iPhone, `UIRequiresFullScreen` is honored as **discrete resizing
 - Its legitimate use is **rendering quality for games** and similar full-surface renderers — not "we don't want to adapt."
 - If the key is present, the finding is usually *what it was protecting*: a layout that assumes one size. Report both.
 - Don't recommend adding it to dodge adaptive work.
+- **Leave the key, and `UIRequiresFullScreenIgnoredStartingWithVersion`, exactly as you found them.** TN3192 (*Migrating your app from the deprecated UIRequiresFullScreen key*) covers the migration. Deleting `UIRequiresFullScreen` makes the app resizable at once, before its layouts are ready; adding the `IgnoredStartingWithVersion` key picks which releases keep the old behavior, which is the developer's call (a value of 27 or lower makes the app fully resizable on iOS 27). Report the key and what it protects; the key comes out only after someone has run the app and resized every screen.
 
 ## SDK level determines how much screen you get
 
@@ -41,7 +44,8 @@ Report the project's deployment target and SDK alongside findings — "this is f
 ## Project & Info.plist audit
 
 - **Orientation keys**: `UISupportedInterfaceOrientations` still matters for discrete resizing and the outer display, but the inner display does not honor it for resizable apps. A portrait-only declaration is not a layout strategy.
-- **Launch screen**: a storyboard/`UILaunchScreen` that hardcodes sizes shows as a mis-sized flash on unfold.
+- **Launch screen (upload-blocking)**: the target must set one of `UILaunchScreen`, `UILaunchScreens`, `UILaunchStoryboardName`, `UILaunchStoryboards`, or `INFOPLIST_KEY_UILaunchScreen_Generation`. With none, an iOS 27 App Store upload is rejected with `ITMS-90870` (TN3208). One key is enough; leave an existing storyboard alone. A launch screen that hardcodes sizes also shows as a mis-sized flash on unfold.
+- **iPad orientations**: the iPad declaration (`UISupportedInterfaceOrientations~ipad`, or the plain key when that's absent) should list all four orientations, or declare none. Name the missing ones, and note that a `supportedInterfaceOrientations` override can still lock the scene. A portrait-only *iPhone* declaration is normal.
 - **Scene manifest**: multi-scene support (`UIApplicationSupportsMultipleScenes`) affects iPad and Duo multitasking behavior — check it matches the app's intent rather than being an accidental default.
 - **Asset catalogs**: image sets keyed to specific device sizes rather than scale/appearance are a smell on a device with two displays.
 
@@ -58,7 +62,7 @@ Report the project's deployment target and SDK alongside findings — "this is f
 
 ## Audit sequence
 
-1. Scene manifest + legacy-window code → launch-blocking findings. Catalyst build with unguarded 27.1 APIs → build-breaking.
+1. Scene manifest + legacy-window code → launch-blocking findings. Missing launch screen → upload-blocking. Catalyst build with unguarded 27.1 APIs → build-breaking.
 2. `UIRequiresFullScreen` and orientation keys → what fixed-size assumption do they protect?
 3. Deployment target / SDK → how live are these findings for users today?
 4. Launch screen + asset catalogs → mis-sized first frame. UIKit layout-margin reads → content against the edge on the 27.1+ SDK.

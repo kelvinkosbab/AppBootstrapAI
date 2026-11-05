@@ -20,15 +20,15 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 
 | Area | What's inside |
 |------|---------------|
-| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · memory + storage · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
+| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · memory + storage · App Intents + Siri (opt-in) · Xcode build security (opt-in) · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
 | **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · memory + storage · Gemini Nano / Firebase AI · Play beta · regional store compliance |
-| **Skills (Claude)** | 14 Apple + 10 Android + 2 cross-platform on-demand deep-review agents |
+| **Skills (Claude)** | 17 Apple + 10 Android + 2 cross-platform on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
 <details>
-<summary><strong>Apple — 22 rules + 13 skills</strong> (click to expand)</summary>
+<summary><strong>Apple — 26 rules + 17 skills</strong> (click to expand)</summary>
 
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text), plus Bluetooth assistive tech: Full Keyboard Access (`.focusable()`, focus rings), Switch Control scan order, braille-display label discipline, focus management (`@AccessibilityFocusState`), modern announcements (`AccessibilityNotification`), audio/hearing (no sound-only cues, captions), WCAG AA color/contrast (both themes, Increase Contrast, Smart Invert), and App Store Accessibility Nutrition Label honesty.
@@ -58,14 +58,19 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`coredata-swift6-pro` skill** — Core Data under Swift 6 strict concurrency, `viewContext`/`@MainActor`, SPM `.xcdatamodeld` caveats.
 - **`swift-design-system-pro` skill** — bootstraps or audits the UI foundation: scaffolds a `DesignSystem` module (tokens, `AppIcon` facade + availability test, button styles, gallery) or inventories an existing app (literal colors, fixed fonts, raw symbol strings, duplicate components, Liquid Glass blockers, app-icon appearances) and returns a ranked, incremental migration plan.
 - **`swift-modularization-pro` skill** *(packaging)* — plans a module graph for a new or existing app, migrates code out of the app target one module at a time (what stays, extraction order, per-step checklist, common breakages), and audits an existing package with a tested dependency-rule script over `swift package dump-package` (feature→feature edges, upward edges, concrete-backend imports, missing test targets) plus `Bundle.main` / `@_exported` / app-target searches and a CI job.
-- **`swift-adaptive-layout-pro` skill** — deep resizability / iPhone Duo audit: the UIScene launch blocker, `UIRequiresFullScreen` semantics, idiom/orientation/`UIScreen.main` removals, arrangement nesting constraints, hinge and reserved regions, vertical-bar items, multi-window availability and per-scene state, symmetric safe-area math, outer→inner navigation continuity, and pose/window-size test coverage.
-- **`swift-accessibility-pro` skill** — deep accessibility audit: the VoiceOver surface (labels/traits/merging/rotor/announcements), Bluetooth assistive input (Full Keyboard Access reachability, Switch Control scan order, braille label quality), visual accessibility (WCAG AA contrast in both themes, Dynamic Type at AX sizes, color-independence, Reduce Motion), and Nutrition-Label claim verification.
+- **`swift-adaptive-layout-pro` skill** — deep resizability / iPhone Duo audit: the UIScene launch blocker, `UIRequiresFullScreen` semantics, launch-screen and iPad-orientation upload checks, idiom/orientation/`UIScreen.main` removals with concrete UIKit replacements, arrangement nesting constraints, hinge and reserved regions, vertical-bar items, multi-window availability and per-scene state, symmetric safe-area math, outer→inner navigation continuity, and pose/window-size test coverage.
+- **`swift-accessibility-pro` skill** — deep accessibility audit: the VoiceOver surface (labels/traits/merging/rotor/announcements), Bluetooth assistive input (Full Keyboard Access reachability, Switch Control scan order, braille label quality), visual accessibility (WCAG AA contrast in both themes, Dynamic Type at AX sizes, color-independence, Reduce Motion), and Nutrition-Label claim verification with per-screen PASS / FAIL / NEEDS VERIFICATION verdicts for VoiceOver, Larger Text, and Sufficient Contrast.
 - **`swiftdata-pro` skill** — SwiftData review: core model/context rules, safe `#Predicate` usage, CloudKit constraints, iOS 18+ indexing, iOS 26+ class inheritance.
 - **`swift-docc-pro` skill** — DocC comment review: parameter/return/throws tags, double-backtick symbol linking, Topics organization.
 - **`swift-error-handling-pro` skill** — typed throws, Result vs throws, `LocalizedError`, Sendable errors, async propagation.
 - **`apple-memory-management.md`** *(memory-storage)* — retain cycles that actually leak (stored closures, long-lived `Task`s with `for await`, Combine `sink` / `assign(to:on:)`, target-retaining timers and display links, strong delegates), image downsampling (decoded size is width × height × 4), `NSCache` with cost limits, memory warnings, lazy containers, streaming large data, extension and watchOS budgets, the increased-memory-limit entitlement as a last resort, and measuring with the memory graph, Instruments generations, leak tests, and MetricKit jetsam exits.
 - **`apple-storage-management.md`** *(memory-storage)* — Documents vs Application Support vs Caches vs tmp, backup exclusion for offline content, UserDefaults for small values only, Keychain accessibility classes, file protection, app group containers, atomic off-main-actor writes, free-space checks before large writes, capped disk caches, app size (Background Assets, thinning report), and the disk-space / file-timestamp privacy manifest reasons.
 - **`swift-memory-storage-pro` skill** *(memory-storage)* — memory and storage audit: traces ownership to confirm cycles, sizes image decodes and caches in bytes, checks every file write for location, backup, protection, size cap, and privacy reason, and confirms fixes with the memory graph, Instruments, leak tests, and MetricKit.
+- **`apple-app-intents.md`** *(intents)* — App Intents, App Shortcuts, and Siri tools: nonisolated `perform()`, restart-safe side effects, confirmation right before destructive work, stable entity ids and append-only `AppEnum` raw values, batched queries and a real `suggestedEntities()`, errors Siri can show, phrase rules, `supportedModes` over `openAppWhenRun`, `@AppIntent(schema:)` over the deprecated `@Assistant*` macros, and Siri 27.3 tool metadata.
+- **`app-intents-pro` skill** *(intents)* — writes and reviews App Intents: execution and results, entities and queries, parameters and App Shortcuts, the iOS 26 / 27 APIs (interactive snippets, schemas, Spotlight indexing, `EntityCollection`, `LongRunningIntent`), Siri's model in 27.3 (`@AppIntent(.tool)`, generable entities, `Skills.skillsbundle`, `sirimetadataanalyzer`), and testing with `AppIntentsTesting` and SiriEvaluations.
+- **`apple-build-security.md`** *(security)* — security compiler warnings and analyzer checks for C-family code, Enhanced Security at project level with the hardened-process entitlements, per-target pointer-authentication overrides only for arm64e-less dependencies, phased Memory Tagging, `-fbounds-safety`, and a decision record for every setting left off.
+- **`xcode-security-pro` skill** *(security)* — audits build settings and entitlements per target, plans the four-phase Enhanced Security rollout, and adopts C bounds safety file by file.
+- **`instruments-profiling-pro` skill** *(performance)* — profiling with `xctrace`: recording, the `toc` → `list tracks` → `show` flow, call trees and heaviest stacks, symbolication, output-size discipline, and hang triage (busy vs. blocked, severity tiers), with before / after numbers for every fix.
 - **`swift-logging-pro` skill** — `os.Logger` review: subsystem/category conventions, privacy markers, log-level semantics.
 - **`swift-package-pro` skill** — SPM library design: public API surface, `InternalImportsByDefault`, resources, versioning, dependency hygiene.
 
@@ -135,7 +140,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
   - `--apple-platforms ios,macos,tvos,watchos,visionos|all` — which Apple sub-platforms you target. Default `ios,macos,tvos,watchos` (every platform **except** visionOS — the lean default for typical app projects). Only meaningful when Apple is in scope. `visionos` stays in sync with the `spatial` feature: naming it installs the visionOS rule, omitting it keeps it out. **`macos` gates the touch-on-Mac rule** (`apple-mac-touch.md`) — drop it for an iOS-only app. Other tokens are recorded in the manifest for future platform-specific rules.
   - `--android-platforms phone,tablet,wear,tv,auto|all` — which Android form factors you target. Default `phone,tablet`. Only meaningful when Android is in scope. **`tablet` gates the large-screen / foldable rule** (`android-large-screen-best-practices.md`) **and the `android-adaptive-layout-pro` skill** — drop it for a phone-only app. Other tokens are recorded in the manifest for future form-factor rules (Wear OS / Android TV / Auto would gate the same way).
-  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`, `compliance`, and `memory-storage`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`); custom CSVs like `core,testing,docs` give fine-grained control
+  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`, `compliance`, `memory-storage`, and `performance`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`, `intents`, `security`); custom CSVs like `core,testing,docs` give fine-grained control
   - `--list` previews the catalog with one-line descriptions + category tags
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
   - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
@@ -144,7 +149,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--dry-run` shows what an install would do without writing any files
   - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope / rename. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. The header prints a GitHub compare URL when commits differ. See [Upgrading an existing install](#upgrading-an-existing-install).
   - `--uninstall` reverses install: deletes every tracked file whose current hash matches what was installed (locally-edited files kept unless `--force-conflicts`; `CLAUDE.md` / `settings.json` kept unless `--purge`). MCP entries are removed if unchanged, unless `--keep-mcps`. Strips the `.gitignore` block and the manifest itself. See [Removing the install](#removing-the-install).
-  - `--help` documents every flag and enumerates all 19 categories
+  - `--help` documents every flag and enumerates all 22 categories
   - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (schema v2 — records per-file SHA-256 hashes so `--upgrade` can diff 3-way: installed vs. current disk vs. bundle)
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 - **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
@@ -331,7 +336,7 @@ repo:
 
 Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. The manifest is what powers `--upgrade`'s 3-way diff against future bundle versions.
 
-**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint) + `compliance` (region-specific App Store / Play rules) + `memory-storage` (leaks, footprint, file locations, backup, app size). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas), `architecture` (Android MVVM / unidirectional data flow + the repository pattern for both platforms).
+**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint) + `compliance` (region-specific App Store / Play rules) + `memory-storage` (leaks, footprint, file locations, backup, app size) + `performance` (Instruments / `xctrace` profiling and hang triage). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas), `architecture` (Android MVVM / unidirectional data flow + the repository pattern for both platforms), `intents` (App Intents, App Shortcuts, Siri tools), `security` (Xcode security settings, Enhanced Security, C bounds safety).
 
 **The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|kiro|all` (additive CSV) and the installer also drops the matching file shape for those agents (per-rule files for Copilot `.instructions.md`, Cursor `.mdc`, and Kiro `.kiro/steering/*.md`; a short rule index for Gemini and Codex). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
 
@@ -368,6 +373,9 @@ After install, edit the new `CLAUDE.md` (or your agent's equivalent) and fill in
 - "Use `swift-logging-pro` to audit `Logger` usage across the project."
 - "Use `swift-memory-storage-pro` to find why the photo grid gets killed on older iPhones."
 - "Use `android-memory-storage-pro` to audit what the app writes to disk and backs up."
+- "Use `app-intents-pro` to review our App Intents and make the shopping-list actions work with Siri."
+- "Use `xcode-security-pro` to audit our build settings and plan turning on Enhanced Security."
+- "Use `instruments-profiling-pro` to find out why the feed hangs on first launch."
 - "Use `swift-package-pro` to review `Package.swift` and the public API surface."
 - "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
 - "Use `xml-to-compose-migration-pro` to plan migrating `SettingsFragment` to Compose."
@@ -401,7 +409,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 |------|--------|
 | Audit a repo without installing | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this package. Don't change any files."* |
 | Review and improve your AI rules | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit our CLAUDE.md, AGENTS.md, and Cursor rules and suggest improvements."* (`install.sh audit . --steering-only`) |
-| Audit one area only, reading just its rules and skills | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit only the concurrency safety of this repo."* (`/appbootstrap-audit concurrency` after an install, or `install.sh audit . --topic concurrency`; topics: concurrency, architecture, accessibility, ui, localization, testing, compliance, logging, docs, deployment, linting, memory, storage) |
+| Audit one area only, reading just its rules and skills | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit only the concurrency safety of this repo."* (`/appbootstrap-audit concurrency` after an install, or `install.sh audit . --topic concurrency`; topics: concurrency, architecture, accessibility, ui, localization, testing, compliance, logging, docs, deployment, linting, memory, storage, intents, security, performance) |
 | Bootstrap a new Apple SwiftUI app with the recommended set | *"Run `/path/to/AppBootstrapAI/install.sh . --platform apple` in this directory, then walk me through what landed."* |
 | Bootstrap an Android Compose app with everything | *"Run `/path/to/AppBootstrapAI/install.sh . --platform android --features all` and summarize the new files."* |
 | Pick categories interactively | *"Show me `./install.sh --list --features all`, then ask me which categories to install."* |
@@ -657,6 +665,8 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-testing-strategy.md                # Android test strategy + JaCoCo
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
 │   │   ├── apple-adaptive-layout.md                   # Resizable apps / iPhone Duo (ui)
+│   │   ├── apple-app-intents.md                       # App Intents, App Shortcuts, Siri tools (intents)
+│   │   ├── apple-build-security.md                    # Security warnings, Enhanced Security, bounds safety (security)
 │   │   ├── apple-design-system.md                     # Tokens, component styles, Liquid Glass (ui)
 │   │   ├── apple-documentation-strategy.md            # DocC strategy + deprecation
 │   │   ├── apple-foundation-models.md                 # On-device LLM patterns
@@ -692,7 +702,9 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs
 │   │   ├── android-memory-storage-pro/         # Leak, footprint, and storage audit (memory-storage)
 │   │   ├── android-modularization-pro/         # Plan/migrate/audit a multi-module app (packaging)
+│   │   ├── app-intents-pro/                    # App Intents + Siri tools write/review (intents)
 │   │   ├── coredata-swift6-pro/
+│   │   ├── instruments-profiling-pro/          # xctrace profiling + hang triage (performance)
 │   │   ├── cross-platform-parity-pro/          # Port features, audit drift, set up a two-platform repo (both)
 │   │   ├── r8-shrink-pro/                      # ProGuard/R8 rules
 │   │   ├── store-compliance-pro/               # Regional store-rejection audit + response (compliance)
@@ -708,6 +720,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── swift-accessibility-pro/            # VoiceOver / keyboard / contrast audit (ui)
 │   │   ├── swift-adaptive-layout-pro/          # Resizable / iPhone Duo readiness audit (ui)
 │   │   ├── swiftdata-pro/                      # SwiftData review (persistence)
+│   │   ├── xcode-security-pro/                 # Build-setting + Enhanced Security audit (security)
 │   │   ├── swiftui-pro/
 │   │   └── xml-to-compose-migration-pro/       # XML/Fragment → Compose migration
 │   └── settings.json                  # Baseline permissions
@@ -760,7 +773,7 @@ See [CLAUDE.md](CLAUDE.md) for:
 
 ## Roadmap
 
-**Shipped:** 49 rules (24 Apple, 21 Android, 4 cross-platform) and 26 skills (14 Apple, 10 Android, 2 cross-platform), all loaded equally by `globs` — there is no "primary" platform in the bundle's design.
+**Shipped:** 51 rules (26 Apple, 21 Android, 4 cross-platform) and 29 skills (17 Apple, 10 Android, 2 cross-platform), all loaded equally by `globs` — there is no "primary" platform in the bundle's design.
 
 **Next — closing the day-one gaps for new app developers:**
 
@@ -784,6 +797,8 @@ Notable changes are tracked in [`CHANGELOG.md`](CHANGELOG.md), following the [Ke
   - …and more on his profile. Author attribution is retained in each `SKILL.md` frontmatter.
   - Bundled copies track upstream; `swiftui-pro` is synced to upstream 2.0.0 (Xcode 27.2 / iPhone Duo).
 - Android skills (`android-gradle-architecture-pro`, `xml-to-compose-migration-pro`, `r8-shrink-pro`) authored by AppBootstrapAI contributors. Grounded in [Android's Now in Android](https://github.com/android/nowinandroid) reference app and the official [Android Developers documentation](https://developer.android.com/build) for AGP, Compose, and R8 — the canonical primary sources. Licensed MIT.
+
+- App Intents, Siri, Xcode security, Instruments profiling, and parts of the accessibility, adaptive-layout, and testing guidance draw on the agent skills Apple ships with Xcode 27, which **Artem Novichkov** ([@artemnovichkov](https://github.com/artemnovichkov)) extracted and published in [`artemnovichkov/xcode-skills`](https://github.com/artemnovichkov/xcode-skills). Thank you, Artem, for making them readable outside Xcode. The underlying content is Apple's and that repository has no license, so nothing is copied: the guidance here is rewritten and condensed in this bundle's own words, and every file that draws on it credits Artem's repository in a **Sources** note. Files: `apple-app-intents.md`, `apple-build-security.md`, and `apple-testing-strategy.md` (rules); `app-intents-pro`, `xcode-security-pro`, and `instruments-profiling-pro` (skills); `swift-accessibility-pro/references/nutrition-label-audit.md`, `swift-adaptive-layout-pro/references/uikit-api-replacements.md`, and `readiness-checklist.md`.
 
 ## License
 

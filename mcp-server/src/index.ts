@@ -95,6 +95,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     linting:          "SwiftLint + formatter (Apple) / ktlint + detekt + Android Lint (Android): config, suppression hygiene, baselines, triage decision-order, CI placement.",
     compliance:       "Region-specific App Store / Play rules: storefront availability, China ICP and generative-AI filings, third-party AI brand mentions, EU trader status, storefront-based gating, regional rejections.",
     "memory-storage": "Memory and on-device storage (Apple + Android): retain cycles and Context leaks, image decode size, bounded caches, memory pressure, storage locations, backup rules, secrets, free space, app size.",
+    performance:      "Profiling with Instruments / xctrace: recording and reading traces, call trees, symbolication, hang triage.",
     persistence:      "Core Data under Swift 6 strict concurrency.",
     ai:               "In-app AI models: Apple Foundation Models (iOS 26+) + Android Gemini Nano / ML Kit GenAI / Firebase AI Logic.",
     migration:        "Android XML/Fragment → Compose migration.",
@@ -102,6 +103,8 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     spatial:          "visionOS: scene types, immersion styles, spatial gestures, RealityKit/ECS, USDZ pipeline.",
     deployment:       "TestFlight (Apple) + Play beta tracks (Android): versioning, signing, CI patterns, gotchas.",
     architecture:     "Android MVVM/UDF (StateFlow UiState, SavedStateHandle, Route/Screen) + repository pattern / data layer (Apple + Android).",
+    intents:          "App Intents, App Shortcuts, and Siri tools (27.3): perform() isolation, stable entities, phrases, schemas, AppIntentsTesting, SiriEvaluations.",
+    security:         "Xcode build security: security warnings and analyzer checks, Enhanced Security, hardened-process entitlements, phased rollout, C bounds safety.",
 };
 
 interface Category { name: string; recommended: boolean; description: string; }
