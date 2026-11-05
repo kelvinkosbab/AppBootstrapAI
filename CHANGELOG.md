@@ -20,6 +20,31 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Knowledge from Apple's Xcode 27 agent skills**, as extracted and published
+  by Artem Novichkov in
+  [`artemnovichkov/xcode-skills`](https://github.com/artemnovichkov/xcode-skills).
+  That repository has no license and its content is Apple's, so the guidance
+  is rewritten in this bundle's words and each file credits it.
+  - `intents` category (opt-in): `apple-app-intents.md` rule and
+    `app-intents-pro` skill (execution and results, entities and queries,
+    parameters and App Shortcuts, iOS 26 / 27 APIs, Siri 27.3 tools and app
+    skills, `AppIntentsTesting`, SiriEvaluations).
+  - `security` category (opt-in): `apple-build-security.md` rule and
+    `xcode-security-pro` skill (security warnings, analyzer checks, Enhanced
+    Security, hardened-process entitlements, phased rollout, C bounds safety).
+  - `performance` category (in `recommended`): `instruments-profiling-pro`
+    skill (`xctrace` recording and reading, call trees, symbolication, hang
+    triage).
+  - Audit topics `intents`, `security`, and `performance`, and four
+    `install.sh audit` checks: `openAppWhenRun`, `@Assistant*` macros, and
+    `ENABLE_POINTER_AUTHENTICATION = NO` / `ENABLE_ENHANCED_SECURITY = NO` in
+    `.xcconfig` files (now scanned).
+  - `swift-accessibility-pro` gains `nutrition-label-audit.md` (per-screen
+    PASS / FAIL / NEEDS VERIFICATION for VoiceOver, Larger Text, and
+    Sufficient Contrast); `swift-adaptive-layout-pro` gains
+    `uikit-api-replacements.md` and launch-screen (ITMS-90870), iPad
+    orientation, and `UIRequiresFullScreen` (TN3192) checks.
+
 - **Memory and storage.** A new `memory-storage` category (in
   `recommended`) with four short checklist rules,
   `apple-memory-management.md`, `apple-storage-management.md`,
@@ -51,6 +76,10 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   read-only and reports in chat; with no topic it lists them.
 
 ### Changed
+
+- **`apple-testing-strategy.md`**: on Xcode 27, UI tests can be Swift
+  Testing (XCUIAutomation in `@MainActor` suites); XCTest stays only for
+  `measure` performance tests and older Xcode. Adds XCTest migration notes.
 
 - **Copilot, Gemini, and Codex no longer load every rule on every request.**
   They used to get one file with the full text of every in-scope rule (about

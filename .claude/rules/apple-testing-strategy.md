@@ -4,7 +4,7 @@ globs: "**/*.swift"
 paths:
   - "**/*.swift"
 must:
-  - "New tests use Swift Testing; keep XCTest only for UI and performance tests."
+  - "New tests use Swift Testing, including UI tests on Xcode 27; keep XCTest only for measure performance tests."
   - "Inject clocks, UUIDs, randomness, and network; no `Date()`, `Thread.sleep`, or live network in tested code."
   - "Name tests by behavior and test through public API."
   - "UI tests find elements by `accessibilityIdentifier`, never localized text."
@@ -66,9 +66,11 @@ Tests that pass intermittently are worse than no tests — they teach the team t
 ## Swift Testing vs XCTest
 
 - **Default to Swift Testing** for new unit and integration tests. `@Test`, `@Suite`, `#expect`, `#require` — modern API, parallel execution, parameterized tests built in.
-- **Keep XCTest for**:
-  - **UI tests** (XCUITest) — Swift Testing does not support UI tests.
-  - **Performance tests** (`measure { }`) — XCTest is the only option.
+- **UI tests on Xcode 27 can be Swift Testing too.** Swift Testing tests in a UI test bundle call XCUIAutomation (`XCUIApplication`, element queries) directly. Mark the suite `@MainActor` (UI tests run serially on the main actor, and most automation API is main-actor-bound). An automation failure (missing element, undelivered event) ends the test even without `throws`, and the runner relaunches to continue, so global state may be reinitialized. On older Xcode, UI tests stay XCTest.
+- **Keep XCTest for performance tests** (`measure { }`) — there's no Swift Testing equivalent.
+- **Migrating XCTest to Swift Testing**: `import Foundation` explicitly (Testing doesn't re-export it); `continueAfterFailure = false` becomes `try #require`; `tearDown` logic moves to `deinit`, which needs a `final class` or `actor` suite; there's no `accuracy:` equality, so compare with an explicit tolerance. XCTest ran synchronous tests on the main actor in order, while Swift Testing runs them concurrently: add `@MainActor` only where a test relied on that, and `@Suite(.serialized)` where tests share mutable state. Convert one file at a time and keep the assertions' meaning; don't add defensive checks the original didn't have.
+
+> **Source for the Xcode 27 UI-test and migration notes:** Apple's "modernize tests" agent skill in Xcode 27, as published by [Artem Novichkov](https://github.com/artemnovichkov) in [`artemnovichkov/xcode-skills`](https://github.com/artemnovichkov/xcode-skills), rewritten here.
 - **Don't mix in the same target.** They can coexist in a project, but a single test target should be one or the other for clarity. **Xcode 27 / Swift 6.4** surfaces a runtime warning when an assertion from one framework fires inside a test written for the other (the XCTest ↔ Swift Testing interop check) — treat that warning as a signal you've crossed the streams, not noise to silence.
 
 ## Hunting Flaky Tests
@@ -84,7 +86,7 @@ A test that passes intermittently is a determinism bug (see above) — find it b
 
 - **Locate by `.accessibilityIdentifier(...)`,** never by visible localized text — the latter breaks every time you ship a translation.
 - **Page Object Model** for non-trivial flows: each screen is a struct exposing semantic actions (`loginScreen.signIn()`), tests compose those.
-- **No `sleep()` calls** — use `XCTestCase.expectation(for:evaluatedWith:handler:)` with a predicate, or `XCTestCase.wait(for:timeout:)`.
+- **No `sleep()` calls** — use `element.waitForExistence(timeout:)`, or in XCTest `XCTestCase.expectation(for:evaluatedWith:handler:)` with a predicate and `wait(for:timeout:)`.
 - **Set up app state via launch arguments**, not by driving the UI through five screens to get to the one you care about.
 
 ## Coverage

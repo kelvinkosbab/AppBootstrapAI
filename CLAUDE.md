@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 14 Apple, 10 Android, 2 cross-platform — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 17 Apple, 10 Android, 2 cross-platform — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -34,6 +34,8 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-testing-strategy.md                # Android: test strategy + JaCoCo
 │   ├── apple-accessibility-best-practices.md      # Apple: SwiftUI a11y
 │   ├── apple-adaptive-layout.md                   # Apple: resizable apps / iPhone Duo
+│   ├── apple-app-intents.md                       # Apple: App Intents, App Shortcuts, Siri tools (opt-in)
+│   ├── apple-build-security.md                    # Apple: security warnings, Enhanced Security, bounds safety (opt-in)
 │   ├── apple-design-system.md                     # Apple: tokens, component styles, Liquid Glass
 │   ├── apple-documentation-strategy.md            # Apple: DocC strategy + deprecation
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
@@ -69,8 +71,10 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
 │   ├── android-memory-storage-pro/         # Android: leak, footprint, and storage audit
 │   ├── android-modularization-pro/         # Android: plan/migrate/audit a multi-module app
+│   ├── app-intents-pro/                    # Apple: App Intents + Siri tools write/review
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── cross-platform-parity-pro/          # Both: port features, audit drift, set up a two-platform repo
+│   ├── instruments-profiling-pro/          # Apple: xctrace profiling + hang triage
 │   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
 │   ├── store-compliance-pro/               # Both: regional store-rejection audit + response
 │   ├── swift-accessibility-pro/            # Apple: VoiceOver / keyboard / contrast audit
@@ -86,6 +90,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── swift-testing-pro/                  # Apple: Swift Testing code
 │   ├── swiftdata-pro/                      # Apple: SwiftData review
 │   ├── swiftui-pro/                        # Apple: SwiftUI review
+│   ├── xcode-security-pro/                 # Apple: build-setting + Enhanced Security audit
 │   └── xml-to-compose-migration-pro/       # Android: XML/Fragment → Compose
 └── settings.json                  # Baseline Claude Code permissions (git, xcodebuild, gradlew, etc.)
 ```
@@ -159,11 +164,11 @@ Use the installer from the target repo. It takes a **command verb** —
 # Preview catalog with category tags
 /path/to/AppBootstrapAI/install.sh --list --platform apple --features all
 
-# Full help — enumerates all 19 feature categories
+# Full help — enumerates all 22 feature categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`, `compliance`, `memory-storage`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; `macos` gates the touch-on-Mac rule `apple-mac-touch.md`; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`, `compliance`, `memory-storage`, `performance`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`, `intents`, `security`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; `macos` gates the touch-on-Mac rule `apple-mac-touch.md`; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
 
 The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
@@ -186,6 +191,9 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `swift-logging-pro` to audit Logger usage."
 - "Use `swift-memory-storage-pro` to find why the photo grid gets killed on older iPhones."
 - "Use `android-memory-storage-pro` to audit leaks and what the app writes to disk and backs up."
+- "Use `app-intents-pro` to review our App Intents and make the shopping-list actions work with Siri."
+- "Use `xcode-security-pro` to audit build settings and plan turning on Enhanced Security."
+- "Use `instruments-profiling-pro` to find out why the feed hangs on first launch."
 - "Use `swift-package-pro` to review `Package.swift` and the public API."
 - "Use `swift-modularization-pro` to plan moving this app's code into a local Swift package."
 - "Use `swift-modularization-pro` to audit the module graph in `MyAppPackages`."
@@ -370,6 +378,37 @@ In `core`, but installs only with `--platform both`. Fires on Swift, Kotlin, res
 
 The `cross-platform-parity-pro` skill ports features (concept map + porting workflow), audits drift (string-key / icon / event / flag / deep-link diff scripts), and sets up the repo (root + platform `CLAUDE.md`, `apple-engineer` / `android-engineer` subagents, shared-contract generation, CI). Its `kmp.md` reference covers sharing logic with Kotlin Multiplatform behind a Swift adapter.
 
+### App Intents and Siri (`apple-app-intents.md`)
+
+Specialized opt-in (`--features ...,intents`). Fires on `*Intent*`, `*Entity*`, `*Shortcut*`, and `*Query*` Swift files. Rewritten from Apple's Xcode 27 App Intents and Siri agent skills as published by Artem Novichkov in `artemnovichkov/xcode-skills` (credited in each file).
+
+- **`perform()` is nonisolated** and may run in an extension: hop to `@MainActor` explicitly; never `@MainActor` on the intent type.
+- **Restarts rerun `perform()` from the top** (`needsValueError`, `restartPerform`): side effects last, `requestConfirmation` right before them, never `try?`.
+- **Persisted contracts**: entity ids stable across launches and devices, `AppEnum` raw values explicit and append-only with a display entry per case, intent type names and phrases never renamed.
+- **Queries**: one batched `entities(for:)`, a bounded `suggestedEntities()`; `@Dependency` registered in `App.init()`, `Sendable`, only on intents and queries.
+- **Errors** conform to `CustomLocalizedStringResourceConvertible` (a `LocalizedError` shows a generic failure); strings are source literals.
+- **App Shortcuts**: `shortTitle` + `systemImageName`, `\(.applicationName)` in every phrase, at most 10.
+- **iOS 26 / 27**: `supportedModes` over `openAppWhenRun`, `@AppIntent(schema:)` over `@Assistant*`, interactive snippets with pure-read `perform()`; Siri 27.3 tools (`@AppIntent(.tool)`), described metadata, no search tools, `sirimetadataanalyzer` after each build.
+
+The `app-intents-pro` skill covers depth (execution, entities, parameters, iOS 26/27 APIs, Siri integration, `AppIntentsTesting` and SiriEvaluations). `install.sh audit` flags `openAppWhenRun` and `@Assistant*` macros.
+
+### Xcode build security (`apple-build-security.md`)
+
+Specialized opt-in (`--features ...,security`). Fires on `.xcconfig`, `.entitlements`, `.pbxproj`. Rewritten from Apple's Xcode 27 security-settings and C bounds-safety agent skills as published by Artem Novichkov.
+
+- **`ENABLE_ENHANCED_SECURITY = YES` at project level** on eligible targets, with `com.apple.security.hardened-process` and the version-string entitlement.
+- **Pointer-auth overrides only per target** for an arm64e-less binary dependency, recorded in `docs/xcode-security-settings.md`.
+- **C-family warnings and analyzer checks on**; `xcodebuild analyze` in CI. Pure Swift skips them.
+- **Phased rollout**: compile-time → runtime restrictions → pointer auth / C++ hardening → MTE (soft mode first) and checked pointer arithmetic.
+- **`-fbounds-safety`** file by file, headers first, with `<ptrcheck.h>` annotations.
+- **Never weaken a setting to fix a build.**
+
+The `xcode-security-pro` skill audits per target and plans the next phase. `install.sh audit` flags `ENABLE_POINTER_AUTHENTICATION = NO` and `ENABLE_ENHANCED_SECURITY = NO` in xcconfigs.
+
+### Profiling (`instruments-profiling-pro`, performance)
+
+In `recommended` (performance), skill only. Uses `xctrace` to record and read Instruments traces (`toc` → `list tracks` → `show`, heaviest stacks, symbolication, output redirected to scratch files) and triages hangs by tier and busy vs. blocked. Every fix reports before / after numbers. Rewritten from Apple's Xcode 27 xctrace agent skill as published by Artem Novichkov.
+
 ### Apple localization (`apple-localization-best-practices.md`)
 
 - String Catalogs (`.xcstrings`) are the modern source-of-truth (Xcode 15 / iOS 17+); legacy `.strings` / `.stringsdict` stays stable, new entries route through the catalog.
@@ -518,7 +557,7 @@ Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`. Enc
 - Test the *behavior* through public API; skip private impl, third-party SDKs, generated code, DI wiring.
 - Name tests by behavior (`loginRejectsExpiredToken`), not by method-under-test.
 - Determinism is mandatory: inject clocks/UUIDs/randomness/network. No `Date()` / `UUID()` / `Thread.sleep` / live network in code under test.
-- Default to Swift Testing for new tests; keep XCTest only for UI (`XCUITest`) and performance (`measure`).
+- Default to Swift Testing for new tests, including UI tests on Xcode 27 (XCUIAutomation in `@MainActor` suites); keep XCTest only for performance (`measure`) and for UI tests on older Xcode.
 - XCUITest: locate by `.accessibilityIdentifier`, never visible localized text.
 - Coverage: track in CI (Slather / Codecov / `xcrun xccov`), set a *policy* gate (commonly 70–80%), exclude generated code, DI, model-only types, and `@main`. Coverage is a hint, not a goal — don't game it.
 
@@ -685,7 +724,7 @@ AppBootstrapAI is the canonical source of AI rules and skills for downstream Koz
 - **KozBon** — multi-platform Bonjour service discovery app. Consumes the Apple rules + skills.
 - **BasicSwiftUtilities** — foundational Swift 6 utilities package. Consumes the Apple rules + skills.
 
-The bundled skills were originally authored by Paul Hudson and remain MIT-licensed with author attribution in each `SKILL.md`.
+The bundled skills were originally authored by Paul Hudson and remain MIT-licensed with author attribution in each `SKILL.md`. The App Intents, Siri, Xcode security, and profiling material (and parts of accessibility, adaptive layout, and testing) is rewritten from the agent skills Apple ships with Xcode 27, as extracted and published by Artem Novichkov in [`artemnovichkov/xcode-skills`](https://github.com/artemnovichkov/xcode-skills); each such file credits it in a **Sources** note. That repository has no license and its content is Apple's, so nothing is copied verbatim.
 
 ## License
 

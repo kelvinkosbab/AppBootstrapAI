@@ -73,7 +73,7 @@ UNBASELINABLE = {"bundle-outdated", "bundle-not-installed"}
 SKIP_DIRS = recommend.SKIP_DIRS | {".claude", ".cursor", ".kiro", ".gemini", ".codex"}
 
 SCAN_EXTS = {".swift", ".m", ".mm", ".h", ".kt", ".kts", ".gradle", ".xml",
-             ".plist", ".xcstrings", ".strings", ".json", ".properties", ".txt"}
+             ".plist", ".xcstrings", ".strings", ".json", ".properties", ".txt", ".xcconfig"}
 
 # Files whose embedded API keys are public by design (Firebase client config).
 PUBLIC_KEY_FILES = {"google-services.json", "GoogleService-Info.plist"}
@@ -260,6 +260,22 @@ CHECKS = [
           "apple-storage-management.md", "swift-memory-storage-pro",
           "Caches go in Caches; offline content in Application Support excluded from backup.",
           skip_tests=True),
+    Check("swift-open-app-when-run", "`openAppWhenRun` is deprecated (iOS 26)",
+          "low", "apple", SWIFT, re.compile(r"\bopenAppWhenRun\b"),
+          "apple-app-intents.md", "app-intents-pro",
+          "Declare static var supportedModes: IntentModes (gate on iOS 26 when the target is lower)."),
+    Check("swift-assistant-schema-macro", "Deprecated `@Assistant*` schema macro",
+          "medium", "apple", SWIFT, re.compile(r"@Assistant(Intent|Entity|Enum)\b"),
+          "apple-app-intents.md", "app-intents-pro",
+          "Rename to @AppIntent / @AppEntity / @AppEnum and keep the schema: argument."),
+    Check("xcconfig-pointer-auth-off", "Pointer authentication turned off",
+          "low", "apple", _exts(".xcconfig"), re.compile(r"^\s*ENABLE_POINTER_AUTHENTICATION\s*=\s*NO\b"),
+          "apple-build-security.md", "xcode-security-pro",
+          "Keep it on; override only on a target linking an arm64e-less binary and record why."),
+    Check("xcconfig-enhanced-security-off", "Enhanced Security explicitly disabled",
+          "medium", "apple", _exts(".xcconfig"), re.compile(r"^\s*ENABLE_ENHANCED_SECURITY\s*=\s*NO\b"),
+          "apple-build-security.md", "xcode-security-pro",
+          "Enable it at project level, or record the reason in docs/xcode-security-settings.md."),
 
     # --- Android -------------------------------------------------------------
     Check("kt-global-scope", "`GlobalScope` outlives every lifecycle",

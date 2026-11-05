@@ -46,7 +46,8 @@
 #                code checks. --topic NAME audits one area and lists only its
 #                rules and skills to read: concurrency, architecture,
 #                accessibility, ui, localization, testing, compliance,
-#                logging, docs, deployment, linting, memory, storage (see
+#                logging, docs, deployment, linting, memory, storage,
+#                intents, security, performance (see
 #                lib/topics.json).
 #   upgrade      3-way diff a prior install vs. the current bundle (plan-only;
 #                add --apply to write). Alias: the --upgrade flag.
@@ -118,7 +119,7 @@
 #                        - recommended (default) → curated subset for most apps:
 #                            core, concurrency, ui, testing, docs,
 #                            error-handling, packaging, logging, localization, linting,
-#                            compliance, memory-storage
+#                            compliance, memory-storage, performance
 #                        - all                   → every category
 #                        - custom CSV, e.g. --features core,testing,docs
 #                        - composable, e.g. --features recommended,ai,persistence
@@ -144,6 +145,7 @@
 #                                           leaks, image decode size, bounded caches, memory
 #                                           pressure, file locations, backup rules, secrets,
 #                                           free space, app size
+#                          performance      Instruments / xctrace profiling and hang triage
 #                          persistence      Core Data under Swift 6
 #                          ai               In-app AI models: Apple Foundation Models (iOS 26+)
 #                                           + Android Gemini Nano / ML Kit GenAI / Firebase AI Logic
@@ -155,6 +157,10 @@
 #                                           versioning, signing, CI patterns, gotchas
 #                          architecture     Android MVVM/UDF + repository pattern
 #                                           (Apple + Android data layer)
+#                          intents          App Intents, App Shortcuts, Siri tools (27.3),
+#                                           AppIntentsTesting, SiriEvaluations
+#                          security         Xcode security warnings, Enhanced Security,
+#                                           hardened-process entitlements, C bounds safety
 #
 #                        Note: apple-objc-best-practices.md is gated solely by
 #                        --apple-language, not --features.

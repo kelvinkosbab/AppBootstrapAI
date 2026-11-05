@@ -64,6 +64,12 @@ file_category() {
             echo "architecture" ;;
         apple-regional-compliance.md|android-regional-compliance.md|store-compliance-pro)
             echo "compliance" ;;
+        apple-app-intents.md|app-intents-pro)
+            echo "intents" ;;
+        apple-build-security.md|xcode-security-pro)
+            echo "security" ;;
+        instruments-profiling-pro)
+            echo "performance" ;;
         apple-objc-best-practices.md)
             echo "objc-gated" ;;
         *)
