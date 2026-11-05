@@ -8,12 +8,9 @@ on:
       - '.claude/skills/**'
       - '.github/scripts/validate-frontmatter.py'
       - '.github/workflows/frontmatter.yml'
-  pull_request:
-    paths:
-      - '.claude/rules/**'
-      - '.claude/skills/**'
-      - '.github/scripts/validate-frontmatter.py'
-      - '.github/workflows/frontmatter.yml'
+  # Pull requests run this through ci.yml, which skips it when no matching
+  # path changed and gates merging on one required check.
+  workflow_call:
 
 jobs:
   validate:

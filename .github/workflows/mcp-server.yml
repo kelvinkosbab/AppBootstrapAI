@@ -8,12 +8,9 @@ on:
       - 'install.sh'
       - 'lib/**'
       - '.github/workflows/mcp-server.yml'
-  pull_request:
-    paths:
-      - 'mcp-server/**'
-      - 'install.sh'
-      - 'lib/**'
-      - '.github/workflows/mcp-server.yml'
+  # Pull requests run this through ci.yml, which skips it when no matching
+  # path changed and gates merging on one required check.
+  workflow_call:
 
 # Why install.sh + lib/ trigger this too: the server reads its category set
 # live from `install.sh --list --json`. A change to the JSON contract that

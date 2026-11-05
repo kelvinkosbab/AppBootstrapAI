@@ -12,16 +12,9 @@ on:
       - 'RENAMES.md'
       - '.github/scripts/install-smoke-test.sh'
       - '.github/workflows/install-smoke-test.yml'
-  pull_request:
-    paths:
-      - 'install.sh'
-      - 'lib/**'
-      - 'templates/**'
-      - '.claude/**'
-      - 'mcp-recipes/**'
-      - 'RENAMES.md'
-      - '.github/scripts/install-smoke-test.sh'
-      - '.github/workflows/install-smoke-test.yml'
+  # Pull requests run this through ci.yml, which skips it when no matching
+  # path changed and gates merging on one required check.
+  workflow_call:
 
 jobs:
   smoke-test:

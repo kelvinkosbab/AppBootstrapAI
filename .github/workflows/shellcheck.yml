@@ -9,13 +9,9 @@ on:
       - 'scripts/**.sh'
       - '.github/scripts/**.sh'
       - '.github/workflows/shellcheck.yml'
-  pull_request:
-    paths:
-      - 'install.sh'
-      - 'lib/**.sh'
-      - 'scripts/**.sh'
-      - '.github/scripts/**.sh'
-      - '.github/workflows/shellcheck.yml'
+  # Pull requests run this through ci.yml, which skips it when no matching
+  # path changed and gates merging on one required check.
+  workflow_call:
 
 jobs:
   shellcheck:
