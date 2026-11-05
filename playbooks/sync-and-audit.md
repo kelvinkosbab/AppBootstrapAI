@@ -70,7 +70,8 @@ Then:
 "$BUNDLE/install.sh" audit "$TARGET" --json
 ```
 
-Then follow steps 3 to 5 of [`audit.md`](audit.md): triage each finding
+For a request about one area ("only concurrency"), add `--topic <name>`; see
+step 2 of [`audit.md`](audit.md). Then follow steps 3 to 5 of [`audit.md`](audit.md): triage each finding
 against its rule, run the deep reviews in `skills_to_run`, and review the
 project's own AI steering files. That file also describes the JSON fields and
 the audit baseline.

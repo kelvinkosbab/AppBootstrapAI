@@ -20,6 +20,12 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **`install.sh audit --topic <name>`** audits one area. `lib/topics.json`
+  maps each topic (`concurrency`, `architecture`) to its rules and skills;
+  the audit keeps only that area's findings and deep reviews, skips the
+  steering review, and lists the files to read in `topic`, so an agent never
+  loads the rest of the bundle for a single-area audit.
+
 - **Android large screens, updated for Android 17 and desktop windows.**
   `android-large-screen-best-practices.md` now covers Android 17 removing the
   large-screen opt-out (`PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY`),

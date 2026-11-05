@@ -2036,6 +2036,36 @@ set +e; "$INSTALL" upgrade . --steering-only > /dev/null 2>&1; rc=$?; set -e
 [[ "$rc" -ne 0 ]] && PASS=$((PASS + 1)) \
     || { red "FAIL: --steering-only without audit should error"; FAIL=$((FAIL + 1)); }
 
+bold "==> audit --topic: keeps one area's findings, skills, and files to read"
+t="$(mktemp -d)"
+mkdir -p "$t/Sources/App"
+printf 'final class Box: @unchecked Sendable {}\nlet w = UIScreen.main.bounds\n' > "$t/Sources/App/A.swift"
+conc="$("$INSTALL" audit "$t" --no-install-check --no-baseline --topic concurrency --json 2>&1)"
+arch="$("$INSTALL" audit "$t" --no-install-check --no-baseline --topic architecture --json 2>&1)"
+if python3 -c "
+import json, sys
+c, a = json.loads(sys.argv[1]), json.loads(sys.argv[2])
+ids = [f['id'] for f in c['findings']]
+assert 'swift-unchecked-sendable' in ids and 'swift-uiscreen-main' not in ids, ids
+assert c['topic']['name'] == 'concurrency' and c['steering'] is None
+assert {s['skill'] for s in c['skills_to_run']} <= set(c['topic']['skills'])
+assert all(__import__('os').path.isfile(p) for p in c['topic']['rule_paths'] + c['topic']['skill_paths'])
+assert not a['findings'] and 'swift-modularization-pro' in [s['skill'] for s in a['skills_to_run']]
+" "$conc" "$arch" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: audit --topic should keep only that topic's findings and skills"
+    FAIL=$((FAIL + 1))
+fi
+set +e
+"$INSTALL" audit "$t" --topic nope > /dev/null 2>&1; r1=$?
+"$INSTALL" upgrade . --topic concurrency > /dev/null 2>&1; r2=$?
+"$INSTALL" audit "$t" --topic concurrency --steering-only > /dev/null 2>&1; r3=$?
+set -e
+[[ "$r1" -ne 0 && "$r2" -ne 0 && "$r3" -ne 0 ]] && PASS=$((PASS + 1)) \
+    || { red "FAIL: --topic should reject unknown names, non-audit verbs, and --steering-only"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
 bold "==> audit baseline: flags are audit-only and validated"
 set +e
 "$INSTALL" upgrade . --write-baseline > /dev/null 2>&1; r1=$?

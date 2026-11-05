@@ -62,6 +62,13 @@ If the user only asked about their AI rules or steering files ("audit my
 CLAUDE.md"), add `--steering-only`: it skips the code checks and deep reviews,
 and you go straight from step 3 to step 5.
 
+If the user asked about one area ("audit our concurrency", "review the
+architecture"), add `--topic <name>` (names in `lib/topics.json`). The output
+gains a `topic` object whose `rule_paths` and `skill_paths` are the only
+guidance files to read, findings and `skills_to_run` are limited to that area,
+and the steering review (step 5) is skipped. Don't open other rules or skills
+unless the user widens the request.
+
 If the repo has an audit baseline (`.claude/appbootstrap-audit-baseline.json`),
 findings it accepts move to `baseline.suppressed` and a finding with new
 occurrences shows `baselined` (the accepted count). Triage only what's left.

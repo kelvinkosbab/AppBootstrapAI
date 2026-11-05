@@ -17,7 +17,7 @@ Invoked by install.sh's `audit` verb:
         --bundle-commit SHA --recommended "<cats>" --all "<cats>" \\
         [--json] [--fail-on high|medium|low] \\
         [--baseline PATH | --no-baseline] [--write-baseline [--baseline-reason TEXT]] \\
-        [--no-install-check] [--steering-only]
+        [--no-install-check] [--steering-only] [--topic NAME]
 
 --no-install-check drops the "not installed / outdated" findings, for auditing
 a repo without adopting the bundle (playbooks/audit.md).
@@ -26,6 +26,10 @@ The repo's own AI steering files (CLAUDE.md, AGENTS.md, Cursor/Copilot/Kiro
 rules, skills, settings) are checked too; see lib/steering.py. Their findings
 have ids starting with `steering-`, and the `steering` key inventories the
 files. --steering-only skips the code checks and reports just those.
+
+--topic NAME (from lib/topics.json, e.g. concurrency or architecture) keeps
+only the findings and deep reviews for that area and lists the rule and skill
+files to read, so a single-area audit loads only that area's guidance.
 
 A baseline (default .claude/appbootstrap-audit-baseline.json) records
 accepted findings as per-file counts, each with a reason. Baselined findings
@@ -55,6 +59,12 @@ SEV_RANK = {s: i for i, s in enumerate(SEVERITIES)}
 MAX_LOCATIONS = 5
 MAX_READ_BYTES = 2_000_000
 DEFAULT_BASELINE = os.path.join(".claude", "appbootstrap-audit-baseline.json")
+TOPICS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "topics.json")
+
+
+def load_topics() -> dict:
+    with open(TOPICS_PATH, encoding="utf-8") as fh:
+        return {k: v for k, v in json.load(fh).items() if not k.startswith("_")}
 # Install-state findings are fixed by running the installer, never accepted.
 UNBASELINABLE = {"bundle-outdated", "bundle-not-installed"}
 
@@ -609,7 +619,7 @@ def write_baseline(path, ordered, previous, reason):
 
 def build(target, bundle, bundle_commit, recommended, all_cats,
           baseline_path=None, write_baseline_reason=None, install_check=True,
-          steering_only=False):
+          steering_only=False, topic=None):
     target = os.path.abspath(target)
     rec = recommend.build(target, recommended, all_cats, os.path.join(bundle, "install.sh"))
     platform = rec["platform"] or ""
@@ -623,7 +633,7 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
         # Project-shape checks need to know the platform; skip them when it's unknown.
         _structural(target, platforms if platform else set(), facts, findings, kind)
     steering_summary = None
-    if os.path.isdir(target):
+    if os.path.isdir(target) and not topic:
         s_findings, steering_summary = steering.run(
             target, bundle, platforms if platform else set(), _manifest_files(target), SECRET_PATTERN)
         for sf in s_findings:
@@ -632,8 +642,15 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
                 f.add(loc)
             findings[f.id] = f
     status, bundle_findings = bundle_status(target, rec, bundle_commit)
-    if not install_check or steering_only:
+    if not install_check or steering_only or topic:
         bundle_findings = []
+    topic_info = _topic_info(topic, platforms, bundle) if topic else None
+    if topic_info:
+        rules, skills_in = set(topic_info["rules"]), set(topic_info["skills"])
+        findings = {k: f for k, f in findings.items() if f.rule in rules or f.skill in skills_in}
+        topic_ids = set(findings) | {
+            c.id for c in CHECKS
+            if c.skill in skills_in or rules & set(c.rule.values() if isinstance(c.rule, dict) else [c.rule])}
 
     installed_paths = _installed_paths(target)
     ordered = bundle_findings + sorted(findings.values(),
@@ -648,6 +665,9 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
             previous = load_baseline(baseline_path)
             baseline_info = {"written": True, "entries_written": len(entries)}
         ordered, accepted, stale = apply_baseline(ordered, previous)
+        if topic_info:
+            # Other topics' entries weren't checked, so they aren't stale.
+            stale = [s for s in stale if s["id"] in topic_ids]
         if previous or baseline_info:
             baseline_info = dict(baseline_info or {}, **{
                 "path": baseline_path,
@@ -658,7 +678,7 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
             })
 
     checks = [_finding_json(f, bundle, installed_paths) for f in ordered]
-    skills = [] if steering_only else _skill_plan(ordered, platforms, mode, kind, bundle)
+    skills = [] if steering_only else _skill_plan(ordered, platforms, mode, kind, bundle, topic_info)
     summary = {s: sum(1 for f in ordered if f.severity == s) for s in SEVERITIES}
 
     return {
@@ -672,6 +692,7 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
         "summary": summary,
         "findings": checks,
         "skills_to_run": skills,
+        "topic": topic_info,
         "steering": steering_summary,
         "baseline": baseline_info,
         "playbook": os.path.join(bundle, "playbooks",
@@ -704,12 +725,28 @@ def _finding_json(f: Finding, bundle, installed_paths):
     return d
 
 
-def _skill_plan(ordered, platforms, mode, kind, bundle):
+def _topic_info(name, platforms, bundle):
+    """The rules and skills for one audit topic, limited to the repo's platforms."""
+    spec = load_topics()[name]
+    rules = [r for p in sorted(platforms) for r in spec["rules"].get(p, [])]
+    skills = [s for p in sorted(platforms) for s in spec["skills"].get(p, [])]
+    return {
+        "name": name,
+        "description": spec["description"],
+        "rules": rules,
+        "skills": skills,
+        "rule_paths": [os.path.join(bundle, ".claude", "rules", r) for r in rules],
+        "skill_paths": [os.path.join(bundle, ".claude", "skills", s, "SKILL.md") for s in skills],
+    }
+
+
+def _skill_plan(ordered, platforms, mode, kind, bundle, topic_info=None):
     plan, seen = [], set()
+    allowed = set(topic_info["skills"]) if topic_info else None
 
     def add(name, reason, files):
         path = os.path.join(bundle, ".claude", "skills", name, "SKILL.md")
-        if name in seen or not os.path.isfile(path):
+        if name in seen or not os.path.isfile(path) or (allowed is not None and name not in allowed):
             return
         seen.add(name)
         plan.append({"skill": name, "skill_path": path, "reason": reason, "files": files})
@@ -717,6 +754,10 @@ def _skill_plan(ordered, platforms, mode, kind, bundle):
     for f in ordered:
         if f.skill:
             add(f.skill, f"{f.severity}: {f.title}", f.locations)
+    if topic_info:
+        for name in topic_info["skills"]:
+            add(name, f"{topic_info['name']} review", [])
+        return plan
     if kind == "package":
         extra, label = PACKAGE_SKILLS, "baseline deep review (library)"
     elif mode == "new":
@@ -738,6 +779,7 @@ def render_human(r) -> str:
            f"    install:   {r['install']['state']}"
            + ("" if r["install"]["up_to_date"] is None
               else ("  (up to date)" if r["install"]["up_to_date"] else "  (upgrade available)")),
+           *([f"    topic:     {r['topic']['name']} ({', '.join(r['topic']['rules'])})"] if r.get("topic") else []),
            "    findings:  " + ", ".join(f"{r['summary'][s]} {s}" for s in SEVERITIES), ""]
     for f in r["findings"]:
         tag = f"[{f['severity']}]"
@@ -801,7 +843,13 @@ def main(argv=None) -> int:
                     help="skip the bundle install-state findings (audit without adopting)")
     ap.add_argument("--steering-only", action="store_true",
                     help="check only the repo's AI steering files, not its code")
+    ap.add_argument("--topic", choices=sorted(load_topics()),
+                    help="audit one area only (findings, deep reviews, and files to read)")
     args = ap.parse_args(argv)
+    if args.topic and (args.steering_only or args.write_baseline):
+        print("error: --topic can't be combined with --steering-only or --write-baseline",
+              file=sys.stderr)
+        return 1
 
     if not os.path.isdir(args.target):
         print(f"error: target directory does not exist: {args.target}", file=sys.stderr)
@@ -812,7 +860,8 @@ def main(argv=None) -> int:
     r = build(args.target, os.path.abspath(args.bundle), args.bundle_commit,
               args.recommended.split(), args.all.split(), baseline_path,
               args.baseline_reason if args.write_baseline else None,
-              install_check=not args.no_install_check, steering_only=args.steering_only)
+              install_check=not args.no_install_check, steering_only=args.steering_only,
+              topic=args.topic)
     print(json.dumps(r, indent=2) if args.json else render_human(r))
     if args.fail_on:
         limit = SEV_RANK[args.fail_on]
