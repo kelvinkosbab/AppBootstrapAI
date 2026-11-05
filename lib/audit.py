@@ -728,8 +728,9 @@ def _finding_json(f: Finding, bundle, installed_paths):
 def _topic_info(name, platforms, bundle):
     """The rules and skills for one audit topic, limited to the repo's platforms."""
     spec = load_topics()[name]
-    rules = [r for p in sorted(platforms) for r in spec["rules"].get(p, [])]
-    skills = [s for p in sorted(platforms) for s in spec["skills"].get(p, [])]
+    keys = sorted(platforms) + ["shared"]
+    rules = [r for p in keys for r in spec["rules"].get(p, [])]
+    skills = [s for p in keys for s in spec["skills"].get(p, [])]
     return {
         "name": name,
         "description": spec["description"],

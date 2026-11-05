@@ -55,7 +55,9 @@ run a shell can follow it.
 After an install, users start it with **`/appbootstrap-sync`** (Claude Code,
 Cursor, Copilot, Gemini CLI). The command finds the bundle through `bundle.path`
 / `bundle.repo` in `.claude/.appbootstrap-manifest.json` (or
-`$APPBOOTSTRAP_BUNDLE`), so no path is needed. Accepted findings live in
+`$APPBOOTSTRAP_BUNDLE`), so no path is needed. **`/appbootstrap-audit <topic>`**
+runs a read-only audit of one area (`install.sh audit --topic`), loading only
+that topic's rules and skills from `lib/topics.json`. Accepted findings live in
 `.claude/appbootstrap-audit-baseline.json` and don't fail `--fail-on`.
 
 ## Commands (verbs; each has a `--flag` alias, so old scripts keep working)

@@ -169,7 +169,7 @@ def _owner(rel, text, manifest_types, bundle_rules, bundle_skills):
     m = re.match(r"\.claude/skills/([^/]+)/", rel)
     if m and m.group(1) in bundle_skills:
         return "bundle"
-    if "appbootstrap-sync" in rel:
+    if "appbootstrap-sync" in rel or "appbootstrap-audit" in rel:
         return "bundle"
     return "project"
 

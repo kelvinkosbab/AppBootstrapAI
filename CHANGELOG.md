@@ -24,7 +24,14 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   maps each topic (`concurrency`, `architecture`) to its rules and skills;
   the audit keeps only that area's findings and deep reviews, skips the
   steering review, and lists the files to read in `topic`, so an agent never
-  loads the rest of the bundle for a single-area audit.
+  loads the rest of the bundle for a single-area audit. Topics:
+  `concurrency`, `architecture`, `accessibility`, `ui`, `localization`,
+  `testing`, `compliance`, `logging`, `docs`, `deployment`, `linting`.
+  `validate-frontmatter.py` checks that every rule and skill a topic names
+  exists.
+- **`/appbootstrap-audit <topic>`** is installed next to `/appbootstrap-sync`
+  for Claude Code, Cursor, Copilot, and Gemini CLI. It runs the topic audit
+  read-only and reports in chat; with no topic it lists them.
 
 ### Changed
 
