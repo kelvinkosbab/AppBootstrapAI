@@ -20,8 +20,8 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 
 | Area | What's inside |
 |------|---------------|
-| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
-| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta · regional store compliance |
+| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
+| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta · regional store compliance |
 | **Skills (Claude)** | 13 Apple + 9 Android + 2 cross-platform on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
@@ -744,12 +744,12 @@ See [CLAUDE.md](CLAUDE.md) for:
 
 ## Roadmap
 
-**Shipped:** 10 Apple skills (concurrency, testing, SwiftUI, accessibility, Core Data, SwiftData, DocC, error handling, logging, SPM) and 6 Android skills (Compose, coroutines/Flow, accessibility, Gradle architecture, XML-to-Compose migration, R8/ProGuard); 30 rules loaded equally by `globs` — there is no "primary" platform in the bundle's design.
+**Shipped:** 45 rules (22 Apple, 19 Android, 4 cross-platform) and 24 skills (13 Apple, 9 Android, 2 cross-platform), all loaded equally by `globs` — there is no "primary" platform in the bundle's design.
 
 **Next — closing the day-one gaps for new app developers:**
 
 - Navigation rules for both platforms (`NavigationStack` / Navigation-Compose) — the first architectural decision a new app makes, and where AI agents still emit deprecated patterns.
-- Apple app-target hygiene (usage-description keys, dev signing, simulator-vs-device) and Android permissions/manifest + persistence (Room / DataStore) rules.
+- Apple app-target hygiene (dev signing, simulator-vs-device) and Android permissions/manifest + persistence (Room / DataStore) rules.
 - `android-testing-pro` (JUnit/MockK/Turbine/Compose-test review) to match `swift-testing-pro`.
 - Networking and release-readiness review skills; a day-one walkthrough from empty directory to first build.
 - Git task-switching + merged-branch cleanup shortcuts (rule + `scripts/` installer).
