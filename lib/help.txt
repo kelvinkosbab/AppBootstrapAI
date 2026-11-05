@@ -196,16 +196,16 @@
 #                        Default: claude. Additive — pass multiple to cover a
 #                        mixed team in one install. Accepted tokens:
 #                          claude   → .claude/rules/, .claude/skills/, CLAUDE.md  (today's default)
-#                          copilot  → .github/copilot-instructions.md  (concat of in-scope rules)
+#                          copilot  → .github/instructions/<name>.instructions.md (per-rule; applyTo)
 #                          cursor   → .cursor/rules/<name>.mdc          (per-rule files)
-#                          gemini   → GEMINI.md                          (concat of in-scope rules)
-#                          codex    → AGENTS.md                          (concat of in-scope rules)
+#                          gemini   → GEMINI.md + .claude/rules/          (index of in-scope rules)
+#                          codex    → AGENTS.md + .claude/rules/          (index of in-scope rules)
 #                          kiro     → .kiro/steering/<name>.md           (per-rule; fileMatch frontmatter)
 #                          all      → every agent above
 #                        Skills are Claude-only — non-Claude agents get rules
 #                        only. Existing agent files are NEVER overwritten by
 #                        install; --upgrade does 3-way diff like any other
-#                        tracked file. Concat files are deterministic for
+#                        tracked file. Generated files are deterministic for
 #                        the same --platform / --apple-language / --features.
 #
 #   --with-mcps <csv>    Comma-separated list of MCP recipes to add to the

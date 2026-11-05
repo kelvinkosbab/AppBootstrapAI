@@ -5,8 +5,8 @@
 # section in the package: TARGET resolution + dir check, install-header echo,
 # record_install / record_install_meta helpers, INSTALLED_FILES + INSTALLED_MCPS_*
 # globals, per-agent install paths (Claude rules+skills+settings+CLAUDE.md;
-# Copilot / Gemini / Codex concat files via install_agent_concat helper; Cursor
-# per-rule .mdc files), .gitignore append, write_manifest function (v2 schema
+# Copilot per-rule .instructions.md files and Gemini / Codex rule indexes via
+# install_agent_generated; Cursor per-rule .mdc files), .gitignore append, write_manifest function (v2 schema
 # with hashes + bundle_commit + selection + mcps_installed). The actual MCP
 # merge + manifest write happen later via lib/install_mcps.sh.
 
@@ -131,7 +131,6 @@ act "create $TARGET/.claude (for manifest)" mkdir -p "$TARGET/.claude"
 
 # ----- Claude agent install (default) ----------------------------------------
 if agents_has claude; then
-    act "create $TARGET/.claude/rules"  mkdir -p "$TARGET/.claude/rules"
     act "create $TARGET/.claude/skills" mkdir -p "$TARGET/.claude/skills"
 
     # Skills — copy each individually based on platform/language/features filter.
@@ -160,19 +159,6 @@ if agents_has claude; then
         echo "--> Skipping skills (not in scope for current selection)"
     fi
 
-    # Rules → .claude/rules/.
-    echo "--> Copying rules (.claude/rules/)"
-    shopt -s nullglob
-    for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
-        name="$(basename "$f")"
-        if should_install_rule "$name"; then
-            cat="$(file_category "$name")"
-            [[ -z "$cat" ]] && cat="-"
-            act "copy rule $name" cp "$f" "$TARGET/.claude/rules/$name"
-            record_install ".claude/rules/$name" "rule" "$cat" "$f"
-        fi
-    done
-
     # settings.json — never overwrite.
     if [[ ! -f "$TARGET/.claude/settings.json" ]]; then
         act "copy settings.json" cp "$SCRIPT_DIR/.claude/settings.json" "$TARGET/.claude/settings.json"
@@ -198,52 +184,77 @@ if agents_has claude; then
     fi
 fi
 
+# Rules → .claude/rules/. Claude reads them directly; the Gemini and Codex
+# index files point at them, so those agents need them on disk too.
+if agents_has claude || agents_has gemini || agents_has codex; then
+    act "create $TARGET/.claude/rules" mkdir -p "$TARGET/.claude/rules"
+    echo "--> Copying rules (.claude/rules/)"
+    shopt -s nullglob
+    for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
+        name="$(basename "$f")"
+        if should_install_rule "$name"; then
+            cat="$(file_category "$name")"
+            [[ -z "$cat" ]] && cat="-"
+            act "copy rule $name" cp "$f" "$TARGET/.claude/rules/$name"
+            record_install ".claude/rules/$name" "rule" "$cat" "$f"
+        fi
+    done
+fi
+
 # ----- Non-Claude agents ------------------------------------------------------
 #
 # Each non-Claude agent gets its own set of files derived from the in-scope
 # rules. Skills are skipped (Claude-only). Existing files are NEVER
 # overwritten — same policy as CLAUDE.md / settings.json.
 #
-# install_agent_concat <agent_tag> <rel_path> <banner_purpose>
-# Writes a deterministic concat to <TARGET>/<rel_path> via concat_in_scope_rules.
-install_agent_concat() {
-    local agent_tag="$1" rel_path="$2" banner_purpose="$3"
+# install_agent_generated <agent_tag> <rel_path> <category> <generator> [args…]
+# Writes the generator's stdout to <TARGET>/<rel_path> and records its hash.
+install_agent_generated() {
+    local agent_tag="$1" rel_path="$2" cat="$3"; shift 3
     local dst="$TARGET/$rel_path"
     if [[ -f "$dst" ]]; then
-        echo "--> Skipping $rel_path (already exists — merge manually)"
+        echo "    skipping $rel_path (already exists — merge manually)"
         return
     fi
-    # Stage the concat in a temp file so we can:
-    #   - hash it
-    #   - record it in the manifest with that hash
-    #   - move it into place (or skip under dry-run)
+    # Stage in a temp file so we can hash it, record it, and move it into
+    # place (or skip under dry-run).
     local tmp; tmp="$(mktemp)"
-    concat_in_scope_rules "$banner_purpose" > "$tmp"
-    act "create $rel_path (concat of in-scope rules)" mkdir -p "$(dirname "$dst")"
+    "$@" > "$tmp"
     if [[ "$DRY_RUN" == "true" ]]; then
         echo "[dry-run] would write $rel_path ($(wc -l < "$tmp" | tr -d ' ') lines)"
         # Still record under dry-run so the count is accurate.
-        record_install "$rel_path" "agent-file-$agent_tag" "-" "$tmp"
+        record_install "$rel_path" "agent-file-$agent_tag" "$cat" "$tmp"
     else
+        mkdir -p "$(dirname "$dst")"
         mv "$tmp" "$dst"
-        record_install "$rel_path" "agent-file-$agent_tag" "-" "$dst"
+        record_install "$rel_path" "agent-file-$agent_tag" "$cat" "$dst"
     fi
     rm -f "$tmp"
 }
 
 if agents_has copilot; then
-    echo "--> Installing for GitHub Copilot (.github/copilot-instructions.md)"
-    install_agent_concat "copilot" ".github/copilot-instructions.md" "GitHub Copilot"
+    # One path-scoped .github/instructions/<rule>.instructions.md per rule
+    # (applyTo from the rule's globs), plus a short copilot-instructions.md.
+    echo "--> Installing for GitHub Copilot (.github/instructions/*.instructions.md)"
+    install_agent_generated "copilot" ".github/copilot-instructions.md" "-" copilot_entry_file
+    shopt -s nullglob
+    for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
+        name="$(basename "$f")"
+        should_install_rule "$name" || continue
+        cat="$(file_category "$name")"; [[ -z "$cat" ]] && cat="-"
+        install_agent_generated "copilot" ".github/instructions/${name%.md}.instructions.md" "$cat" \
+            copilot_instructions_from_rule "$f"
+    done
 fi
 
 if agents_has gemini; then
-    echo "--> Installing for Gemini CLI (GEMINI.md)"
-    install_agent_concat "gemini" "GEMINI.md" "Gemini CLI"
+    echo "--> Installing for Gemini CLI (GEMINI.md index of .claude/rules/)"
+    install_agent_generated "gemini" "GEMINI.md" "-" index_in_scope_rules "Gemini CLI"
 fi
 
 if agents_has codex; then
-    echo "--> Installing for Codex / generic agents (AGENTS.md)"
-    install_agent_concat "codex" "AGENTS.md" "Codex CLI and other AGENTS.md-aware tools"
+    echo "--> Installing for Codex / generic agents (AGENTS.md index of .claude/rules/)"
+    install_agent_generated "codex" "AGENTS.md" "-" index_in_scope_rules "Codex CLI and other AGENTS.md-aware tools"
 fi
 
 if agents_has cursor; then
@@ -275,7 +286,7 @@ if agents_has kiro; then
     # `inclusion: fileMatch` + `fileMatchPattern` frontmatter (see
     # kiro_steering_from_rule in lib/predicates.sh). The frontmatter is rewritten
     # from each rule's globs, so the file is generated — we hash the generated
-    # output (like the concat agents), not the source rule.
+    # output (like the Copilot files), not the source rule.
     echo "--> Installing for Kiro (.kiro/steering/*.md)"
     act "create $TARGET/.kiro/steering" mkdir -p "$TARGET/.kiro/steering"
     shopt -s nullglob
