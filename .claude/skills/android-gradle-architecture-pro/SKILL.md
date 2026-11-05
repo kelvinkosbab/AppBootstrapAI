@@ -18,6 +18,7 @@ Review process:
 4. Validate the multi-module graph using `references/multi-module-graph.md` — `:app` + `:feature:*` + `:data:*` + `:core:*` shape, dependency direction.
 5. Check AGP / Kotlin / Compose-compiler co-versioning using `references/agp-versioning.md`.
 6. Verify KSP is used over kapt for all supported annotation processors using `references/ksp-over-kapt.md`.
+7. Check build-script mechanics (DSL, catalog use, toolchain, `api` vs `implementation`, publishing, committed files) using `references/build-script-conventions.md`.
 
 If doing a partial review, load only the relevant reference files.
 
@@ -96,3 +97,4 @@ End of example.
 - `references/multi-module-graph.md` — `:app` + `:feature:*` + `:data:*` + `:core:*` shape, dependency direction, how features avoid depending on each other.
 - `references/agp-versioning.md` — AGP/Kotlin/Compose-compiler version matrix (AGP 8.x), the Kotlin 2.0+ Compose plugin model, common upgrade pitfalls.
 - `references/ksp-over-kapt.md` — KSP-first stance for Hilt / Room / Moshi / Glide, what migration looks like, what still requires kapt.
+- `references/build-script-conventions.md` — Full build-script conventions: Kotlin DSL, catalog migration, plugin stack, SDK levels, `jvmToolchain`, `api` vs `implementation`, composite builds, library modules, Maven publishing, wrapper and lockfiles.

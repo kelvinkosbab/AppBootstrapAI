@@ -26,6 +26,14 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   steering review, and lists the files to read in `topic`, so an agent never
   loads the rest of the bundle for a single-area audit.
 
+### Changed
+
+- **`apple-spm-package-conventions.md` and `android-gradle-conventions.md`
+  are now short checklists** (about 3 KB each, down from 24 KB). Their full
+  text moved unchanged into `swift-package-pro/references/manifest-conventions.md`
+  and `android-gradle-architecture-pro/references/build-script-conventions.md`,
+  which load only during a manifest or build review.
+
 - **Android large screens, updated for Android 17 and desktop windows.**
   `android-large-screen-best-practices.md` now covers Android 17 removing the
   large-screen opt-out (`PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY`),
