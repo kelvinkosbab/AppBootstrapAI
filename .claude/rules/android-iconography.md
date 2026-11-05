@@ -1,6 +1,8 @@
 ---
 description: Android iconography — Material Symbols as vector drawables behind a typed AppIcons object, icon sizing and tinting via LocalContentColor, RTL auto-mirroring, icon accessibility, adaptive launcher icons with a monochrome layer for themed icons, notification icons, and the splash-screen icon
 globs: "**/*.{kt,kts,xml}"
+paths:
+  - "**/*.{kt,kts,xml}"
 ---
 
 # Android Iconography

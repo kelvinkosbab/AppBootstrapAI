@@ -1,6 +1,8 @@
 ---
 description: Adaptive layout for resizable iOS apps and iPhone Duo — size classes over idiom, the iOS 27 resizability default, the UIScene mandate, multitasking and multiple windows, ArrangementView and hinge APIs, reserved regions, vertical bars, zero UIKit layout margins, fold continuity, and Device Hub testing
 globs: "**/*.{swift,h,m,mm}"
+paths:
+  - "**/*.{swift,h,m,mm}"
 ---
 
 # Apple Adaptive Layout (Resizable Apps & iPhone Duo)

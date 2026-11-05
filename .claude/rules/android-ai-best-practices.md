@@ -1,6 +1,8 @@
 ---
 description: Enforce patterns for on-device and cloud AI models in Android apps — Gemini Nano / ML Kit GenAI, Firebase AI Logic, streaming into Compose, availability gating, key safety, testability
 globs: "**/*.{kt,kts}"
+paths:
+  - "**/*.{kt,kts}"
 ---
 
 # Android AI Best Practices

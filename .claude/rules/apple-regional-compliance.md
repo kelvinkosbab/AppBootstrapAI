@@ -1,6 +1,9 @@
 ---
 description: Region-specific App Store rules for Apple apps — storefront availability, China mainland (ICP filing, generative-AI and third-party AI brand mentions, game licenses, CallKit), EU trader status, storefront-based feature gating with StoreKit, neutral per-region metadata, and answering a regional rejection
 globs: "**/{*.swift,*.xcstrings,*.strings,Info.plist,*.entitlements,PrivacyInfo.xcprivacy,Fastfile,Deliverfile},**/fastlane/metadata/**"
+paths:
+  - "**/{*.swift,*.xcstrings,*.strings,Info.plist,*.entitlements,PrivacyInfo.xcprivacy,Fastfile,Deliverfile}"
+  - "**/fastlane/metadata/**"
 ---
 
 # Apple Regional Compliance

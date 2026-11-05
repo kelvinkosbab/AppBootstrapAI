@@ -1,6 +1,8 @@
 ---
 description: Test strategy and coverage discipline for Apple platforms — what to test, naming, determinism, mocking, Swift Testing vs XCTest split, and CI coverage gates
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Apple Testing Strategy & Coverage

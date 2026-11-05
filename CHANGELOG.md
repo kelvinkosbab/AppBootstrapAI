@@ -8,6 +8,16 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Claude Code rules are path-scoped again.** Claude Code scopes
+  `.claude/rules/*.md` by a `paths:` list and ignores `globs:`, so every
+  installed rule loaded in every session (about 50k tokens for an Apple
+  install). Each rule now carries a `paths:` list matching its `globs:`
+  (kept for Cursor and Kiro), and `validate-frontmatter.py` fails when the
+  two drift. The TestFlight and Play beta rules no longer match every YAML
+  file, only CI configs.
+
 ### Added
 
 - **Android large screens, updated for Android 17 and desktop windows.**

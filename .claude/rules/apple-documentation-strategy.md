@@ -1,6 +1,8 @@
 ---
 description: Documentation strategy for Apple — what to document (and what not), DocC discipline, deprecation, samples, articles. Complements swift-docc-pro (mechanics review).
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Apple Documentation Strategy

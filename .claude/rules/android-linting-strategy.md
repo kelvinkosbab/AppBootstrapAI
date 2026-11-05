@@ -1,6 +1,8 @@
 ---
 description: ktlint + detekt + Android Lint strategy for Android projects — distinct jobs of each tool, .editorconfig / detekt.yml / lint.xml config, baselines, suppression hygiene, CI placement, version pinning
 globs: "**/{*.kt,*.kts,.editorconfig,detekt.yml,detekt-baseline.xml,lint.xml,lint-baseline.xml,build.gradle.kts,build.gradle}"
+paths:
+  - "**/{*.kt,*.kts,.editorconfig,detekt.yml,detekt-baseline.xml,lint.xml,lint-baseline.xml,build.gradle.kts,build.gradle}"
 ---
 
 # Android Linting Strategy

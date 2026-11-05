@@ -1,6 +1,8 @@
 ---
 description: Enforce modern Objective-C conventions — ARC, nullability, generics, properties, designated initializers, and Swift interop
 globs: "**/*.{h,m,mm}"
+paths:
+  - "**/*.{h,m,mm}"
 ---
 
 # Modern Objective-C Best Practices

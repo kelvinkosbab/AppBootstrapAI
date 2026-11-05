@@ -1,6 +1,24 @@
 ---
 description: How to write, scope, and maintain a project's AI steering files (CLAUDE.md, AGENTS.md, GEMINI.md, Copilot / Cursor / Kiro rules, skills) so every agent gets short, true, project-specific guidance
 globs: "CLAUDE.md,**/CLAUDE.md,CLAUDE.local.md,AGENTS.md,**/AGENTS.md,GEMINI.md,.cursorrules,.windsurfrules,.github/copilot-instructions.md,.github/instructions/**,.cursor/rules/**,.kiro/steering/**,.claude/rules/**,.claude/skills/**,.claude/agents/**,.claude/commands/**,.claude/settings.json"
+paths:
+  - "CLAUDE.md"
+  - "**/CLAUDE.md"
+  - "CLAUDE.local.md"
+  - "AGENTS.md"
+  - "**/AGENTS.md"
+  - "GEMINI.md"
+  - ".cursorrules"
+  - ".windsurfrules"
+  - ".github/copilot-instructions.md"
+  - ".github/instructions/**"
+  - ".cursor/rules/**"
+  - ".kiro/steering/**"
+  - ".claude/rules/**"
+  - ".claude/skills/**"
+  - ".claude/agents/**"
+  - ".claude/commands/**"
+  - ".claude/settings.json"
 ---
 
 # AI Steering Files
@@ -42,7 +60,7 @@ Leave out:
 
   | Agent | File | Scoping |
   |---|---|---|
-  | Claude Code | `.claude/rules/*.md` | `globs:` (or `paths:`) frontmatter; no scope = always loaded |
+  | Claude Code | `.claude/rules/*.md` | `paths:` YAML list (`globs:` is not read); no `paths:` = always loaded |
   | Claude Code | `.claude/skills/<name>/SKILL.md` | `name:` + `description:` (the description decides when it loads) |
   | Claude Code | nested `CLAUDE.md` | loaded when working in that directory |
   | Cursor | `.cursor/rules/*.mdc` | `description`, `globs`, `alwaysApply` |

@@ -1,6 +1,8 @@
 ---
 description: Localization conventions for Android — strings.xml discipline, stringResource / pluralStringResource, plurals, positional format args, locale-aware formatters, RTL with start/end, translator context.
 globs: "**/*.{kt,kts,xml}"
+paths:
+  - "**/*.{kt,kts,xml}"
 ---
 
 # Android Localization Best Practices

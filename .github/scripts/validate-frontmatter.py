@@ -5,7 +5,8 @@ Validate YAML frontmatter on every .claude/rules/*.md and
 mentioned in a SKILL.md body actually exists on disk.
 
 Catches the silent-bad mode where a rule loads with no scope (missing
-globs:), or a skill claims to load reference docs that were renamed/
+globs:, or a paths: list that drifted from it — Claude Code scopes rules by
+paths: only, so a rule without it loads in every session), or a skill claims to load reference docs that were renamed/
 deleted without updating the SKILL.md.
 
 Exits 1 with a list of problems if anything fails; exits 0 otherwise.
@@ -25,7 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 RULES_DIR = REPO_ROOT / ".claude" / "rules"
 SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
 
-REQUIRED_RULE_KEYS = ("description", "globs")
+REQUIRED_RULE_KEYS = ("description", "globs", "paths")
 REQUIRED_SKILL_KEYS = ("name", "description", "license")
 
 
@@ -42,6 +43,34 @@ def split_frontmatter(text: str) -> str | None:
 
 def has_key(frontmatter: str, key: str) -> bool:
     return bool(re.search(rf"^{re.escape(key)}\s*:", frontmatter, re.MULTILINE))
+
+
+def split_top_level_commas(value: str) -> list[str]:
+    """Split a globs string on commas outside {...} groups."""
+    parts, current, depth = [], "", 0
+    for char in value:
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+        elif char == "," and depth == 0:
+            parts.append(current)
+            current = ""
+            continue
+        current += char
+    if current:
+        parts.append(current)
+    return parts
+
+
+def paths_match_globs(frontmatter: str) -> bool:
+    """paths: (Claude Code) must list exactly the globs: (Cursor/Kiro) patterns."""
+    globs = re.search(r'^globs:\s*"(.*)"\s*$', frontmatter, re.MULTILINE)
+    block = re.search(r"^paths:\s*\n((?:\s+-\s+.*\n?)+)", frontmatter, re.MULTILINE)
+    if not globs or not block:
+        return False
+    paths = re.findall(r'^\s+-\s+"(.*)"\s*$', block.group(1), re.MULTILINE)
+    return paths == split_top_level_commas(globs.group(1))
 
 
 def main() -> int:
@@ -61,6 +90,11 @@ def main() -> int:
         for key in REQUIRED_RULE_KEYS:
             if not has_key(fm, key):
                 errors.append(f"{path.relative_to(REPO_ROOT)}: frontmatter missing required key '{key}:'")
+        if has_key(fm, "globs") and has_key(fm, "paths") and not paths_match_globs(fm):
+            errors.append(
+                f"{path.relative_to(REPO_ROOT)}: 'paths:' must be a quoted YAML list "
+                f"of the comma-separated 'globs:' patterns, in order"
+            )
 
     # --- Skills ---
     for path_str in sorted(glob.glob(str(SKILLS_DIR / "*" / "SKILL.md"))):

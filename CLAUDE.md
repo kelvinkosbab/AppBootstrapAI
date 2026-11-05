@@ -472,7 +472,7 @@ In `recommended`. Fires on `.kt`/`.kts`. Encodes:
 In `core`. Fires on `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursor/rules/**`, `.kiro/steering/**`, and `.claude/` rules, skills, and settings. Encodes:
 
 - **What earns a place**: working commands, the module map, project decisions that differ from defaults, gotchas, what needs a human. Leave out generic advice, restated lint or bundle rules, secrets, personal preferences, history.
-- **Always-loaded files stay under ~300 lines**; topic guidance is path-scoped per agent (`globs:`, `applyTo:`, `alwaysApply`, Kiro `inclusion`), long procedures become skills.
+- **Always-loaded files stay under ~300 lines**; topic guidance is path-scoped per agent (`paths:`, `applyTo:`, `alwaysApply`, Kiro `inclusion`), long procedures become skills.
 - **One source across agents** (`AGENTS.md` imported by `CLAUDE.md`, or `.claude/rules/` fanned out); generated files say so; retire `.cursorrules`.
 - **Keep it true**: every path and command exists, placeholders filled, minimal committed permissions.
 - **Improve in order**: fix what's false, remove what's unsafe, cut noise, add what's missing, restructure.
@@ -607,7 +607,7 @@ When you copy this into a new app, also think about adding:
 1. **Project-specific `CLAUDE.md`** at the repo root. Describe the module graph, build commands per platform, localization module, and any non-obvious gotchas. Claude reads it first.
 2. **A `.swiftlint.yml`** with your line-length, identifier, and file-length rules. Run it as an Xcode Build Phase and in CI.
 3. **A `settings.local.json`** (git-ignored) for per-developer permission overrides — never check it in.
-4. **Domain-specific rules** in `.claude/rules/` as you discover patterns. Each rule file should have frontmatter with `description:` and `globs:` so Claude applies it only where relevant.
+4. **Domain-specific rules** in `.claude/rules/` as you discover patterns. Each rule file should have frontmatter with `description:` and a `paths:` list (plus `globs:` for Cursor) so Claude applies it only where relevant.
 5. **Project-specific skills** in `.claude/skills/` for review workflows unique to your app (e.g., `core-data-migration-pro`, `localization-pro`).
 6. **Cross-tool rule sync** if your team uses Kiro / Gemini CLI / Cursor / Copilot alongside Claude Code. AppBootstrapAI stays Claude-native; point [`ruler`](https://github.com/intellectronica/ruler) or [`block/ai-rules`](https://github.com/block/ai-rules) at `.claude/` to fan the rules out to every other agent. Per-tool path conventions shift faster than this bundle ships — better to let a dedicated sync tool track them.
 
@@ -619,6 +619,8 @@ Each rule file in `.claude/rules/` should be a short, enforceable list of dos an
 ---
 description: One-line summary of what this rule enforces
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Rule Name

@@ -1,6 +1,8 @@
 ---
 description: Android MVVM with unidirectional data flow — one StateFlow<UiState> per screen built with stateIn, events as ViewModel functions, one-off effects modeled as state, SavedStateHandle and type-safe nav args, stateful Route vs stateless Screen composables, and what stays out of a ViewModel
 globs: "**/*.{kt,kts}"
+paths:
+  - "**/*.{kt,kts}"
 ---
 
 # Android MVVM Architecture

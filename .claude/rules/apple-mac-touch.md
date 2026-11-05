@@ -1,6 +1,8 @@
 ---
 description: Support touch on Mac (touchscreen MacBook Pro and Sidecar on iPadOS 27) — touch as a secondary input, 36pt hit targets without bigger controls, SwiftUI GestureInputKinds, touch reveals for hover-only UI, AppKit gesture recognizers instead of mouseDown overrides and tracking loops, and Sidecar testing
 globs: "**/*.{swift,h,m,mm,plist}"
+paths:
+  - "**/*.{swift,h,m,mm,plist}"
 ---
 
 # Touch on Mac

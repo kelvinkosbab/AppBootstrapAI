@@ -1,6 +1,10 @@
 ---
 description: Structure Apple apps as a thin Xcode app shell over a fat local Swift package with many small modules — the architecture, why it wins, what must stay in the app target, and how to migrate an existing .xcodeproj-only app incrementally
 globs: "Package.swift,**/Package.swift,**/*App.swift"
+paths:
+  - "Package.swift"
+  - "**/Package.swift"
+  - "**/*App.swift"
 ---
 
 # Apple Modular Architecture (local SPM package)

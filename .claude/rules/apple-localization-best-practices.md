@@ -1,6 +1,8 @@
 ---
 description: Localization conventions for Apple platforms — String Catalogs, type-safe Strings facade, String(localized:), plurals, format args, locale-aware formatters, RTL, translator context.
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Apple Localization Best Practices

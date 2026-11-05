@@ -1,6 +1,8 @@
 ---
 description: Android data layer and the repository pattern — repositories as the single source of truth exposing Flow and main-safe suspend functions, offline-first with Room as the source of truth, network/local data sources, DTO/entity/domain model mapping, Hilt bindings, work that outlives the caller, and fake repositories for tests
 globs: "**/*.{kt,kts}"
+paths:
+  - "**/*.{kt,kts}"
 ---
 
 # Android Repository Pattern (Data Layer)

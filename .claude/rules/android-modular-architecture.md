@@ -1,6 +1,10 @@
 ---
 description: Structure Android apps as a thin :app module over many small Gradle modules (feature, data, domain, model, core) — why it wins, module types and allowed edges, cross-feature navigation, Hilt and resources across modules, enforcing the graph, and migrating a monolith incrementally
 globs: "**/settings.gradle.kts,**/build.gradle.kts,**/*.kt"
+paths:
+  - "**/settings.gradle.kts"
+  - "**/build.gradle.kts"
+  - "**/*.kt"
 ---
 
 # Android Modular Architecture

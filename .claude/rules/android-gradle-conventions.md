@@ -1,6 +1,11 @@
 ---
 description: Conventions for authoring Android Gradle build files — Kotlin DSL, version catalogs, AGP/Kotlin/Compose-compiler co-versioning, multi-module graph patterns, library publishing
 globs: "**/*.gradle.kts,**/settings.gradle.kts,**/libs.versions.toml,**/gradle/libs.versions.toml"
+paths:
+  - "**/*.gradle.kts"
+  - "**/settings.gradle.kts"
+  - "**/libs.versions.toml"
+  - "**/gradle/libs.versions.toml"
 ---
 
 # Android Gradle Conventions

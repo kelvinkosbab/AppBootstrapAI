@@ -1,6 +1,8 @@
 ---
 description: MVVM ownership and view-model conventions for SwiftUI views
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # SwiftUI MVVM Conventions

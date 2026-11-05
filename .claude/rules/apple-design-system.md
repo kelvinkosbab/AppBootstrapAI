@@ -1,6 +1,8 @@
 ---
 description: Apple design system and core UI components — a DesignSystem module with semantic color, type, spacing, and shape tokens; Dynamic Type-safe custom fonts; component styles (ButtonStyle/LabelStyle) over wrapper views; Liquid Glass adoption; environment theming; previews and a component gallery
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Apple Design System & Core UI Components

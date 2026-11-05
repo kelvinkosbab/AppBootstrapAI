@@ -1,6 +1,9 @@
 ---
 description: Region-specific distribution rules for Android apps — Play country availability and per-country policy declarations, China's non-Play stores (ICP filing, consent-before-collection, GMS-free builds, generative-AI filing and third-party AI brand mentions), EU trader status, developer verification, Play-country feature gating, neutral per-country listings, and answering a regional rejection
 globs: "**/{*.kt,*.kts,AndroidManifest.xml,strings.xml,Fastfile,Appfile},**/fastlane/metadata/**"
+paths:
+  - "**/{*.kt,*.kts,AndroidManifest.xml,strings.xml,Fastfile,Appfile}"
+  - "**/fastlane/metadata/**"
 ---
 
 # Android Regional Compliance

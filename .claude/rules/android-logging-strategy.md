@@ -1,6 +1,8 @@
 ---
 description: Logging strategy for Android — Timber over android.util.Log, tag conventions, level discipline, stripping debug logs from release, no PII/secrets, crash-reporter integration, Logcat hygiene
 globs: "**/*.{kt,kts}"
+paths:
+  - "**/*.{kt,kts}"
 ---
 
 # Android Logging Strategy

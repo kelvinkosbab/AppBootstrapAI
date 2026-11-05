@@ -1,6 +1,8 @@
 ---
 description: Enforce UIKit/AppKit accessibility best practices in Objective-C — labels, traits, Dynamic Type, Reduce Motion, VoiceOver announcements, modal focus, and Bluetooth assistive tech (keyboards, switches, braille)
 globs: "**/*.{h,m,mm}"
+paths:
+  - "**/*.{h,m,mm}"
 ---
 
 # Objective-C Accessibility Best Practices

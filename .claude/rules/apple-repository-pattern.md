@@ -1,6 +1,8 @@
 ---
 description: Apple data layer and the repository pattern — protocol-based repositories returning Sendable domain models, actor or Sendable implementations under Swift 6, local store as the single source of truth with AsyncSequence observation, DTO/persistence/domain mapping, typed errors, in-flight dedup, injection at the composition root, and in-memory fakes for tests
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Apple Repository Pattern (Data Layer)

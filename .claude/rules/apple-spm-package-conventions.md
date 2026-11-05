@@ -1,6 +1,9 @@
 ---
 description: Conventions for authoring Swift Package Manager Package.swift files — tool-version pinning, platforms, products, per-module folder layout, resources, modern features, dependency hygiene
 globs: "Package.swift,**/Package.swift"
+paths:
+  - "Package.swift"
+  - "**/Package.swift"
 ---
 
 # Swift Package Manager: Package.swift Conventions

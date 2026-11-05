@@ -1,6 +1,8 @@
 ---
 description: Enforce SwiftUI accessibility best practices for VoiceOver, Dynamic Type, Reduce Motion, and Bluetooth assistive tech (keyboards, switches, braille displays, hearing devices)
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Accessibility Best Practices

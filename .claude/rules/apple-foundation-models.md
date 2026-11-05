@@ -1,6 +1,8 @@
 ---
 description: Enforce patterns for Apple Foundation Models (on-device LLM) integration — session lifecycle, availability gating, streaming, testability
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Apple Foundation Models
