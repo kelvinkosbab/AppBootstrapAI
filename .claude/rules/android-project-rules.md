@@ -3,6 +3,10 @@ description: Enforce Android project conventions — Kotlin, Jetpack Compose, MV
 globs: "**/*.{kt,kts}"
 paths:
   - "**/*.{kt,kts}"
+must:
+  - "Kotlin and Jetpack Compose only, MVVM with Hilt, and `StateFlow` collected with `collectAsStateWithLifecycle()`."
+  - "Never hardcode secrets; all UI text in `strings.xml`."
+  - "Run `./gradlew ktlintCheck` before committing; no wildcard imports."
 ---
 
 # Android Project Rules

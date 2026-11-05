@@ -3,6 +3,11 @@ description: Enforce patterns for on-device and cloud AI models in Android apps 
 globs: "**/*.{kt,kts}"
 paths:
   - "**/*.{kt,kts}"
+must:
+  - "Never ship a model API key in the APK; use Firebase AI Logic with App Check or your own backend."
+  - "Check device eligibility and model download before first use, then a user preference and consent before any cloud call."
+  - "Generation state lives in a ViewModel `StateFlow`; stream as a `Flow`, clear `isGenerating` in `finally`, never catch `CancellationException`."
+  - "Gate providers per region; never name a third-party AI brand in strings or listings where it's not allowed."
 ---
 
 # Android AI Best Practices

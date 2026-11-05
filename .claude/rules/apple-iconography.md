@@ -3,6 +3,11 @@ description: Apple iconography — SF Symbols (typed facade, rendering modes, va
 globs: "**/*.swift"
 paths:
   - "**/*.swift"
+must:
+  - "Use a typed `AppIcon` facade; no raw `systemName:` strings in features."
+  - "Size symbols with fonts or `imageScale`, never `.resizable().frame(...)`; keep 44pt hit targets."
+  - "Icon-only buttons keep a `Label` with `.labelStyle(.iconOnly)`; decorative icons are hidden."
+  - "App icons come from Icon Composer, with no baked mask or shadow."
 ---
 
 # Apple Iconography

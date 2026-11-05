@@ -3,6 +3,11 @@ description: Android data layer and the repository pattern — repositories as t
 globs: "**/*.{kt,kts}"
 paths:
   - "**/*.{kt,kts}"
+must:
+  - "Name repositories by data type, not screen; the local store is the single source of truth."
+  - "Expose live data as `Flow` and one-shots as `suspend`; only domain models cross the boundary."
+  - "Map transport errors to domain errors; never swallow cancellation."
+  - "No generic `Repository<T>` CRUD base class."
 ---
 
 # Android Repository Pattern (Data Layer)

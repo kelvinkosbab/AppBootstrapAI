@@ -3,6 +3,11 @@ description: Build Android UI that adapts to tablets, foldables, desktop windows
 globs: "**/*.{kt,kts,xml}"
 paths:
   - "**/*.{kt,kts,xml}"
+must:
+  - "Branch on window size classes read once at the screen root, never on device type, `isTablet()`, or orientation."
+  - "Don't lock orientation or resizability; from targetSdk 37 the opt-out is gone."
+  - "Use Material 3 adaptive scaffolds (`NavigationSuiteScaffold`, list-detail) instead of custom breakpoints."
+  - "Fold and unfold are configuration changes: keep state in ViewModels and `rememberSaveable`."
 ---
 
 # Android Large Screens & Foldables

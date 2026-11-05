@@ -332,9 +332,10 @@ index_in_scope_rules() {
     echo "# Project rules (AppBootstrapAI)"
     echo ""
     echo "The coding rules for this project live in \`.claude/rules/\`. Only this"
-    echo "index is loaded on every request. Before you create or edit a file, read"
-    echo "each rule below whose paths match that file, in full, and follow it."
-    echo "Don't read the rules that don't match."
+    echo "index is loaded on every request. The indented lines under each rule are"
+    echo "its musts: follow them whenever you touch a matching file. Before you"
+    echo "create or edit a file, also read each rule whose paths match it, in full,"
+    echo "once per session. Don't read the rules that don't match."
     echo ""
     shopt -s nullglob
     local f name globs desc
@@ -346,6 +347,7 @@ index_in_scope_rules() {
         desc="$(sed -n 's/^description:[[:space:]]*//p' "$f" | head -1)"
         desc="${desc%\"}"; desc="${desc#\"}"
         echo "- \`.claude/rules/$name\` for \`$globs\`: $desc"
+        awk '/^must:/{m=1; next} m && /^  - /{sub(/^  - "/, "  - "); sub(/"$/, ""); print; next} m{exit}' "$f"
     done
 }
 

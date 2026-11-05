@@ -7,6 +7,11 @@ paths:
   - ".gitlab-ci.yml"
   - "bitrise.yml"
   - ".circleci/config.yml"
+must:
+  - "`CFBundleVersion` always increases and comes from CI; never hardcode or reuse it."
+  - "Authenticate with an App Store Connect API key (.p8) stored as a CI secret, not an app-specific password."
+  - "Use manual signing in CI and never commit `.p12` certificates or profiles."
+  - "Export with `method: app-store-connect` and upload dSYMs to your crash reporter."
 ---
 
 # Apple TestFlight Deployment

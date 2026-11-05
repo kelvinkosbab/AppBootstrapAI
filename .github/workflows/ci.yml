@@ -1,0 +1,89 @@
+name: CI
+
+# One entry point for pull requests. It runs each check workflow only when a
+# path it covers changed, then reports a single `ci-ok` result. Require
+# `ci-ok` on main: a skipped check passes, a failed or cancelled one blocks.
+
+on:
+  pull_request:
+  merge_group:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontmatter: ${{ steps.filter.outputs.frontmatter }}
+      smoke: ${{ steps.filter.outputs.smoke }}
+      mcp: ${{ steps.filter.outputs.mcp }}
+      python: ${{ steps.filter.outputs.python }}
+      shell: ${{ steps.filter.outputs.shell }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          # Same patterns the workflows used as pull_request path filters.
+          declare -A groups=(
+            [frontmatter]='^(\.claude/(rules|skills)/|\.github/scripts/validate-frontmatter\.py$|\.github/workflows/frontmatter\.yml$)'
+            [smoke]='^(install\.sh$|lib/|templates/|\.claude/|mcp-recipes/|RENAMES\.md$|\.github/scripts/install-smoke-test\.sh$|\.github/workflows/install-smoke-test\.yml$)'
+            [mcp]='^(mcp-server/|install\.sh$|lib/|\.github/workflows/mcp-server\.yml$)'
+            [python]='^(lib/.*\.py$|\.github/scripts/.*\.py$|\.github/workflows/python\.yml$)'
+            [shell]='^(install\.sh$|lib/.*\.sh$|scripts/.*\.sh$|\.github/scripts/.*\.sh$|\.github/workflows/shellcheck\.yml$)'
+          )
+          changed="$(git diff --name-only "$BASE"...HEAD)"
+          echo "Changed files:"; echo "$changed"
+          for g in "${!groups[@]}"; do
+            # A change to this file re-runs everything.
+            if grep -qE "${groups[$g]}|^\.github/workflows/ci\.yml$" <<<"$changed"; then
+              echo "$g=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$g=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
+
+  frontmatter:
+    needs: changes
+    if: needs.changes.outputs.frontmatter == 'true'
+    uses: ./.github/workflows/frontmatter.yml
+
+  smoke-test:
+    needs: changes
+    if: needs.changes.outputs.smoke == 'true'
+    uses: ./.github/workflows/install-smoke-test.yml
+
+  mcp-server:
+    needs: changes
+    if: needs.changes.outputs.mcp == 'true'
+    uses: ./.github/workflows/mcp-server.yml
+
+  python:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    uses: ./.github/workflows/python.yml
+
+  shellcheck:
+    needs: changes
+    if: needs.changes.outputs.shell == 'true'
+    uses: ./.github/workflows/shellcheck.yml
+
+  ci-ok:
+    if: always()
+    needs: [changes, frontmatter, smoke-test, mcp-server, python, shellcheck]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any check failed or was cancelled
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) exit 1 ;; esac
+          done

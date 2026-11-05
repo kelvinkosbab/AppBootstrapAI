@@ -3,6 +3,11 @@ description: Localization conventions for Android — strings.xml discipline, st
 globs: "**/*.{kt,kts,xml}"
 paths:
   - "**/*.{kt,kts,xml}"
+must:
+  - "Every user-facing string lives in `res/values/strings.xml`, read with `stringResource` or `getString`."
+  - "Use positional format arguments (`%1$s`, `%2$d`), never bare `%s` or `%d`."
+  - "Use `<plurals>` for any count-dependent string; never build plurals in code."
+  - "Use `start`/`end`, never `left`/`right`; format numbers and dates with locale-aware formatters."
 ---
 
 # Android Localization Best Practices

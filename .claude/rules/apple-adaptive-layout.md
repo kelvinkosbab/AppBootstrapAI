@@ -3,6 +3,11 @@ description: Adaptive layout for resizable iOS apps and iPhone Duo — size clas
 globs: "**/*.{swift,h,m,mm}"
 paths:
   - "**/*.{swift,h,m,mm}"
+must:
+  - "Adopt the UIScene lifecycle; apps without it won't launch on the latest SDKs."
+  - "Branch on size classes, never on idiom, device, or interface orientation."
+  - "Never read `UIScreen.main`; get the screen from the window scene."
+  - "Use arrangements for two-pane layout; the hinge is optional polish, and `context.hinge` can be nil."
 ---
 
 # Apple Adaptive Layout (Resizable Apps & iPhone Duo)

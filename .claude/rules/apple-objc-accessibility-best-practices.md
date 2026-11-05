@@ -3,6 +3,11 @@ description: Enforce UIKit/AppKit accessibility best practices in Objective-C â€
 globs: "**/*.{h,m,mm}"
 paths:
   - "**/*.{h,m,mm}"
+must:
+  - "Set a localized `accessibilityLabel`, plus traits and value on custom controls; `accessibilityIdentifier` is for tests and never localized."
+  - "Use `preferredFontForTextStyle:` with `adjustsFontForContentSizeCategory = YES`."
+  - "Check `UIAccessibilityIsReduceMotionEnabled()` before animating; set `accessibilityViewIsModal` on overlays."
+  - "Expose custom gestures through `accessibilityCustomActions`."
 ---
 
 # Objective-C Accessibility Best Practices

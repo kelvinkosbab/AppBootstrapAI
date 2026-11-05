@@ -3,6 +3,11 @@ description: Enforce structured concurrency, scope discipline, dispatcher choice
 globs: "**/*.{kt,kts}"
 paths:
   - "**/*.{kt,kts}"
+must:
+  - "Never use `GlobalScope` or `runBlocking` in app code; use `viewModelScope`, `lifecycleScope`, or WorkManager."
+  - "Inject dispatchers (`Main`, `IO`, `Default`) instead of hardcoding them."
+  - "Never swallow `CancellationException`; clean up in `finally`."
+  - "Expose read-only `StateFlow`/`Flow` from ViewModels, never the mutable type."
 ---
 
 # Kotlin Coroutines Best Practices

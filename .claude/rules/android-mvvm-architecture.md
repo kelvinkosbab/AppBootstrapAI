@@ -3,6 +3,10 @@ description: Android MVVM with unidirectional data flow — one StateFlow<UiStat
 globs: "**/*.{kt,kts}"
 paths:
   - "**/*.{kt,kts}"
+must:
+  - "One `StateFlow<UiState>` per screen, built with `combine` and `stateIn(viewModelScope, WhileSubscribed(5_000), …)`."
+  - "No `Context` or `NavController` in ViewModels; keep process-death state in `SavedStateHandle`."
+  - "A stateful `…Route` collects state; a stateless `…Screen` renders it."
 ---
 
 # Android MVVM Architecture

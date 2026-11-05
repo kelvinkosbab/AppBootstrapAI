@@ -3,6 +3,11 @@ description: Apple design system and core UI components — a DesignSystem modul
 globs: "**/*.swift"
 paths:
   - "**/*.swift"
+must:
+  - "Features use role-named design tokens, never literal colors, fonts, or spacing."
+  - "Custom fonts scale with Dynamic Type (`relativeTo:`); text styles are the type scale."
+  - "Prefer styles (`ButtonStyle`, `LabelStyle`) over wrapper views, and system components first."
+  - "Standard components adopt Liquid Glass for free; remove custom bar backgrounds and use glass only for floating controls."
 ---
 
 # Apple Design System & Core UI Components

@@ -3,6 +3,11 @@ description: Apple data layer and the repository pattern — protocol-based repo
 globs: "**/*.swift"
 paths:
   - "**/*.swift"
+must:
+  - "Protocol in a domain module; implementation is an `actor` or stateless `Sendable` class, never `@MainActor`."
+  - "Only `Sendable` domain values cross the boundary, never `NSManagedObject` or `@Model`."
+  - "Local store is the source of truth; map transport errors to typed domain errors."
+  - "No generic `Repository<T>` CRUD base."
 ---
 
 # Apple Repository Pattern (Data Layer)

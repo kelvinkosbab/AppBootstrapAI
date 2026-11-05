@@ -3,6 +3,11 @@ description: Support touch on Mac (touchscreen MacBook Pro and Sidecar on iPadOS
 globs: "**/*.{swift,h,m,mm,plist}"
 paths:
   - "**/*.{swift,h,m,mm,plist}"
+must:
+  - "Touch is secondary input: same layout and control sizes, 36pt hit targets, every action reachable by pointer and touch."
+  - "Branch on the interaction, not `NSScreen.touchCapabilities`."
+  - "Essential hover-only controls need a tap reveal and a context-menu entry."
+  - "AppKit receives touches only through gesture recognizers; avoid `mouseDown` overrides and tracking loops."
 ---
 
 # Touch on Mac

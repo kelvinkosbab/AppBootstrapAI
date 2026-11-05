@@ -5,6 +5,10 @@ paths:
   - "**/settings.gradle.kts"
   - "**/build.gradle.kts"
   - "**/*.kt"
+must:
+  - "Keep `:app` thin over `:feature:*` and `:core:*` modules; the graph flows one way."
+  - "Features never depend on another feature's implementation; only `:app` sees `impl` modules and owns the `NavHost`."
+  - "Keep Hilt bindings `internal` per module; enable non-transitive R classes."
 ---
 
 # Android Modular Architecture

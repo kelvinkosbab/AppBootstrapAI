@@ -7,6 +7,11 @@ paths:
   - ".gitlab-ci.yml"
   - "bitrise.yml"
   - ".circleci/config.yml"
+must:
+  - "`versionCode` comes from CI and always increases; never reuse or hand-edit it."
+  - "Use Play App Signing and upload an AAB (`bundleRelease`), not an APK."
+  - "Never commit keystores or the service-account JSON; decode them from CI secrets."
+  - "Enable R8 for release and make sure `mapping.txt` reaches Play and your crash reporter."
 ---
 
 # Google Play Beta Deployment
