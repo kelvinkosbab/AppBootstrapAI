@@ -1,6 +1,8 @@
 ---
 description: Enforce Swift 6.4 strict concurrency rules when writing or reviewing Swift code
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Swift 6.4 Strict Concurrency

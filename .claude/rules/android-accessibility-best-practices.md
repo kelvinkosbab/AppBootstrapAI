@@ -1,6 +1,8 @@
 ---
 description: Enforce Android accessibility best practices for TalkBack, Compose semantics, touch targets, dynamic text, contrast, and Bluetooth assistive tech (keyboards, switch access, braille displays)
 globs: "**/*.{kt,kts}"
+paths:
+  - "**/*.{kt,kts}"
 ---
 
 # Android Accessibility Best Practices

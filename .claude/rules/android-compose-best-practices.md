@@ -1,6 +1,8 @@
 ---
 description: Enforce Jetpack Compose patterns — state hoisting, side effects, Modifier ordering, stability, lifecycle-aware collection, and recomposition discipline
 globs: "**/*.{kt,kts}"
+paths:
+  - "**/*.{kt,kts}"
 ---
 
 # Jetpack Compose Best Practices

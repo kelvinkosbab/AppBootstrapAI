@@ -1,6 +1,8 @@
 ---
 description: Logging strategy for Apple platforms — os.Logger / OSLog over print/NSLog, subsystem/category conventions, privacy markers, log-level discipline, signposts, what never to log
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Apple Logging Strategy

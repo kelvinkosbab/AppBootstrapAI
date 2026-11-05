@@ -1,6 +1,8 @@
 ---
 description: Keep in-code comments and commit messages terse — verbosity destroys signal and teammates stop reading
 globs: "**/*.{swift,h,m,mm,kt,kts}"
+paths:
+  - "**/*.{swift,h,m,mm,kt,kts}"
 ---
 
 # Concise Comments & Commits

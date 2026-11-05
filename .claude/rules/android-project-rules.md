@@ -1,6 +1,8 @@
 ---
 description: Enforce Android project conventions — Kotlin, Jetpack Compose, MVVM, Hilt, Retrofit/Moshi
 globs: "**/*.{kt,kts}"
+paths:
+  - "**/*.{kt,kts}"
 ---
 
 # Android Project Rules

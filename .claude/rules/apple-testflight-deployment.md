@@ -1,6 +1,12 @@
 ---
 description: Patterns for shipping iOS / macOS / tvOS / watchOS / visionOS apps to TestFlight — versioning, App Store Connect API auth, archive + export, code signing, tester groups, beta review, dSYM upload, CI integration
-globs: "**/{Fastfile,Appfile,Matchfile,Deliverfile,Snapfile,Scanfile,Gymfile,exportOptions.plist,ExportOptions.plist,*.entitlements,project.pbxproj,*.yml,*.yaml,Info.plist,*.xcconfig}"
+globs: "**/{Fastfile,Appfile,Matchfile,Deliverfile,Snapfile,Scanfile,Gymfile,exportOptions.plist,ExportOptions.plist,*.entitlements,project.pbxproj,Info.plist,*.xcconfig},.github/workflows/*.{yml,yaml},.gitlab-ci.yml,bitrise.yml,.circleci/config.yml"
+paths:
+  - "**/{Fastfile,Appfile,Matchfile,Deliverfile,Snapfile,Scanfile,Gymfile,exportOptions.plist,ExportOptions.plist,*.entitlements,project.pbxproj,Info.plist,*.xcconfig}"
+  - ".github/workflows/*.{yml,yaml}"
+  - ".gitlab-ci.yml"
+  - "bitrise.yml"
+  - ".circleci/config.yml"
 ---
 
 # Apple TestFlight Deployment

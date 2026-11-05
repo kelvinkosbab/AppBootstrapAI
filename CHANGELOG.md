@@ -8,7 +8,31 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Claude Code rules are path-scoped again.** Claude Code scopes
+  `.claude/rules/*.md` by a `paths:` list and ignores `globs:`, so every
+  installed rule loaded in every session (about 50k tokens for an Apple
+  install). Each rule now carries a `paths:` list matching its `globs:`
+  (kept for Cursor and Kiro), and `validate-frontmatter.py` fails when the
+  two drift. The TestFlight and Play beta rules no longer match every YAML
+  file, only CI configs.
+
 ### Added
+
+- **`install.sh audit --topic <name>`** audits one area. `lib/topics.json`
+  maps each topic (`concurrency`, `architecture`) to its rules and skills;
+  the audit keeps only that area's findings and deep reviews, skips the
+  steering review, and lists the files to read in `topic`, so an agent never
+  loads the rest of the bundle for a single-area audit.
+
+### Changed
+
+- **`apple-spm-package-conventions.md` and `android-gradle-conventions.md`
+  are now short checklists** (about 3 KB each, down from 24 KB). Their full
+  text moved unchanged into `swift-package-pro/references/manifest-conventions.md`
+  and `android-gradle-architecture-pro/references/build-script-conventions.md`,
+  which load only during a manifest or build review.
 
 - **Android large screens, updated for Android 17 and desktop windows.**
   `android-large-screen-best-practices.md` now covers Android 17 removing the

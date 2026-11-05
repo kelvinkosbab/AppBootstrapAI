@@ -393,6 +393,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 |------|--------|
 | Audit a repo without installing | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this package. Don't change any files."* |
 | Review and improve your AI rules | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit our CLAUDE.md, AGENTS.md, and Cursor rules and suggest improvements."* (`install.sh audit . --steering-only`) |
+| Audit one area only, reading just its rules and skills | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit only the concurrency safety of this repo."* (`install.sh audit . --topic concurrency`; also `architecture`) |
 | Bootstrap a new Apple SwiftUI app with the recommended set | *"Run `/path/to/AppBootstrapAI/install.sh . --platform apple` in this directory, then walk me through what landed."* |
 | Bootstrap an Android Compose app with everything | *"Run `/path/to/AppBootstrapAI/install.sh . --platform android --features all` and summarize the new files."* |
 | Pick categories interactively | *"Show me `./install.sh --list --features all`, then ask me which categories to install."* |

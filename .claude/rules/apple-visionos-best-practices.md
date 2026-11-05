@@ -1,6 +1,8 @@
 ---
 description: Patterns for visionOS apps — scene types, immersion styles, spatial gestures, RealityKit / ECS conventions, head-mounted-display accessibility, USDZ pipeline, performance budgets
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # visionOS Best Practices

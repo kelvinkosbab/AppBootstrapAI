@@ -60,6 +60,7 @@ BASELINE_PATH=""        # audit --baseline PATH (default: .claude/appbootstrap-a
 NO_BASELINE="false"     # audit --no-baseline: report every finding
 NO_INSTALL_CHECK="false" # audit --no-install-check: audit only, skip "not installed / outdated"
 STEERING_ONLY="false"   # audit --steering-only: check only the repo's AI steering files
+AUDIT_TOPIC=""          # audit --topic NAME: one area only (lib/topics.json)
 WRITE_BASELINE="false"  # audit --write-baseline: accept current findings
 BASELINE_REASON=""      # audit --baseline-reason TEXT: reason on new baseline entries
 
@@ -164,6 +165,10 @@ while [[ $# -gt 0 ]]; do
         --steering-only)
             STEERING_ONLY="true"
             shift
+            ;;
+        --topic)
+            AUDIT_TOPIC="${2:-}"
+            shift 2
             ;;
         --write-baseline)
             WRITE_BASELINE="true"
@@ -278,6 +283,10 @@ if [[ -n "$FAIL_ON" ]]; then
 fi
 if [[ "$NO_INSTALL_CHECK" == "true" && "$ACTION" != "audit" ]]; then
     echo "error: --no-install-check requires audit" >&2
+    exit 1
+fi
+if [[ -n "$AUDIT_TOPIC" && "$ACTION" != "audit" ]]; then
+    echo "error: --topic requires audit" >&2
     exit 1
 fi
 if [[ "$STEERING_ONLY" == "true" && "$ACTION" != "audit" ]]; then
@@ -452,6 +461,7 @@ if [[ "$ACTION" == "audit" ]]; then
     [[ "$NO_BASELINE" == "true" ]] && audit_args+=(--no-baseline)
     [[ "$NO_INSTALL_CHECK" == "true" ]] && audit_args+=(--no-install-check)
     [[ "$STEERING_ONLY" == "true" ]] && audit_args+=(--steering-only)
+    [[ -n "$AUDIT_TOPIC" ]] && audit_args+=(--topic "$AUDIT_TOPIC")
     [[ "$WRITE_BASELINE" == "true" ]] && audit_args+=(--write-baseline --baseline-reason "$BASELINE_REASON")
     python3 "$SCRIPT_DIR/lib/audit.py" "${audit_args[@]}"
     exit $?

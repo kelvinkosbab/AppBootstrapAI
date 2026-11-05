@@ -1,6 +1,8 @@
 ---
 description: SwiftLint + formatter (swift-format / SwiftFormat) strategy for Apple projects — config structure, opt-in and analyzer rules, suppression hygiene, where it runs, incremental adoption, version pinning
 globs: "**/{*.swift,.swiftlint.yml,.swiftlint.yaml,.swift-format,.swiftformat}"
+paths:
+  - "**/{*.swift,.swiftlint.yml,.swiftlint.yaml,.swift-format,.swiftformat}"
 ---
 
 # Apple Linting Strategy

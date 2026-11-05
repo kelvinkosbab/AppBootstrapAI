@@ -1,0 +1,25 @@
+{
+  "_comment": "Audit topics: the rules and skills that cover one job. `install.sh audit --topic <name>` keeps only findings and deep reviews from this set, so an agent auditing one area reads only these files.",
+  "concurrency": {
+    "description": "Data-race safety and async correctness: Swift 6 strict concurrency, Kotlin coroutines and Flow.",
+    "rules": {
+      "apple": ["apple-swift6-strict-concurrency.md"],
+      "android": ["android-coroutines-best-practices.md"]
+    },
+    "skills": {
+      "apple": ["swift-concurrency-pro"],
+      "android": ["android-coroutines-pro"]
+    }
+  },
+  "architecture": {
+    "description": "Module graph, layering, view models, and the data layer: local SPM package or Gradle modules, MVVM, repositories.",
+    "rules": {
+      "apple": ["apple-modular-architecture.md", "apple-swiftui-mvvm.md", "apple-repository-pattern.md", "apple-spm-package-conventions.md"],
+      "android": ["android-modular-architecture.md", "android-mvvm-architecture.md", "android-repository-pattern.md", "android-gradle-conventions.md"]
+    },
+    "skills": {
+      "apple": ["swift-modularization-pro", "swift-package-pro"],
+      "android": ["android-modularization-pro", "android-gradle-architecture-pro"]
+    }
+  }
+}

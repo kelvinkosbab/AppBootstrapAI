@@ -1,6 +1,12 @@
 ---
 description: Patterns for shipping Android apps to Google Play beta tracks (internal / closed / open) — versionCode monotonicity, Play App Signing, AAB vs APK, service-account JSON for CI, ProGuard/R8 mapping upload, gotchas
-globs: "**/{Fastfile,Appfile,build.gradle,build.gradle.kts,settings.gradle,settings.gradle.kts,gradle.properties,keystore.properties,proguard-rules.pro,*.yml,*.yaml}"
+globs: "**/{Fastfile,Appfile,build.gradle,build.gradle.kts,settings.gradle,settings.gradle.kts,gradle.properties,keystore.properties,proguard-rules.pro},.github/workflows/*.{yml,yaml},.gitlab-ci.yml,bitrise.yml,.circleci/config.yml"
+paths:
+  - "**/{Fastfile,Appfile,build.gradle,build.gradle.kts,settings.gradle,settings.gradle.kts,gradle.properties,keystore.properties,proguard-rules.pro}"
+  - ".github/workflows/*.{yml,yaml}"
+  - ".gitlab-ci.yml"
+  - "bitrise.yml"
+  - ".circleci/config.yml"
 ---
 
 # Google Play Beta Deployment

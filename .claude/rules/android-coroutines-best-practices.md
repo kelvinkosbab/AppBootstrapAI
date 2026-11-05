@@ -1,6 +1,8 @@
 ---
 description: Enforce structured concurrency, scope discipline, dispatcher choice, Flow/StateFlow/SharedFlow conventions, and cancellation safety in Kotlin coroutines
 globs: "**/*.{kt,kts}"
+paths:
+  - "**/*.{kt,kts}"
 ---
 
 # Kotlin Coroutines Best Practices

@@ -1,6 +1,8 @@
 ---
 description: Test strategy and coverage discipline for Android — unit/instrumentation/UI levels, Compose testing, Flow testing with Turbine, Hilt test modules, MockK, and JaCoCo coverage gates
 globs: "**/*.{kt,kts}"
+paths:
+  - "**/*.{kt,kts}"
 ---
 
 # Android Testing Strategy & Coverage

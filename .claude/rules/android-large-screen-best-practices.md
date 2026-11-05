@@ -1,6 +1,8 @@
 ---
 description: Build Android UI that adapts to tablets, foldables, desktop windows, connected displays, and Googlebook — window size classes, canonical layouts, fold posture, multi-window and multi-instance, desktop windowing, and the Android 16/17 rule that large screens ignore orientation, aspect-ratio, and resizability restrictions
 globs: "**/*.{kt,kts,xml}"
+paths:
+  - "**/*.{kt,kts,xml}"
 ---
 
 # Android Large Screens & Foldables

@@ -1,6 +1,8 @@
 ---
 description: Android design system and core UI components — a :core:designsystem module with a Material 3 AppTheme (dynamic color with brand fallback), extended tokens via CompositionLocal, type/shape/spacing scales, thin stateless component wrappers with slot APIs, edge-to-edge, previews, and screenshot tests
 globs: "**/*.{kt,kts,xml}"
+paths:
+  - "**/*.{kt,kts,xml}"
 ---
 
 # Android Design System & Core UI Components

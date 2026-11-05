@@ -1,6 +1,8 @@
 ---
 description: Apple iconography — SF Symbols (typed facade, rendering modes, variants, symbol effects, availability), custom symbols in asset catalogs, icon sizing via font, icon accessibility, and app icons built with Icon Composer (layered Liquid Glass icons, dark/tinted/clear variants)
 globs: "**/*.swift"
+paths:
+  - "**/*.swift"
 ---
 
 # Apple Iconography

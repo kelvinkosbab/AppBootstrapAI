@@ -1,6 +1,8 @@
 ---
 description: Building one app on Apple and Android at the same time with AI agents — choosing what to share (native×2 vs Kotlin Multiplatform), monorepo layout with nested CLAUDE.md files, spec-first feature work, one shared vocabulary of names across platforms, single sources of truth for API contracts, design tokens, icons, string keys, analytics, flags, and deep links, parity tracking, platform-idiomatic UX, and CI path filters
 globs: "**/*.{swift,kt,kts,xml,xcstrings,json,yml,yaml,md}"
+paths:
+  - "**/*.{swift,kt,kts,xml,xcstrings,json,yml,yaml,md}"
 ---
 
 # Cross-Platform Development (Apple + Android)

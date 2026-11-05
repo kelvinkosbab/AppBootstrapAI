@@ -1,6 +1,11 @@
 ---
 description: Project-level documentation conventions — README structure, CHANGELOG (Keep a Changelog), CONTRIBUTING, ADRs, inline-comment philosophy, link-rot discipline. Cross-platform.
 globs: "README.md,CHANGELOG.md,CONTRIBUTING.md,docs/**/*.md"
+paths:
+  - "README.md"
+  - "CHANGELOG.md"
+  - "CONTRIBUTING.md"
+  - "docs/**/*.md"
 ---
 
 # Project Documentation Conventions

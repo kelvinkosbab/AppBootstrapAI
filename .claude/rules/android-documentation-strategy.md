@@ -1,6 +1,8 @@
 ---
 description: KDoc strategy for Android — what to document, public API discipline, Composable docs, deprecation, Dokka conventions, and project-specific markdown
 globs: "**/*.{kt,kts}"
+paths:
+  - "**/*.{kt,kts}"
 ---
 
 # Android Documentation Strategy
