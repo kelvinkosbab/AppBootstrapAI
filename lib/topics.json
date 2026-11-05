@@ -110,5 +110,27 @@
       "android": ["android-linting-strategy.md"]
     },
     "skills": {}
+  },
+  "memory": {
+    "description": "Leaks and footprint: retain cycles, Context and View leaks, image decode size, bounded caches, memory warnings and onTrimMemory, jetsam and low-memory kills.",
+    "rules": {
+      "apple": ["apple-memory-management.md"],
+      "android": ["android-memory-management.md"]
+    },
+    "skills": {
+      "apple": ["swift-memory-storage-pro"],
+      "android": ["android-memory-storage-pro"]
+    }
+  },
+  "storage": {
+    "description": "On-device storage: file locations, backup rules, secrets, file protection, storage permissions, DataStore, free space, cache budgets, app size.",
+    "rules": {
+      "apple": ["apple-storage-management.md"],
+      "android": ["android-storage-management.md"]
+    },
+    "skills": {
+      "apple": ["swift-memory-storage-pro"],
+      "android": ["android-memory-storage-pro"]
+    }
   }
 }

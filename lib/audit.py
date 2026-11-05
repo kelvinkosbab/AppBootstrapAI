@@ -82,6 +82,9 @@ SECRET_PATTERN = re.compile(r"AIza[0-9A-Za-z_\-]{35}|sk-ant-[A-Za-z0-9_\-]{20,}|
 
 AI_BRANDS = r"\b(ChatGPT|OpenAI|Anthropic|Claude|Gemini|Grok|Copilot)\b"
 
+# A quoted storage key that names a credential ("authToken", "api_key").
+SECRET_KEY = r"\"[^\"\n]*(?i:token|password|passwd|secret|api_?key|credential)[^\"\n]*\""
+
 
 @dataclass
 class Check:
@@ -225,6 +228,39 @@ CHECKS = [
           "Replace with a gesture recognizer, or add a touch-only one (buttonMask = 0) beside the loop.",
           skip_tests=True),
 
+    Check("swift-timer-retains-self", "Timer or display link retains `self` as its target",
+          "medium", "apple", OBJC_SWIFT,
+          re.compile(r"scheduledTimer\(timeInterval:[^\n]*target:\s*self|scheduledTimerWithTimeInterval:[^\n]*target:\s*self"
+                     r"|CADisplayLink\(target:\s*self|displayLinkWithTarget:\s*self"),
+          "apple-memory-management.md", "swift-memory-storage-pro",
+          "Use the block-based Timer with [weak self] (or a weak proxy target) and invalidate it on disappear.",
+          skip_tests=True),
+    Check("swift-assign-on-self", "`assign(to:on: self)` retains `self`",
+          "medium", "apple", SWIFT, re.compile(r"\.assign\(to:\s*\\[^,\n]+,\s*on:\s*self\s*\)"),
+          "apple-memory-management.md", "swift-memory-storage-pro",
+          "Use assign(to: &$property), which doesn't retain self."),
+    Check("swift-strong-delegate", "Delegate held strongly",
+          "medium", "apple", SWIFT,
+          re.compile(r"^(?!.*\b(?:weak|unowned)\b)(?!.*\{\s*get)\s*(?:@\w+\s+)*"
+                     r"(?:(?:public|internal|private|fileprivate|open|package)(?:\(set\))?\s+)*"
+                     r"var\s+\w*[dD]elegate\s*:\s*[A-Za-z(]"),
+          "apple-memory-management.md", "swift-memory-storage-pro",
+          "Declare it weak var with an AnyObject-constrained protocol."),
+    Check("swift-full-image-decode", "Image decoded at full size",
+          "low", "apple", SWIFT, re.compile(r"UIImage\(\s*(data|contentsOfFile):|NSImage\(\s*(data|contentsOf):"),
+          "apple-memory-management.md", "swift-memory-storage-pro",
+          "For thumbnails and lists, downsample with preparingThumbnail(of:) or ImageIO.", skip_tests=True),
+    Check("swift-secret-in-defaults", "Credential stored in UserDefaults",
+          "medium", "apple", SWIFT, re.compile(r"(?:UserDefaults|@AppStorage\()[^\n]*" + SECRET_KEY),
+          "apple-storage-management.md", "swift-memory-storage-pro",
+          "Keep tokens and passwords in the Keychain with an explicit accessibility class.", skip_tests=True),
+    Check("swift-cache-in-documents", "Cache or download written to Documents (backed up)",
+          "medium", "apple", SWIFT,
+          re.compile(r"(?:documentsDirectory|\.documentDirectory)[^\n]*(?i:cache|thumbnail|download)"),
+          "apple-storage-management.md", "swift-memory-storage-pro",
+          "Caches go in Caches; offline content in Application Support excluded from backup.",
+          skip_tests=True),
+
     # --- Android -------------------------------------------------------------
     Check("kt-global-scope", "`GlobalScope` outlives every lifecycle",
           "high", "android", KOTLIN, re.compile(r"\bGlobalScope\b"),
@@ -285,6 +321,49 @@ CHECKS = [
           "Use WindowMetricsCalculator, LocalWindowInfo, or the size class; the window isn't the display.",
           skip_tests=True),
 
+    Check("kt-static-field-leak", "`StaticFieldLeak` suppressed: a Context or View held statically",
+          "high", "android", KOTLIN, re.compile(r"@SuppressLint\(\s*\"StaticFieldLeak\"\s*\)"),
+          "android-memory-management.md", "android-memory-storage-pro",
+          "Hold the application context (@ApplicationContext) or nothing; remove the suppression."),
+    Check("kt-viewmodel-holds-ui", "ViewModel holds an Activity, Fragment, or View",
+          "high", "android", KOTLIN,
+          re.compile(r"class\s+\w+\s*(?:@Inject\s+constructor\s*)?\([^)]*:\s*(?:\w*Activity|Fragment|View)\b[^)]*\)\s*:\s*(?:Android)?ViewModel\("),
+          "android-memory-management.md", "android-memory-storage-pro",
+          "Pass data or @ApplicationContext; ViewModels outlive the screen across configuration changes."),
+    Check("kt-large-heap", "`android:largeHeap` papers over memory problems",
+          "medium", "android", _exts(".xml"), re.compile(r"android:largeHeap=\"true\""),
+          "android-memory-management.md", "android-memory-storage-pro",
+          "Remove it and fix the footprint: bitmap sizes, bounded caches, leaks."),
+    Check("kt-full-bitmap-decode", "Bitmap decoded without sampling",
+          "low", "android", KOTLIN, re.compile(r"BitmapFactory\.decode(File|Stream|ByteArray|Resource)\("),
+          "android-memory-management.md", "android-memory-storage-pro",
+          "Load through Coil/Glide, or decode at target size (ImageDecoder.setTargetSize, inSampleSize).",
+          skip_tests=True),
+    Check("kt-prefs-commit", "SharedPreferences `commit()` blocks the calling thread",
+          "medium", "android", KOTLIN, re.compile(r"\bedit\(\)[^\n]*\.commit\(\)|\bedit\(\s*commit\s*=\s*true"),
+          "android-storage-management.md", "android-memory-storage-pro",
+          "Move the setting to DataStore; at minimum use apply() off the main thread.", skip_tests=True),
+    Check("kt-secret-in-prefs", "Credential stored in plain preferences",
+          "medium", "android", KOTLIN,
+          re.compile(r"(?:putString\(|stringPreferencesKey\()\s*" + SECRET_KEY),
+          "android-storage-management.md", "android-memory-storage-pro",
+          "Encrypt with an Android Keystore key (directly or via Tink) and exclude it from backup.",
+          skip_tests=True),
+    Check("kt-security-crypto", "Deprecated `security-crypto` (EncryptedSharedPreferences / EncryptedFile)",
+          "medium", "android", _exts(".kt", ".kts", ".gradle", ".toml"),
+          re.compile(r"\bEncryptedSharedPreferences\b|\bEncryptedFile\b|security-crypto"),
+          "android-storage-management.md", "android-memory-storage-pro",
+          "Encrypt with a Keystore-backed key (Cipher or Tink) and store in DataStore or files."),
+    Check("kt-external-storage-path", "Deprecated shared-storage path API (scoped storage)",
+          "medium", "android", KOTLIN,
+          re.compile(r"getExternalStorageDirectory\(|getExternalStoragePublicDirectory\("),
+          "android-storage-management.md", "android-memory-storage-pro",
+          "Use getExternalFilesDir() for app files, MediaStore for media, or SAF for documents."),
+    Check("kt-main-thread-queries", "Room main-thread queries allowed",
+          "medium", "android", KOTLIN, re.compile(r"\.allowMainThreadQueries\(\)"),
+          "android-storage-management.md", "android-memory-storage-pro",
+          "Remove it; query from suspend functions or Flow on Dispatchers.IO.", skip_tests=True),
+
     # --- Both ----------------------------------------------------------------
     Check("hardcoded-secret", "API key or token committed in source",
           "high", "any", _exts(".swift", ".m", ".kt", ".kts", ".gradle", ".plist", ".xml",
@@ -307,6 +386,8 @@ COMMENT_PREFIXES = ("//", "*", "/*", "#", "<!--")
 def scan_sources(target: str, platforms: set, findings: dict) -> dict:
     """Walk the tree once, applying line checks. Returns facts for structural checks."""
     facts = {"source_files": 0, "uses_userdefaults": False, "privacy_manifests": [],
+             "disk_space_api": None, "file_timestamp_api": None,
+             "build_scripts": 0, "leakcanary": False,
              "scene_manifest": False, "swiftui_app": False, "uikit_delegate": False,
              "android_manifests": [], "launcher_icons": []}
     active = [c for c in CHECKS if c.platform == "any" or c.platform in platforms]
@@ -349,10 +430,31 @@ def scan_sources(target: str, platforms: set, findings: dict) -> dict:
     return facts
 
 
+_DISK_SPACE_API = re.compile(r"volumeAvailableCapacity|volumeTotalCapacity|systemFreeSize|systemSize\b|\bstatv?fs\(")
+_FILE_TIMESTAMP_API = re.compile(
+    r"contentModificationDateKey|creationDateKey|contentAccessDateKey|FileAttributeKey\.(creationDate|modificationDate)"
+    r"|\[\.(creationDate|modificationDate)\]|attributesOfItem\(atPath")
+
+
+def _first_line(text, pattern):
+    m = pattern.search(text)
+    return text.count("\n", 0, m.start()) + 1 if m else None
+
+
 def _collect_facts(fn, rel, ext, text, facts) -> None:
     if ext == ".swift":
         if "UserDefaults" in text or "@AppStorage" in text:
             facts["uses_userdefaults"] = True
+        if not _is_test(rel):
+            for key, pattern in (("disk_space_api", _DISK_SPACE_API),
+                                 ("file_timestamp_api", _FILE_TIMESTAMP_API)):
+                line = facts[key] is None and _first_line(text, pattern)
+                if line:
+                    facts[key] = f"{rel}:{line}"
+    if ext in (".kts", ".gradle", ".toml"):
+        facts["build_scripts"] += 1
+        if "leakcanary" in text:
+            facts["leakcanary"] = True
         if re.search(r":\s*App\s*\{", text):
             facts["swiftui_app"] = True
         if "@UIApplicationMain" in text or re.search(r"\bUIApplicationDelegate\b", text):
@@ -407,6 +509,45 @@ def _large_screen_restrictions(rel, text, add) -> None:
                 "Delete the property and make the layout adaptive before targeting API 37.", loc)
 
 
+_USES_PERMISSION = re.compile(r"<uses-permission[^>]*>", re.S)
+
+
+def _storage_manifest(rel, text, add, kind) -> None:
+    """Storage permissions Play restricts or scoped storage ignores, and unscoped Auto Backup."""
+    rule, skill = "android-storage-management.md", "android-memory-storage-pro"
+    for m in _USES_PERMISSION.finditer(text):
+        element = m.group(0)
+        loc = f"{rel}:{text.count(chr(10), 0, m.start()) + 1}"
+        if "MANAGE_EXTERNAL_STORAGE" in element:
+            add("android-all-files-access", "`MANAGE_EXTERNAL_STORAGE` (Play allows it only for core use cases)",
+                "high", rule, skill,
+                "Use MediaStore, the Photo Picker, or SAF; keep it only with a Play declaration for a qualifying app.",
+                loc)
+        elif re.search(r"\.(READ|WRITE)_EXTERNAL_STORAGE\b", element) and "maxSdkVersion" not in element:
+            add("android-legacy-storage-permission", "Broad storage permission without maxSdkVersion",
+                "medium", rule, skill,
+                "Scope it to old releases with android:maxSdkVersion, or drop it for MediaStore / Photo Picker / SAF.",
+                loc)
+        elif re.search(r"\.READ_MEDIA_(IMAGES|VIDEO)\b", element):
+            add("android-media-permission", "Broad photo/video permission (Play policy limits it)",
+                "medium", rule, skill,
+                "Use the Photo Picker unless broad media access is the app's core function.", loc)
+    for n, line in enumerate(text.splitlines(), 1):
+        if 'requestLegacyExternalStorage="true"' in line:
+            add("android-legacy-storage-permission", "Broad storage permission without maxSdkVersion",
+                "medium", rule, skill,
+                "Remove requestLegacyExternalStorage (ignored from targetSdk 30) and migrate to scoped storage.",
+                f"{rel}:{n}")
+    main_manifest = "/src/" not in "/" + rel or "/src/main/" in "/" + rel
+    app = re.search(r"<application\b[^>]*>", text, re.S)
+    if kind == "app" and main_manifest and app and 'allowBackup="false"' not in app.group(0) and not re.search(
+            r"dataExtractionRules|fullBackupContent", app.group(0)):
+        add("android-backup-unscoped", "Auto Backup on with no backup rules", "low", rule, skill,
+            "Add dataExtractionRules (and fullBackupContent for API 30-) excluding caches, tokens, and "
+            "Keystore-encrypted files, or set allowBackup=\"false\" on purpose.",
+            f"{rel}:{text.count(chr(10), 0, app.start()) + 1}")
+
+
 def _structural(target, platforms, facts, findings, kind) -> None:
     def add(id_, title, sev, rule, skill, fix, loc):
         f = findings.setdefault(id_, Finding(id_, title, sev, rule, skill, fix))
@@ -430,6 +571,18 @@ def _structural(target, platforms, facts, findings, kind) -> None:
                 "high", "apple-testflight-deployment.md", None,
                 "Declare NSPrivacyAccessedAPICategoryUserDefaults with reason CA92.1.",
                 os.path.relpath(facts["privacy_manifests"][0], target))
+        if facts["privacy_manifests"]:
+            manifests = " ".join(_read(p) for p in facts["privacy_manifests"])
+            for key, category, title, reason in (
+                    ("disk_space_api", "NSPrivacyAccessedAPICategoryDiskSpace",
+                     "Disk-space API used but not declared in the privacy manifest", "E174.1"),
+                    ("file_timestamp_api", "NSPrivacyAccessedAPICategoryFileTimestamp",
+                     "File-timestamp API used but not declared in the privacy manifest", "C617.1")):
+                if facts[key] and category not in manifests:
+                    add(f"apple-privacy-{key.replace('_api', '').replace('_', '-')}", title, "high",
+                        "apple-storage-management.md", "swift-memory-storage-pro",
+                        f"Declare {category} (usually reason {reason}) in PrivacyInfo.xcprivacy.",
+                        facts[key])
         if facts["uikit_delegate"] and not facts["swiftui_app"] and not facts["scene_manifest"]:
             add("apple-no-scene-lifecycle", "No UIScene lifecycle (apps won't launch on the iOS 27 SDK)",
                 "high", "apple-adaptive-layout.md", "swift-adaptive-layout-pro",
@@ -448,11 +601,18 @@ def _structural(target, platforms, facts, findings, kind) -> None:
                     "android-localization-best-practices.md", None,
                     "Set supportsRtl on <application> and use start/end modifiers.", rel)
             _large_screen_restrictions(rel, text, add)
+            _storage_manifest(rel, text, add, kind)
         for rel, text in facts["launcher_icons"]:
             if "<monochrome" not in text:
                 add("android-icon-no-monochrome", "Adaptive launcher icon has no monochrome layer", "low",
                     "android-iconography.md", "android-design-system-pro",
                     "Add a <monochrome> layer so themed icons render correctly.", rel)
+        if (kind == "app" and facts["source_files"] and facts["build_scripts"]
+                and facts["android_manifests"] and not facts["leakcanary"]):
+            add("android-no-leakcanary", "No LeakCanary in debug builds", "low",
+                "android-memory-management.md", "android-memory-storage-pro",
+                "Add debugImplementation(libs.leakcanary.android) and fix the leaks it reports.",
+                "(app module)")
         if facts["source_files"] and not os.path.isfile(os.path.join(target, ".editorconfig")):
             add("android-no-ktlint-config", "No .editorconfig for ktlint", "low",
                 "android-linting-strategy.md", None,
@@ -646,11 +806,11 @@ def build(target, bundle, bundle_commit, recommended, all_cats,
         bundle_findings = []
     topic_info = _topic_info(topic, platforms, bundle) if topic else None
     if topic_info:
-        rules, skills_in = set(topic_info["rules"]), set(topic_info["skills"])
-        findings = {k: f for k, f in findings.items() if f.rule in rules or f.skill in skills_in}
+        findings = {k: f for k, f in findings.items() if _in_topic(topic, f.rule, f.skill)}
         topic_ids = set(findings) | {
             c.id for c in CHECKS
-            if c.skill in skills_in or rules & set(c.rule.values() if isinstance(c.rule, dict) else [c.rule])}
+            if any(_in_topic(topic, r, c.skill)
+                   for r in (c.rule.values() if isinstance(c.rule, dict) else [c.rule]))}
 
     installed_paths = _installed_paths(target)
     ordered = bundle_findings + sorted(findings.values(),
@@ -723,6 +883,23 @@ def _finding_json(f: Finding, bundle, installed_paths):
     if f.skill:
         d["skill_path"] = os.path.join(bundle, ".claude", "skills", f.skill, "SKILL.md")
     return d
+
+
+def _in_topic(name, rule, skill):
+    """A finding belongs to a topic through its rule, or through its skill
+    unless another topic owns both (memory and storage share one skill)."""
+    topics = load_topics()
+
+    def lists(spec, key, value):
+        return any(value in v for v in spec[key].values())
+
+    spec = topics[name]
+    if rule and lists(spec, "rules", rule):
+        return True
+    if not skill or not lists(spec, "skills", skill):
+        return False
+    return not any(lists(s, "rules", rule) and lists(s, "skills", skill)
+                   for n, s in topics.items() if n != name and rule)
 
 
 def _topic_info(name, platforms, bundle):

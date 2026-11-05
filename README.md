@@ -20,9 +20,9 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 
 | Area | What's inside |
 |------|---------------|
-| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
-| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · Gemini Nano / Firebase AI · Play beta · regional store compliance |
-| **Skills (Claude)** | 13 Apple + 9 Android + 2 cross-platform on-demand deep-review agents |
+| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · memory + storage · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
+| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · memory + storage · Gemini Nano / Firebase AI · Play beta · regional store compliance |
+| **Skills (Claude)** | 14 Apple + 10 Android + 2 cross-platform on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
@@ -63,6 +63,9 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`swiftdata-pro` skill** — SwiftData review: core model/context rules, safe `#Predicate` usage, CloudKit constraints, iOS 18+ indexing, iOS 26+ class inheritance.
 - **`swift-docc-pro` skill** — DocC comment review: parameter/return/throws tags, double-backtick symbol linking, Topics organization.
 - **`swift-error-handling-pro` skill** — typed throws, Result vs throws, `LocalizedError`, Sendable errors, async propagation.
+- **`apple-memory-management.md`** *(memory-storage)* — retain cycles that actually leak (stored closures, long-lived `Task`s with `for await`, Combine `sink` / `assign(to:on:)`, target-retaining timers and display links, strong delegates), image downsampling (decoded size is width × height × 4), `NSCache` with cost limits, memory warnings, lazy containers, streaming large data, extension and watchOS budgets, the increased-memory-limit entitlement as a last resort, and measuring with the memory graph, Instruments generations, leak tests, and MetricKit jetsam exits.
+- **`apple-storage-management.md`** *(memory-storage)* — Documents vs Application Support vs Caches vs tmp, backup exclusion for offline content, UserDefaults for small values only, Keychain accessibility classes, file protection, app group containers, atomic off-main-actor writes, free-space checks before large writes, capped disk caches, app size (Background Assets, thinning report), and the disk-space / file-timestamp privacy manifest reasons.
+- **`swift-memory-storage-pro` skill** *(memory-storage)* — memory and storage audit: traces ownership to confirm cycles, sizes image decodes and caches in bytes, checks every file write for location, backup, protection, size cap, and privacy reason, and confirms fixes with the memory graph, Instruments, leak tests, and MetricKit.
 - **`swift-logging-pro` skill** — `os.Logger` review: subsystem/category conventions, privacy markers, log-level semantics.
 - **`swift-package-pro` skill** — SPM library design: public API surface, `InternalImportsByDefault`, resources, versioning, dependency hygiene.
 
@@ -86,6 +89,9 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`android-modular-architecture.md`** *(packaging)* — the Now in Android shape: a thin `:app` over `:feature:*` (with an `api`/`impl` split), `:core:data`, `:core:domain`, pure-Kotlin `:core:model`, data-source modules, `:core:designsystem`, and `:core:testing`. Allowed edges, navigation wired in `:app` through lambdas and type-safe routes, Hilt bindings per module, `internal` and explicit API, non-transitive R, build-cache and configuration-cache flags, graph enforcement with module-graph-assertion, and a leaf-first migration from a single-module app.
 - **`android-linting-strategy.md`** *(linting)* — three linters, three jobs: ktlint (`.editorconfig`, formatting), detekt (`detekt.yml` tuning, `buildUponDefaultConfig`, type resolution, baselines), and Android Lint (`lint {}`, `lint.xml`, `warningsAsErrors`, baselines). `@Suppress` / `@SuppressLint` hygiene, CI placement (`ktlintCheck detekt lintDebug`), version pinning, plus a triage decision-order.
 - **`android-logging-strategy.md`** *(logging)* — Timber over `android.util.Log` (plant a tree in `Application.onCreate`), log levels (V/D/I/W/E/WTF) and passing the `Throwable`, **stripping debug logs from release** (DebugTree-in-debug-only + R8 `assumenosideeffects`), no PII/secrets, crash-reporter integration (Crashlytics/Sentry breadcrumbs + non-fatals via a `CrashReportingTree`), Logcat hygiene.
+- **`android-memory-management.md`** *(memory-storage)* — no Activity / View / Context in singletons, objects, or ViewModels (`StaticFieldLeak` is a leak), unregister in the matching lifecycle callback (`DisposableEffect` in Compose), Fragment binding cleanup, LeakCanary in debug, bitmap decoding at display size (Coil, `ImageDecoder.setTargetSize`, `inSampleSize`), `LruCache` sized from `memoryClass`, `onTrimMemory` with the Android 14 levels, Paging 3, no `largeHeap`, low-RAM devices, process death, and measuring with the Memory Profiler, `dumpsys meminfo`, and `ApplicationExitInfo`.
+- **`android-storage-management.md`** *(memory-storage)* — `filesDir` vs `cacheDir` vs `noBackupFilesDir` vs `getExternalFilesDir`, MediaStore / Photo Picker / SAF instead of broad storage permissions (and Play's `MANAGE_EXTERNAL_STORAGE` and photo/video policies), DataStore over SharedPreferences, Room for structured data, Keystore-backed encryption (`security-crypto` is deprecated), Auto Backup data extraction rules, `AtomicFile`, StrictMode, `StorageManager` free-space checks and cache quotas, capped disk caches, and app size.
+- **`android-memory-storage-pro` skill** *(memory-storage)* — memory and storage audit: names the reference chain for each leak, sizes bitmap decodes and caches in bytes, checks file locations, permissions, preferences, encryption, and backup rules, and confirms fixes with LeakCanary, heap dumps, `dumpsys`, StrictMode, and `ApplicationExitInfo`.
 - **`android-ai-best-practices.md`** *(ai)* — in-app AI models on Android, the counterpart to the Apple Foundation Models rule: on-device Gemini Nano via ML Kit GenAI / AICore vs cloud Gemini via Firebase AI Logic, **never ship a raw model API key** (App Check / backend proxy), two-level availability gating (feature download + user preference), streaming into Compose with placeholder-then-mutate, structural cancellation, interface + fake testability, consent + Data-safety implications.
 - **`android-large-screen-best-practices.md`** *(ui; gated by the `tablet` form factor)* — tablets, foldables, desktop windows, connected displays, and Googlebook: window size classes over device heuristics (`currentWindowAdaptiveInfoV2()`, `BREAKPOINTS_V2` with large / extra-large), Material 3 adaptive canonical layouts (`NavigationSuiteScaffold`, list-detail and supporting-pane scaffolds or Navigation 3 scene strategies), fold posture (tabletop / book), state survival across fold/unfold and resize, multi-resume, multi-instance, the desktop caption bar, and the **Android 16 change that ignores orientation / resizability restrictions on ≥ 600dp screens, whose opt-out Android 17 removes**; large-screen input (keyboard, mouse, stylus, drag-and-drop).
 - **`android-regional-compliance.md`** *(compliance)* — region-specific distribution: Play country availability and per-country declarations (gambling, loans), China's non-Play stores (ICP filing, generative-AI filing, consent before any data collection or SDK init, a GMS-free `china` flavor), EU trader status, Android developer verification, a `RegionPolicy` gated on Play Billing's `BillingConfig.countryCode` (alpha-2), conditional feature delivery by country, country-targeted custom store listings, and answering a regional rejection.
@@ -129,7 +135,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
   - `--apple-platforms ios,macos,tvos,watchos,visionos|all` — which Apple sub-platforms you target. Default `ios,macos,tvos,watchos` (every platform **except** visionOS — the lean default for typical app projects). Only meaningful when Apple is in scope. `visionos` stays in sync with the `spatial` feature: naming it installs the visionOS rule, omitting it keeps it out. **`macos` gates the touch-on-Mac rule** (`apple-mac-touch.md`) — drop it for an iOS-only app. Other tokens are recorded in the manifest for future platform-specific rules.
   - `--android-platforms phone,tablet,wear,tv,auto|all` — which Android form factors you target. Default `phone,tablet`. Only meaningful when Android is in scope. **`tablet` gates the large-screen / foldable rule** (`android-large-screen-best-practices.md`) **and the `android-adaptive-layout-pro` skill** — drop it for a phone-only app. Other tokens are recorded in the manifest for future form-factor rules (Wear OS / Android TV / Auto would gate the same way).
-  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting` and `compliance`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`); custom CSVs like `core,testing,docs` give fine-grained control
+  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`, `compliance`, and `memory-storage`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`); custom CSVs like `core,testing,docs` give fine-grained control
   - `--list` previews the catalog with one-line descriptions + category tags
   - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
   - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
@@ -138,7 +144,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
   - `--dry-run` shows what an install would do without writing any files
   - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope / rename. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. The header prints a GitHub compare URL when commits differ. See [Upgrading an existing install](#upgrading-an-existing-install).
   - `--uninstall` reverses install: deletes every tracked file whose current hash matches what was installed (locally-edited files kept unless `--force-conflicts`; `CLAUDE.md` / `settings.json` kept unless `--purge`). MCP entries are removed if unchanged, unless `--keep-mcps`. Strips the `.gitignore` block and the manifest itself. See [Removing the install](#removing-the-install).
-  - `--help` documents every flag and enumerates all 18 categories
+  - `--help` documents every flag and enumerates all 19 categories
   - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (schema v2 — records per-file SHA-256 hashes so `--upgrade` can diff 3-way: installed vs. current disk vs. bundle)
 - **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
 - **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
@@ -325,7 +331,7 @@ repo:
 
 Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. The manifest is what powers `--upgrade`'s 3-way diff against future bundle versions.
 
-**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint) + `compliance` (region-specific App Store / Play rules). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas), `architecture` (Android MVVM / unidirectional data flow + the repository pattern for both platforms).
+**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint) + `compliance` (region-specific App Store / Play rules) + `memory-storage` (leaks, footprint, file locations, backup, app size). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas), `architecture` (Android MVVM / unidirectional data flow + the repository pattern for both platforms).
 
 **The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|kiro|all` (additive CSV) and the installer also drops the matching file shape for those agents (per-rule files for Copilot `.instructions.md`, Cursor `.mdc`, and Kiro `.kiro/steering/*.md`; a short rule index for Gemini and Codex). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
 
@@ -360,6 +366,8 @@ After install, edit the new `CLAUDE.md` (or your agent's equivalent) and fill in
 - "Use `swift-docc-pro` to review the public API in `MyPackage`."
 - "Use `swift-error-handling-pro` to review my typed throws migration."
 - "Use `swift-logging-pro` to audit `Logger` usage across the project."
+- "Use `swift-memory-storage-pro` to find why the photo grid gets killed on older iPhones."
+- "Use `android-memory-storage-pro` to audit what the app writes to disk and backs up."
 - "Use `swift-package-pro` to review `Package.swift` and the public API surface."
 - "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
 - "Use `xml-to-compose-migration-pro` to plan migrating `SettingsFragment` to Compose."
@@ -393,7 +401,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 |------|--------|
 | Audit a repo without installing | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this package. Don't change any files."* |
 | Review and improve your AI rules | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit our CLAUDE.md, AGENTS.md, and Cursor rules and suggest improvements."* (`install.sh audit . --steering-only`) |
-| Audit one area only, reading just its rules and skills | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit only the concurrency safety of this repo."* (`/appbootstrap-audit concurrency` after an install, or `install.sh audit . --topic concurrency`; topics: concurrency, architecture, accessibility, ui, localization, testing, compliance, logging, docs, deployment, linting) |
+| Audit one area only, reading just its rules and skills | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit only the concurrency safety of this repo."* (`/appbootstrap-audit concurrency` after an install, or `install.sh audit . --topic concurrency`; topics: concurrency, architecture, accessibility, ui, localization, testing, compliance, logging, docs, deployment, linting, memory, storage) |
 | Bootstrap a new Apple SwiftUI app with the recommended set | *"Run `/path/to/AppBootstrapAI/install.sh . --platform apple` in this directory, then walk me through what landed."* |
 | Bootstrap an Android Compose app with everything | *"Run `/path/to/AppBootstrapAI/install.sh . --platform android --features all` and summarize the new files."* |
 | Pick categories interactively | *"Show me `./install.sh --list --features all`, then ask me which categories to install."* |
@@ -639,11 +647,13 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-localization-best-practices.md     # strings.xml, plurals, RTL
 │   │   ├── android-logging-strategy.md                # Timber, level discipline, release-stripping (logging)
 │   │   ├── android-modular-architecture.md            # Thin :app over feature/core modules (packaging)
+│   │   ├── android-memory-management.md               # Leaks, bitmaps, caches, onTrimMemory (memory-storage)
 │   │   ├── android-mvvm-architecture.md               # MVVM / UDF, UiState, Route vs Screen (architecture)
 │   │   ├── android-play-beta-deployment.md            # Play beta tracks, signing, CI (deployment)
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
 │   │   ├── android-regional-compliance.md             # Per-country Play / China store rules (compliance)
 │   │   ├── android-repository-pattern.md              # Data layer, offline-first repositories (architecture)
+│   │   ├── android-storage-management.md              # Scoped storage, DataStore, backup rules (memory-storage)
 │   │   ├── android-testing-strategy.md                # Android test strategy + JaCoCo
 │   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
 │   │   ├── apple-adaptive-layout.md                   # Resizable apps / iPhone Duo (ui)
@@ -656,12 +666,14 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-localization-best-practices.md       # String Catalogs, plurals, RTL
 │   │   ├── apple-logging-strategy.md                  # os.Logger, privacy markers, levels (logging)
 │   │   ├── apple-mac-touch.md                         # Touchscreen Mac / Sidecar touch (ui, macos-gated)
+│   │   ├── apple-memory-management.md                 # Retain cycles, image decode size, jetsam (memory-storage)
 │   │   ├── apple-modular-architecture.md              # Thin app shell + fat local SPM package
 │   │   ├── apple-objc-accessibility-best-practices.md # UIKit a11y in ObjC
 │   │   ├── apple-objc-best-practices.md               # Modern Objective-C
 │   │   ├── apple-repository-pattern.md                # Data layer, protocol repositories (architecture)
 │   │   ├── apple-spm-package-conventions.md           # Package.swift authoring
 │   │   ├── apple-regional-compliance.md               # Per-storefront App Store rules (compliance)
+│   │   ├── apple-storage-management.md                # Directories, backup, Keychain, free space (memory-storage)
 │   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.4 strict concurrency (Xcode 27)
 │   │   ├── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
 │   │   ├── apple-testflight-deployment.md             # TestFlight, ASC API, signing, CI (deployment)
@@ -678,6 +690,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-coroutines-pro/             # Coroutines & Flow correctness (concurrency)
 │   │   ├── android-design-system-pro/          # Icons + theme + components bootstrap/audit (ui)
 │   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs
+│   │   ├── android-memory-storage-pro/         # Leak, footprint, and storage audit (memory-storage)
 │   │   ├── android-modularization-pro/         # Plan/migrate/audit a multi-module app (packaging)
 │   │   ├── coredata-swift6-pro/
 │   │   ├── cross-platform-parity-pro/          # Port features, audit drift, set up a two-platform repo (both)
@@ -688,6 +701,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── swift-docc-pro/
 │   │   ├── swift-error-handling-pro/
 │   │   ├── swift-logging-pro/
+│   │   ├── swift-memory-storage-pro/           # Leak, footprint, and storage audit (memory-storage)
 │   │   ├── swift-modularization-pro/           # Plan/migrate/audit a local SPM package (packaging)
 │   │   ├── swift-package-pro/
 │   │   ├── swift-testing-pro/
@@ -746,7 +760,7 @@ See [CLAUDE.md](CLAUDE.md) for:
 
 ## Roadmap
 
-**Shipped:** 45 rules (22 Apple, 19 Android, 4 cross-platform) and 24 skills (13 Apple, 9 Android, 2 cross-platform), all loaded equally by `globs` — there is no "primary" platform in the bundle's design.
+**Shipped:** 49 rules (24 Apple, 21 Android, 4 cross-platform) and 26 skills (14 Apple, 10 Android, 2 cross-platform), all loaded equally by `globs` — there is no "primary" platform in the bundle's design.
 
 **Next — closing the day-one gaps for new app developers:**
 

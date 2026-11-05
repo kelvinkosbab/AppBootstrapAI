@@ -196,6 +196,10 @@ assert_dir_exists  "$target_rec/.claude/skills/swift-error-handling-pro"        
 assert_dir_exists  "$target_rec/.claude/skills/swift-logging-pro"                           "recommended includes logging skill"
 assert_file_exists "$target_rec/.claude/rules/apple-logging-strategy.md"                    "recommended includes logging rule (apple)"
 assert_file_exists "$target_rec/.claude/rules/android-logging-strategy.md"                  "recommended includes logging rule (android)"
+assert_file_exists "$target_rec/.claude/rules/apple-memory-management.md"                   "recommended includes memory rule (apple)"
+assert_file_exists "$target_rec/.claude/rules/android-storage-management.md"                 "recommended includes storage rule (android)"
+assert_dir_exists  "$target_rec/.claude/skills/swift-memory-storage-pro"                    "recommended includes memory/storage skill (apple)"
+assert_dir_exists  "$target_rec/.claude/skills/android-memory-storage-pro"                  "recommended includes memory/storage skill (android)"
 assert_dir_exists  "$target_rec/.claude/skills/swift-package-pro"                           "recommended includes packaging skill"
 
 # recommended EXCLUDES: persistence, ai, migration, shrinking.
@@ -305,9 +309,9 @@ assert {'spatial', 'deployment', 'linting'} <= cat_names, f'categories missing s
 for c in data['categories']:
     assert 'name' in c and 'recommended' in c, f'category missing name/recommended: {c}'
     assert isinstance(c['recommended'], bool), f'recommended must be bool: {c}'
-# recommended preset must be exactly the 11 day-one categories
+# recommended preset must be exactly the 12 day-one categories
 recommended = {c['name'] for c in data['categories'] if c['recommended']}
-assert recommended == {'core','concurrency','ui','testing','docs','error-handling','packaging','logging','localization','linting','compliance'}, \
+assert recommended == {'core','concurrency','ui','testing','docs','error-handling','packaging','logging','localization','linting','compliance','memory-storage'}, \
     f'unexpected recommended set: {recommended}'
 # Every rule should have filename/category/installed/description
 for r in data['rules']:
@@ -2104,6 +2108,62 @@ set +e
 set -e
 [[ "$r1" -ne 0 && "$r2" -ne 0 && "$r3" -ne 0 ]] && PASS=$((PASS + 1)) \
     || { red "FAIL: --topic should reject unknown names, non-audit verbs, and --steering-only"; FAIL=$((FAIL + 1)); }
+rm -rf "$t"
+
+bold "==> audit memory/storage: checks fire and each topic keeps only its half"
+t="$(mktemp -d)"
+mkdir -p "$t/App.xcodeproj" "$t/Sources/App" "$t/app/src/main/java/x"
+: > "$t/App.xcodeproj/project.pbxproj"
+cat > "$t/Sources/App/Feed.swift" <<'SWIFT'
+final class Feed {
+    var delegate: FeedDelegate?
+    weak var other: FeedDelegate?
+    func start() {
+        timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(tick), userInfo: nil, repeats: true)
+        UserDefaults.standard.set(token, forKey: "authToken")
+        let free = try url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+    }
+}
+protocol P { var delegate: FeedDelegate? { get set } }
+SWIFT
+printf '<plist><string>NSPrivacyAccessedAPICategoryUserDefaults</string></plist>\n' > "$t/Sources/App/PrivacyInfo.xcprivacy"
+printf 'dependencies { implementation("androidx.security:security-crypto:1.1.0") }\n' > "$t/app/build.gradle.kts"
+printf 'include(":app")\n' > "$t/settings.gradle.kts"
+cat > "$t/app/src/main/AndroidManifest.xml" <<'XML'
+<manifest>
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <application android:largeHeap="true" android:supportsRtl="true"></application>
+</manifest>
+XML
+cat > "$t/app/src/main/java/x/Main.kt" <<'KT'
+class ProfileViewModel(private val activity: Activity) : ViewModel()
+fun f() { prefs.edit().putString("auth_token", t).commit() }
+KT
+mem="$("$INSTALL" audit "$t" --no-install-check --no-baseline --topic memory --json 2>&1)"
+sto="$("$INSTALL" audit "$t" --no-install-check --no-baseline --topic storage --json 2>&1)"
+if python3 -c "
+import json, sys
+m, s = json.loads(sys.argv[1]), json.loads(sys.argv[2])
+mids, sids = {f['id'] for f in m['findings']}, {f['id'] for f in s['findings']}
+assert {'swift-strong-delegate', 'swift-timer-retains-self', 'kt-viewmodel-holds-ui',
+        'kt-large-heap', 'android-no-leakcanary'} <= mids, mids
+assert {'swift-secret-in-defaults', 'apple-privacy-disk-space', 'kt-prefs-commit', 'kt-secret-in-prefs',
+        'kt-security-crypto', 'android-all-files-access', 'android-backup-unscoped'} <= sids, sids
+assert not mids & sids, mids & sids
+assert 'android-legacy-storage-permission' not in sids, 'maxSdkVersion on the next line should pass'
+delegate = next(f for f in m['findings'] if f['id'] == 'swift-strong-delegate')
+assert delegate['count'] == 1, delegate['locations']
+assert sorted(m['topic']['rules']) == ['android-memory-management.md', 'apple-memory-management.md'], m['topic']['rules']
+assert {x['skill'] for x in s['skills_to_run']} == {'swift-memory-storage-pro', 'android-memory-storage-pro'}
+" "$mem" "$sto"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: memory/storage checks should fire and split cleanly between the two topics"
+    FAIL=$((FAIL + 1))
+fi
 rm -rf "$t"
 
 bold "==> audit baseline: flags are audit-only and validated"
