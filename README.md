@@ -595,14 +595,14 @@ Per-agent file shape:
 | Claude Code  | `claude`  | `.claude/rules/`, `.claude/skills/`, `.claude/settings.json`, `CLAUDE.md` | Native — per-rule files + skill directories |
 | GitHub Copilot | `copilot` | `.github/instructions/<name>.instructions.md`, `.github/copilot-instructions.md` | Per-rule [path-specific instructions](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions); each rule's `globs` becomes `applyTo` (brace lists expanded), and `copilot-instructions.md` is a short pointer |
 | Cursor | `cursor`  | `.cursor/rules/<name>.mdc`             | Per-rule files (1:1 with `.claude/rules/*.md`, just renamed) |
-| Gemini CLI | `gemini`  | `GEMINI.md`, `.claude/rules/`        | A short index (about 6 KB): one line per rule with its paths, telling the agent which `.claude/rules/` file to read before editing a matching file |
+| Gemini CLI | `gemini`  | `GEMINI.md`, `.claude/rules/`        | A short index (about 13 KB for an Apple install): each rule's paths and its 2 to 5 always-on musts (`must:` in the rule's frontmatter), plus which `.claude/rules/` file to read in full before editing a matching file |
 | Codex CLI / `AGENTS.md`-aware tools | `codex`   | `AGENTS.md`, `.claude/rules/`         | Same index as Gemini |
 | Kiro | `kiro`    | `.kiro/steering/<name>.md`           | Per-rule [steering files](https://kiro.dev/docs/steering/); each rule's `globs` becomes `inclusion: fileMatch` + `fileMatchPattern`, so a rule loads only when a matching file is open |
 
 **How it works:**
 
 - **Same source, multiple targets.** Every agent gets content derived from the same `.claude/rules/*.md` source-of-truth (gated by `--platform` / `--apple-language` / `--features`). Output is deterministic — the Gemini/Codex indexes and the per-rule files (Copilot with `applyTo`, Cursor `.mdc`, Kiro steering with its rewritten `inclusion`/`fileMatchPattern` frontmatter) all produce the same bytes given the same inputs — so `--upgrade` can diff cleanly.
-- **Only matching rules load.** An always-loaded file is paid for on every request, so no agent gets the full rule set up front. Gemini and Codex have no path scoping, so their index relies on the agent reading the named rule; it's about 6 KB instead of the 180 KB the full rule text used to be.
+- **Only matching rules load.** An always-loaded file is paid for on every request, so no agent gets the full rule set up front. Gemini and Codex have no path scoping, so their index always carries each rule's musts and relies on the agent reading the full rule for the rest; it's about 13 KB instead of the 180 KB the full rule text used to be.
 - **Skills are Claude-only.** Skills are procedural sub-agents that only run inside Claude Code. Non-Claude agents get rules only. If you want a skill's checklist in another agent's context, copy it into the relevant rule manually.
 - **Existing files are never overwritten on install.** If you already have `.github/copilot-instructions.md` or `GEMINI.md`, install skips and prints a notice. `--upgrade` does the 3-way diff like any other tracked file.
 - **`--upgrade --apply` opts in / out of agents.** Pass `--agents` on the command line to opt into a new agent (its files show up as additions). Pass `--agents <fewer>` + `--prune` to drop an agent (its files appear as orphans and get deleted).

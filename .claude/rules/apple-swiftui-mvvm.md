@@ -3,6 +3,11 @@ description: MVVM ownership and view-model conventions for SwiftUI views
 globs: "**/*.swift"
 paths:
   - "**/*.swift"
+must:
+  - "View models are `@MainActor @Observable final class`, with dependencies passed at init."
+  - "View models never hold `@Environment` or `Binding`; pass environment values into methods."
+  - "Own with `@State` per view; share with `@Bindable` only when two instances would race over one resource."
+  - "Extract a view model when the view has business logic, multi-step async, or needs unit tests."
 ---
 
 # SwiftUI MVVM Conventions

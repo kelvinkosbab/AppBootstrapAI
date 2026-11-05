@@ -5,6 +5,11 @@ paths:
   - "Package.swift"
   - "**/Package.swift"
   - "**/*App.swift"
+must:
+  - "Keep the app target thin: `@main`, Info.plist, entitlements, assets, privacy manifest; code lives in a local Swift package."
+  - "One directory per module and a `makeTargets()` manifest, with an `AppCore` umbrella the app links."
+  - "The module graph flows one way; features never depend on each other's implementation."
+  - "Every module is tested under `swift test`."
 ---
 
 # Apple Modular Architecture (local SPM package)

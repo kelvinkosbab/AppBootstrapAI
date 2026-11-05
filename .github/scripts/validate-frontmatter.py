@@ -27,7 +27,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 RULES_DIR = REPO_ROOT / ".claude" / "rules"
 SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
 
-REQUIRED_RULE_KEYS = ("description", "globs", "paths")
+REQUIRED_RULE_KEYS = ("description", "globs", "paths", "must")
+# must: is copied into the always-loaded Gemini / Codex index, so it stays short.
+MUST_ITEMS = (2, 5)
+MUST_ITEM_CHARS = 160
+MUST_RULE_CHARS = 600
 REQUIRED_SKILL_KEYS = ("name", "description", "license")
 
 
@@ -74,6 +78,25 @@ def paths_match_globs(frontmatter: str) -> bool:
     return paths == split_top_level_commas(globs.group(1))
 
 
+def must_errors(frontmatter: str) -> list[str]:
+    """must: is a list of 2-5 short quoted strings with no inner quotes."""
+    block = re.search(r"^must:\s*\n((?:  - .*\n?)+)", frontmatter, re.MULTILINE)
+    if not block:
+        return ["'must:' must be a YAML list of quoted strings"]
+    lines = block.group(1).splitlines()
+    items = [m.group(1) for line in lines if (m := re.fullmatch(r'  - "([^"\\]*)"', line))]
+    errors = []
+    if len(items) != len(lines):
+        errors.append("'must:' items must be double-quoted with no inner quotes or backslashes")
+    if not MUST_ITEMS[0] <= len(items) <= MUST_ITEMS[1]:
+        errors.append(f"'must:' needs {MUST_ITEMS[0]}-{MUST_ITEMS[1]} items, has {len(items)}")
+    if any(len(i) > MUST_ITEM_CHARS for i in items):
+        errors.append(f"'must:' items must be at most {MUST_ITEM_CHARS} characters")
+    if sum(len(i) for i in items) > MUST_RULE_CHARS:
+        errors.append(f"'must:' totals more than {MUST_RULE_CHARS} characters")
+    return errors
+
+
 def main() -> int:
     errors: list[str] = []
     rule_count = 0
@@ -96,6 +119,8 @@ def main() -> int:
                 f"{path.relative_to(REPO_ROOT)}: 'paths:' must be a quoted YAML list "
                 f"of the comma-separated 'globs:' patterns, in order"
             )
+        if has_key(fm, "must"):
+            errors += [f"{path.relative_to(REPO_ROOT)}: {e}" for e in must_errors(fm)]
 
     # --- Skills ---
     for path_str in sorted(glob.glob(str(SKILLS_DIR / "*" / "SKILL.md"))):

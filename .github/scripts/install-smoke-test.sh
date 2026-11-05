@@ -1291,10 +1291,11 @@ else
 fi
 rm -rf "$t"
 
-bold "==> --agents gemini,codex: short index whose every entry exists under .claude/rules/"
+bold "==> --agents gemini,codex: short index with musts; every entry exists under .claude/rules/"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform apple --features all --agents gemini,codex > /dev/null
-if [[ "$(wc -c < "$t/GEMINI.md")" -lt 12000 && "$(wc -c < "$t/AGENTS.md")" -lt 12000 ]] \
+if [[ "$(wc -c < "$t/GEMINI.md")" -lt 40000 && "$(wc -c < "$t/AGENTS.md")" -lt 40000 ]] \
+    && grep -q '^  - Never use `@unchecked Sendable`; redesign instead.$' "$t/GEMINI.md" \
     && [[ ! -d "$t/.claude/skills" ]] \
     && python3 -c "
 import re, sys, os
@@ -1304,7 +1305,7 @@ assert all(os.path.isfile(os.path.join(sys.argv[1], p)) for p in paths)
 " "$t" 2>/dev/null; then
     PASS=$((PASS + 1))
 else
-    red "FAIL: --agents gemini,codex should write a short index of rules that exist on disk"
+    red "FAIL: --agents gemini,codex should write a short index, with each rule's musts, of rules that exist on disk"
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$t"

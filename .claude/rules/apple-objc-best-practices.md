@@ -3,6 +3,11 @@ description: Enforce modern Objective-C conventions — ARC, nullability, generi
 globs: "**/*.{h,m,mm}"
 paths:
   - "**/*.{h,m,mm}"
+must:
+  - "ARC only; wrap every header in `NS_ASSUME_NONNULL_BEGIN`/`END` and annotate `nullable`."
+  - "Use `instancetype`, lightweight generics, and `copy` for strings, arrays, and blocks."
+  - "Mark the designated initializer and make inherited ones `NS_UNAVAILABLE`."
+  - "Compare strings with `isEqualToString:`, never `==`."
 ---
 
 # Modern Objective-C Best Practices

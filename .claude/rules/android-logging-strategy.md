@@ -3,6 +3,10 @@ description: Logging strategy for Android — Timber over android.util.Log, tag 
 globs: "**/*.{kt,kts}"
 paths:
   - "**/*.{kt,kts}"
+must:
+  - "Log with Timber, never `android.util.Log` directly; plant `DebugTree` only in debug builds."
+  - "Pass the `Throwable` as the first argument (`Timber.e(e, …)`), not concatenated into the message."
+  - "Never log secrets, tokens, PII, or request and response bodies."
 ---
 
 # Android Logging Strategy

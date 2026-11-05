@@ -6,6 +6,11 @@ paths:
   - "CHANGELOG.md"
   - "CONTRIBUTING.md"
   - "docs/**/*.md"
+must:
+  - "README leads with a one-line description and a runnable Quick Start, not marketing copy."
+  - "CHANGELOG follows Keep a Changelog, with ISO dates."
+  - "ADRs live in `docs/adr/` and are immutable once accepted; supersede with a new ADR."
+  - "Pin versions in install commands and permalink to source by SHA."
 ---
 
 # Project Documentation Conventions

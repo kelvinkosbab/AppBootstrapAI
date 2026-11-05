@@ -3,6 +3,11 @@ description: Test strategy and coverage discipline for Apple platforms — what 
 globs: "**/*.swift"
 paths:
   - "**/*.swift"
+must:
+  - "New tests use Swift Testing; keep XCTest only for UI and performance tests."
+  - "Inject clocks, UUIDs, randomness, and network; no `Date()`, `Thread.sleep`, or live network in tested code."
+  - "Name tests by behavior and test through public API."
+  - "UI tests find elements by `accessibilityIdentifier`, never localized text."
 ---
 
 # Apple Testing Strategy & Coverage

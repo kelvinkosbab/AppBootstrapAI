@@ -3,6 +3,11 @@ description: Building one app on Apple and Android at the same time with AI agen
 globs: "**/*.{swift,kt,kts,xml,xcstrings,json,yml,yaml,md}"
 paths:
   - "**/*.{swift,kt,kts,xml,xcstrings,json,yml,yaml,md}"
+must:
+  - "Record what's shared (native twice or Kotlin Multiplatform) in an ADR; UI stays SwiftUI and Compose."
+  - "Write the feature spec first, then implement on each platform; name the platform in prompts."
+  - "Use the same names for types, string keys, icons, events, and flags on both platforms."
+  - "Generate shared contracts (API clients, tokens, events, routes); never hand-copy them per platform."
 ---
 
 # Cross-Platform Development (Apple + Android)

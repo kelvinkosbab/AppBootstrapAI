@@ -19,6 +19,11 @@ paths:
   - ".claude/agents/**"
   - ".claude/commands/**"
   - ".claude/settings.json"
+must:
+  - "Keep always-loaded steering files under about 300 lines; put topic guidance in path-scoped rules and long procedures in skills."
+  - "Every path and command in a steering file must exist and work; no placeholders, secrets, or personal preferences."
+  - "One source across agents: don't hand-copy the same instructions into CLAUDE.md, AGENTS.md, and other agent files."
+  - "Improve in order: fix what's false, remove what's unsafe, cut noise, add what's missing, then restructure."
 ---
 
 # AI Steering Files

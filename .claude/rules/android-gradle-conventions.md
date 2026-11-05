@@ -6,6 +6,11 @@ paths:
   - "**/settings.gradle.kts"
   - "**/libs.versions.toml"
   - "**/gradle/libs.versions.toml"
+must:
+  - "Kotlin DSL only, with plugins via `alias(libs.plugins.…)`; never `apply plugin:` or module-level `buildscript {}`."
+  - "Every version, library, and plugin lives in `gradle/libs.versions.toml`; no inline coordinates."
+  - "Use KSP, not kapt; `implementation` by default, `api` only for types in your public signatures."
+  - "Never commit `local.properties` or `build/`; commit the Gradle wrapper."
 ---
 
 # Android Gradle Conventions

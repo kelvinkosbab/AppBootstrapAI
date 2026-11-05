@@ -3,6 +3,11 @@ description: Test strategy and coverage discipline for Android — unit/instrume
 globs: "**/*.{kt,kts}"
 paths:
   - "**/*.{kt,kts}"
+must:
+  - "Unit tests in `src/test/`, instrumentation in `src/androidTest/`; inject dispatchers and set `Dispatchers.Main` with a rule."
+  - "Use `runTest`; never `runBlocking` or `Thread.sleep` in tests."
+  - "Test flows with Turbine and close every collection."
+  - "Compose UI tests find nodes by `testTag` or semantics, never visible localized text."
 ---
 
 # Android Testing Strategy & Coverage
