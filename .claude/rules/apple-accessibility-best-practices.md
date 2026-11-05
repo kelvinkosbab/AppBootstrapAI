@@ -3,6 +3,11 @@ description: Enforce SwiftUI accessibility best practices for VoiceOver, Dynamic
 globs: "**/*.swift"
 paths:
   - "**/*.swift"
+must:
+  - "Every interactive element has an `accessibilityLabel`; decorative images are `accessibilityHidden(true)`."
+  - "Use semantic fonts (`.font(.headline)`), never `.font(.system(size:))`, so Dynamic Type works."
+  - "Check `accessibilityReduceMotion` before animating; mirror context-menu actions in `accessibilityActions`."
+  - "Localize every accessibility string."
 ---
 
 # Accessibility Best Practices

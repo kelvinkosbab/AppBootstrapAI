@@ -3,6 +3,11 @@ description: Enforce Android accessibility best practices for TalkBack, Compose 
 globs: "**/*.{kt,kts}"
 paths:
   - "**/*.{kt,kts}"
+must:
+  - "Meaningful `Image`/`Icon` get a `contentDescription` from `stringResource`; decorative ones pass `null`."
+  - "Touch targets are at least 48dp (`Modifier.minimumInteractiveComponentSize()`); text sizes in `sp`."
+  - "Custom controls declare a `Role` and `stateDescription`; gesture-only actions get a `CustomAccessibilityAction`."
+  - "Never convey state by color alone; meet WCAG AA contrast (4.5:1 body text)."
 ---
 
 # Android Accessibility Best Practices

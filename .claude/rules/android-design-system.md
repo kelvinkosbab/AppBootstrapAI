@@ -3,6 +3,11 @@ description: Android design system and core UI components — a :core:designsyst
 globs: "**/*.{kt,kts,xml}"
 paths:
   - "**/*.{kt,kts,xml}"
+must:
+  - "Wrap `MaterialTheme` in one `AppTheme` in `:core:designsystem`; features never hardcode colors, fonts, or dp literals."
+  - "Use `colorScheme` roles with their matching `on*` colors, the M3 type scale, and `sp` for text."
+  - "Components are thin stateless wrappers over M3, with `modifier` as the first optional parameter applied to the root."
+  - "Go edge-to-edge with `enableEdgeToEdge()` and handle insets."
 ---
 
 # Android Design System & Core UI Components

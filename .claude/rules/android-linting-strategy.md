@@ -3,6 +3,11 @@ description: ktlint + detekt + Android Lint strategy for Android projects — di
 globs: "**/{*.kt,*.kts,.editorconfig,detekt.yml,detekt-baseline.xml,lint.xml,lint-baseline.xml,build.gradle.kts,build.gradle}"
 paths:
   - "**/{*.kt,*.kts,.editorconfig,detekt.yml,detekt-baseline.xml,lint.xml,lint-baseline.xml,build.gradle.kts,build.gradle}"
+must:
+  - "Run ktlint, detekt, and Android Lint (`lintDebug`) as blocking CI checks; each covers different problems."
+  - "Never regenerate a lint or detekt baseline to make CI pass."
+  - "Suppress only the smallest element, with a reason; never `@file:Suppress` as a shortcut."
+  - "When a rule fires, fix the code first; tune or suppress only with a stated reason."
 ---
 
 # Android Linting Strategy

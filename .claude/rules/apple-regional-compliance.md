@@ -4,6 +4,11 @@ globs: "**/{*.swift,*.xcstrings,*.strings,Info.plist,*.entitlements,PrivacyInfo.
 paths:
   - "**/{*.swift,*.xcstrings,*.strings,Info.plist,*.entitlements,PrivacyInfo.xcprivacy,Fastfile,Deliverfile}"
   - "**/fastlane/metadata/**"
+must:
+  - "Decide availability per storefront and record it in `docs/compliance/regions.md`."
+  - "No third-party AI brand names (ChatGPT, Claude, Gemini, …) in UI or metadata where the provider isn't filed, including China."
+  - "Gate features with one injected `RegionPolicy` from `Storefront.countryCode`, failing closed when unknown."
+  - "Keep store metadata neutral and in the repo; it's reviewed per storefront."
 ---
 
 # Apple Regional Compliance

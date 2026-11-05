@@ -3,6 +3,10 @@ description: Android iconography — Material Symbols as vector drawables behind
 globs: "**/*.{kt,kts,xml}"
 paths:
   - "**/*.{kt,kts,xml}"
+must:
+  - "Use Material Symbols imported as vector drawables behind a meaning-named `AppIcons` object, not `material-icons-extended`."
+  - "Tint icons from `LocalContentColor` or theme roles; mark directional glyphs `android:autoMirrored`."
+  - "Ship an adaptive launcher icon with a `<monochrome>` layer and art inside the safe zone."
 ---
 
 # Android Iconography

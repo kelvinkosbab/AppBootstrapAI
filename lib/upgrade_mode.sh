@@ -3,7 +3,7 @@
 #
 # Sourced from install.sh. Builds the BUNDLE_ALL + in_scope inputs that
 # lib/upgrade.py needs (rules, skill files, settings, CLAUDE.md template,
-# Cursor .mdc overlays, concat-agent overlays), then invokes the Python
+# Cursor .mdc, Copilot .instructions.md, and Gemini / Codex index overlays), then invokes the Python
 # brain. After it returns, this block has exited the script (Python
 # `sys.exit(0)`).
 
@@ -50,13 +50,14 @@ if [[ "$ACTION" == "upgrade" ]]; then
     # without us having to escape multi-line strings inline.
     bundle_all_tmp="$(mktemp)"
     bundle_in_scope_tmp="$(mktemp)"
-    # Overlay dir for agent-derived files (Cursor .mdc, Copilot/Gemini/Codex concat).
+    # Overlay dir for agent-derived files (Cursor .mdc, Copilot instructions, Gemini/Codex indexes).
     # Python uses it as a source-of-truth when the rel_path isn't in $SCRIPT_DIR.
     bundle_overlay_dir="$(mktemp -d)"
     # shellcheck disable=SC2064
     trap "rm -rf '$bundle_overlay_dir' '$bundle_all_tmp' '$bundle_in_scope_tmp'" EXIT
 
-    # Rules. Always in BUNDLE_ALL; in_scope gated by agents_has claude.
+    # Rules. Always in BUNDLE_ALL; in scope when Claude reads them or the
+    # Gemini / Codex index points at them.
     shopt -s nullglob
     for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
         name="$(basename "$f")"
@@ -64,7 +65,7 @@ if [[ "$ACTION" == "upgrade" ]]; then
         hash="$(sha256_file "$f")"
         rel_path=".claude/rules/$name"
         echo "$rel_path|rule|$cat|$hash|" >> "$bundle_all_tmp"
-        if agents_has claude && should_install_rule "$name"; then
+        if { agents_has claude || agents_has gemini || agents_has codex; } && should_install_rule "$name"; then
             echo "$rel_path" >> "$bundle_in_scope_tmp"
         fi
     done
@@ -111,8 +112,9 @@ if [[ "$ACTION" == "upgrade" ]]; then
 
     # --- Agent-derived files (Phase 4) ---------------------------------------
     # For Cursor: each .claude/rules/<name>.md → .cursor/rules/<name>.mdc with
-    # identical content (cp -p). For Copilot/Gemini/Codex: deterministic concat
-    # of in-scope rules. Materialize all of these in the overlay dir so the
+    # identical content (cp -p). For Copilot: a .github/instructions/ file per
+    # rule. For Gemini/Codex: an index of in-scope rules. Materialize all of
+    # these in the overlay dir so the
     # apply step has a real source path to copy from.
 
     if agents_has cursor; then
@@ -131,12 +133,12 @@ if [[ "$ACTION" == "upgrade" ]]; then
         done
     fi
 
-    # Helper for the three concat agents.
-    _materialize_concat() {
-        local rel_path="$1" tag="$2" banner="$3"
+    # Helper for generated single-file agent entry points.
+    _materialize_generated() {
+        local rel_path="$1" tag="$2"; shift 2
         local dst="$bundle_overlay_dir/$rel_path"
         mkdir -p "$(dirname "$dst")"
-        concat_in_scope_rules "$banner" > "$dst"
+        "$@" > "$dst"
         local hash; hash="$(sha256_file "$dst")"
         echo "$rel_path|$tag|-|$hash|" >> "$bundle_all_tmp"
         echo "$rel_path" >> "$bundle_in_scope_tmp"
@@ -158,13 +160,25 @@ if [[ "$ACTION" == "upgrade" ]]; then
     fi
 
     if agents_has copilot; then
-        _materialize_concat ".github/copilot-instructions.md" "agent-file-copilot" "GitHub Copilot"
+        _materialize_generated ".github/copilot-instructions.md" "agent-file-copilot" copilot_entry_file
+        mkdir -p "$bundle_overlay_dir/.github/instructions"
+        for f in "$SCRIPT_DIR/.claude/rules/"*.md; do
+            name="$(basename "$f")"
+            cat="$(file_category "$name")"; [[ -z "$cat" ]] && cat="-"
+            rel_path=".github/instructions/${name%.md}.instructions.md"
+            copilot_instructions_from_rule "$f" > "$bundle_overlay_dir/$rel_path"
+            hash="$(sha256_file "$bundle_overlay_dir/$rel_path")"
+            echo "$rel_path|agent-file-copilot|$cat|$hash|" >> "$bundle_all_tmp"
+            if should_install_rule "$name"; then
+                echo "$rel_path" >> "$bundle_in_scope_tmp"
+            fi
+        done
     fi
     if agents_has gemini; then
-        _materialize_concat "GEMINI.md" "agent-file-gemini" "Gemini CLI"
+        _materialize_generated "GEMINI.md" "agent-file-gemini" index_in_scope_rules "Gemini CLI"
     fi
     if agents_has codex; then
-        _materialize_concat "AGENTS.md" "agent-file-codex" "Codex CLI and other AGENTS.md-aware tools"
+        _materialize_generated "AGENTS.md" "agent-file-codex" index_in_scope_rules "Codex CLI and other AGENTS.md-aware tools"
     fi
 
     # /appbootstrap-sync and /appbootstrap-audit command files, one per selected agent.

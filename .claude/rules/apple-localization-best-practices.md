@@ -3,6 +3,11 @@ description: Localization conventions for Apple platforms — String Catalogs, t
 globs: "**/*.swift"
 paths:
   - "**/*.swift"
+must:
+  - "New strings go in String Catalogs and are read through the typed `Strings` facade; UI never calls `String(localized:)` directly."
+  - "Use catalog plural variations, never `count == 1 ? … : …`."
+  - "Format numbers, dates, and currency with locale-aware formatters, never `String(format:)`."
+  - "Use `.leading`/`.trailing`, never `.left`/`.right`; give every entry a translator comment."
 ---
 
 # Apple Localization Best Practices

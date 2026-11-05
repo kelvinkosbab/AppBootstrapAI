@@ -52,6 +52,20 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Changed
 
+- **Copilot, Gemini, and Codex no longer load every rule on every request.**
+  They used to get one file with the full text of every in-scope rule (about
+  180 KB for an Apple install). Copilot now gets one
+  `.github/instructions/<rule>.instructions.md` per rule, with `applyTo` set
+  from the rule's globs (brace lists expanded), and a short
+  `copilot-instructions.md`. `GEMINI.md` and `AGENTS.md` are now an index
+  (about 13 KB for an Apple install) that lists each rule's paths and its
+  musts, and tells the agent which `.claude/rules/` file to read in full for
+  the file it's editing; the installer writes those rules for Gemini and
+  Codex too. Every rule now has a `must:` list in its frontmatter (2 to 5
+  short lines, the mistakes that cause real bugs or rejections), which
+  `validate-frontmatter.py` requires and caps at 600 characters.
+  `upgrade --apply` replaces the old files unless you edited them.
+
 - **`apple-spm-package-conventions.md` and `android-gradle-conventions.md`
   are now short checklists** (about 3 KB each, down from 24 KB). Their full
   text moved unchanged into `swift-package-pro/references/manifest-conventions.md`

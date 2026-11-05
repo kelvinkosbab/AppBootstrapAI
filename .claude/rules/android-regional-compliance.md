@@ -4,6 +4,11 @@ globs: "**/{*.kt,*.kts,AndroidManifest.xml,strings.xml,Fastfile,Appfile},**/fast
 paths:
   - "**/{*.kt,*.kts,AndroidManifest.xml,strings.xml,Fastfile,Appfile}"
   - "**/fastlane/metadata/**"
+must:
+  - "Decide availability per country and record it in `docs/compliance/regions.md`."
+  - "No third-party AI brand names (ChatGPT, Gemini, …) in UI or listings where the provider isn't filed, including China."
+  - "Gate features with one injected `RegionPolicy` from the store country (`BillingConfig.countryCode`), failing closed when unknown."
+  - "China builds ship outside Play: GMS-free flavor and consent before any data collection."
 ---
 
 # Android Regional Compliance

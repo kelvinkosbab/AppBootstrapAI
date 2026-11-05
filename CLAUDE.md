@@ -644,6 +644,9 @@ description: One-line summary of what this rule enforces
 globs: "**/*.swift"
 paths:
   - "**/*.swift"
+must:
+  - "The 2-5 mistakes that cause real bugs or rejections, one short line each."
+  - "Gemini and Codex always load these; the full rule only when they read it."
 ---
 
 # Rule Name

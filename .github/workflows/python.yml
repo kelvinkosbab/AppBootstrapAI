@@ -7,11 +7,9 @@ on:
       - 'lib/**.py'
       - '.github/scripts/**.py'
       - '.github/workflows/python.yml'
-  pull_request:
-    paths:
-      - 'lib/**.py'
-      - '.github/scripts/**.py'
-      - '.github/workflows/python.yml'
+  # Pull requests run this through ci.yml, which skips it when no matching
+  # path changed and gates merging on one required check.
+  workflow_call:
 
 # The install.sh modes delegate the JSON-heavy work (upgrade plan/apply,
 # uninstall, MCP merge, manifest inheritance) to lib/*.py. The install

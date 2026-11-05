@@ -3,6 +3,10 @@ description: Keep in-code comments and commit messages terse — verbosity destr
 globs: "**/*.{swift,h,m,mm,kt,kts}"
 paths:
   - "**/*.{swift,h,m,mm,kt,kts}"
+must:
+  - "Comments explain why, never what; no narration, diff commentary, or commented-out code."
+  - "Commit subject: imperative, at most 72 characters, no period."
+  - "Add a commit body only when the why isn't obvious; never list files or report test runs."
 ---
 
 # Concise Comments & Commits

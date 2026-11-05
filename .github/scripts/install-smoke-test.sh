@@ -1280,6 +1280,40 @@ else
 fi
 rm -rf "$t"
 
+bold "==> --agents copilot: one applyTo-scoped .instructions.md per rule, braces expanded"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended --agents copilot > /dev/null
+loc="$t/.github/instructions/android-localization-best-practices.instructions.md"
+if grep -q '^applyTo: "\*\*/\*.kt,\*\*/\*.kts,\*\*/\*.xml"$' "$loc" 2>/dev/null \
+    && grep -q '^description:' "$loc" \
+    && [[ "$(wc -c < "$t/.github/copilot-instructions.md")" -lt 2000 ]] \
+    && ! grep -rq '{' <(grep -h '^applyTo:' "$t"/.github/instructions/*.instructions.md); then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --agents copilot should write per-rule .instructions.md with expanded applyTo and a short entry file"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --agents gemini,codex: short index with musts; every entry exists under .claude/rules/"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --features all --agents gemini,codex > /dev/null
+if [[ "$(wc -c < "$t/GEMINI.md")" -lt 40000 && "$(wc -c < "$t/AGENTS.md")" -lt 40000 ]] \
+    && grep -q '^  - Never use `@unchecked Sendable`; redesign instead.$' "$t/GEMINI.md" \
+    && [[ ! -d "$t/.claude/skills" ]] \
+    && python3 -c "
+import re, sys, os
+paths = re.findall(r'^- \x60(\.claude/rules/[^\x60]+)\x60', open(sys.argv[1] + '/GEMINI.md').read(), re.M)
+assert len(paths) == len(os.listdir(sys.argv[1] + '/.claude/rules')) > 10, paths
+assert all(os.path.isfile(os.path.join(sys.argv[1], p)) for p in paths)
+" "$t" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --agents gemini,codex should write a short index, with each rule's musts, of rules that exist on disk"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
 bold "==> --agents kiro → .kiro/steering/<name>.md with Kiro fileMatch frontmatter"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform apple --features recommended --agents kiro > /dev/null

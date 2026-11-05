@@ -3,6 +3,10 @@ description: KDoc strategy for Android — what to document, public API discipli
 globs: "**/*.{kt,kts}"
 paths:
   - "**/*.{kt,kts}"
+must:
+  - "Document every public API with KDoc: `@param`, `@return`, `@throws`; link symbols with `[brackets]`, not backticks."
+  - "Suspend functions document cancellation and dispatcher requirements; composables document state hoisting."
+  - "Deprecate with `message =` and `replaceWith = ReplaceWith(...)`, escalating WARNING, ERROR, HIDDEN over releases."
 ---
 
 # Android Documentation Strategy

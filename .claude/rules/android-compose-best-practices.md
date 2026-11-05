@@ -3,6 +3,11 @@ description: Enforce Jetpack Compose patterns — state hoisting, side effects, 
 globs: "**/*.{kt,kts}"
 paths:
   - "**/*.{kt,kts}"
+must:
+  - "Hoist state: stateless composables take `value` and `onValueChange`; business state lives in the ViewModel, not `remember`."
+  - "Start side effects only in effect APIs (`LaunchedEffect`, `DisposableEffect`, …), never in the composable body."
+  - "Collect flows with `collectAsStateWithLifecycle()`, never `collectAsState()`."
+  - "Give lazy list items stable `key`s; mark UI models `@Immutable`/`@Stable` or use immutable collections."
 ---
 
 # Jetpack Compose Best Practices

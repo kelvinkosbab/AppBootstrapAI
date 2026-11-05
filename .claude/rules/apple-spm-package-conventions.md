@@ -4,6 +4,11 @@ globs: "Package.swift,**/Package.swift"
 paths:
   - "Package.swift"
   - "**/Package.swift"
+must:
+  - "`// swift-tools-version:` first, `platforms:` always declared, and `.swiftLanguageMode(.v6)` in shared settings."
+  - "Use `Bundle.module`, never `Bundle.main`, for package resources."
+  - "Never ship `branch:`, `revision:`, path dependencies, or `.unsafeFlags` in a release."
+  - "Commit `Package.resolved` for apps; ignore it for libraries."
 ---
 
 # Swift Package Manager: Package.swift Conventions
