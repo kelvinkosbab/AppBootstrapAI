@@ -122,3 +122,4 @@ End of example.
 - `references/data.md` - data flow, shared state, and property wrappers.
 - `references/swift.md` - tips on writing modern Swift code, including using Swift Concurrency effectively.
 - `references/views.md` - view structure, composition, animation, reordering, and swipe actions.
+- `references/mac-touch-conventions.md` - the full `apple-mac-touch` rule (the installed rule is its checklist): AppKit recognizer migration, Mac Catalyst, games, Info.plist keys. Load it after `references/mac-touch.md` when a Mac target needs that depth.

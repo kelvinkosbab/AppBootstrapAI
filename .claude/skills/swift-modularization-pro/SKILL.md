@@ -82,3 +82,4 @@ End of example.
 - `references/module-graph.md` — layers and allowed edges, module kinds (foundation, domain, feature, interface/implementation, umbrella, design system, app-intents), naming, granularity heuristics, extension targets, a worked example graph.
 - `references/migration.md` — what must stay in the app target and why, the extraction order, per-step checklist, access control and `Bundle.module` fixes, moving tests, App Intents and Core Data special cases, CI.
 - `references/audit.md` — inventory commands, a dependency-rule check script over `swift package dump-package`, searches for `Bundle.main` / `@_exported` / app-target logic, and the CI job.
+- `references/architecture-conventions.md` — the full `apple-modular-architecture` rule (the installed rule is its checklist): why a local package, target layout, migration, resource and Core Data caveats.

@@ -93,6 +93,21 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Changed
 
+- **Four long rules are now short checklists**, with the full text moved
+  into the matching skill's `references/`: `apple-adaptive-layout`
+  (19 KB to 4 KB, full text in `swift-adaptive-layout-pro`),
+  `apple-mac-touch` (16 KB to 3 KB, in `swiftui-pro`),
+  `apple-modular-architecture` (13 KB to 3 KB, in `swift-modularization-pro`),
+  and `android-modular-architecture` (12 KB to 3 KB, in
+  `android-modularization-pro`). The rules load whenever a matching file is
+  open; the references load only when the skill runs. The Objective-C
+  accessibility rule stays whole, because Objective-C-only installs ship no
+  skills.
+- **Rules have a size budget.** `validate-frontmatter.py` fails a rule over
+  12 KB. Seven rules not yet split are allowlisted at their current size,
+  rounded up to the next KB, so they can shrink but not grow, and the check
+  asks for an entry's removal once its rule fits.
+
 - **`apple-testing-strategy.md`**: on Xcode 27, UI tests can be Swift
   Testing (XCUIAutomation in `@MainActor` suites); XCTest stays only for
   `measure` performance tests and older Xcode. Adds XCTest migration notes.

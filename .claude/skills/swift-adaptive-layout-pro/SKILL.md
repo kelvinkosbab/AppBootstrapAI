@@ -70,3 +70,4 @@ End of example.
 - `references/size-classes-and-idiom.md` — size-class branching, the idiom/orientation/`UIScreen.main` removals, local geometry, which system containers adapt for free.
 - `references/duo-and-poses.md` — `ArrangementView` / `UIArrangementViewController`, hinge and reserved regions, vertical bars, asymmetric safe areas, camera coordinators, state continuity across fold.
 - `references/multitasking-and-scenes.md` — Split View and stacked layouts, multiple windows and activation availability, per-scene state, `sceneAccessory` / `CameraCaptureAccessory`.
+- `references/adaptive-layout-conventions.md` — the full `apple-adaptive-layout` rule (the installed rule is its checklist). Load it when a finding needs the rule's exact wording or code, or the Xcode 27.2 testing notes.
