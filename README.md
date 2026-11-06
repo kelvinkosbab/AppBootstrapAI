@@ -363,7 +363,7 @@ After install, edit the new `CLAUDE.md` (or your agent's equivalent) and fill in
 
 ## How it fires
 
-**Rules** (`.claude/rules/`) load automatically based on each file's `globs:` frontmatter — Apple rules fire on `*.swift` / `*.{h,m,mm}`, Android rules fire on `*.{kt,kts}` (plus `*.xml` for the localization rule). No invocation needed; they steer Claude as soon as a matching file enters context.
+**Rules** (`.claude/rules/`) load automatically based on each file's `paths:` frontmatter (with a matching `globs:` for Cursor) — Apple rules fire on `*.swift` / `*.{h,m,mm}`, Android rules fire on `*.{kt,kts}` (plus `*.xml` for the localization rule). No invocation needed; they steer Claude as soon as a matching file enters context. Each rule is a short checklist (CI fails any rule over 12 KB); where a topic needs more, the full text lives in the matching skill's `references/` and loads only when that skill runs.
 
 **Skills** (`.claude/skills/`) are deeper review agents that fire on demand. Trigger by description match or invoke explicitly:
 
@@ -573,6 +573,7 @@ When you over-broaden any of these, `install.sh` prints a "Token-saving tips" bl
 - **Be specific in prompts.** *"Review `Sources/Networking/Client.swift`"* loads one file. *"Review the codebase"* invites the agent to search the whole tree. The first prompt is usually 10–100x cheaper.
 - **Invoke skills by name.** *"Use `swift-concurrency-pro` to review X.swift"* loads that one skill's references. Asking general questions can trigger speculative skill loads — sometimes several at once.
 - **Truncate build-log paste-ins.** When a build fails, paste the failing 20–50 lines plus the function signature, not 500 lines of unrelated warnings. (Documented in detail in `apple-objc-best-practices.md` for the mixed-language case; same principle for any language.)
+- **Audit one area at a time.** `/appbootstrap-audit <topic>` (or `install.sh audit . --topic <topic>`) loads only that topic's rules and skills instead of the whole bundle.
 - **One skill at a time.** Running multiple deep-review skills back-to-back in the same turn forces the agent to hold all of their reference docs in context simultaneously. Sequence them across turns.
 
 ### Long-running
@@ -583,7 +584,7 @@ When you over-broaden any of these, `install.sh` prints a "Token-saving tips" bl
 
 ### What this won't save
 
-To set expectations honestly: scoping the install down won't dramatically cut your bill if your prompts are already loose. Rules with `globs:` only attach to context when matching files are in the conversation — Android rules in an iOS-only repo are effectively dormant whether or not they're installed. The bigger wins come from prompt discipline and explicit skill invocation, not from install-flag micro-optimization.
+To set expectations honestly: scoping the install down won't dramatically cut your bill if your prompts are already loose. Rules with `paths:` only attach to context when matching files are in the conversation — Android rules in an iOS-only repo are effectively dormant whether or not they're installed. The bigger wins come from prompt discipline and explicit skill invocation, not from install-flag micro-optimization.
 
 ## Using with non-Claude AI agents
 
@@ -775,13 +776,13 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 
 See [CLAUDE.md](CLAUDE.md) for:
 
-- Writing new rules (`.claude/rules/<name>.md` with frontmatter `description` + `globs`).
+- Writing new rules (`.claude/rules/<name>.md` with frontmatter `description`, `paths` + `globs`, and a 2–5 item `must:` list that Gemini and Codex always load). Keep each rule under 12 KB; move long material into a skill's `references/`.
 - Writing new skills (`.claude/skills/<name>/SKILL.md` + `references/` for deep context).
 - Recommended project-specific additions (swiftlint config, CI, localization).
 
 ## Roadmap
 
-**Shipped:** 53 rules (27 Apple, 22 Android, 4 cross-platform) and 30 skills (17 Apple, 10 Android, 3 cross-platform), all loaded equally by `globs` — there is no "primary" platform in the bundle's design.
+**Shipped:** 53 rules (27 Apple, 22 Android, 4 cross-platform) and 30 skills (17 Apple, 10 Android, 3 cross-platform), all loaded equally by `paths` — there is no "primary" platform in the bundle's design.
 
 **Next — closing the day-one gaps for new app developers:**
 
