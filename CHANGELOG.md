@@ -20,6 +20,22 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **Motion design**, adapted from the LottieFiles
+  [motion design skill](https://github.com/lottiefiles/motion-design-skill)
+  (MIT, © 2025 LottieFiles) and rewritten for SwiftUI and Jetpack Compose. In
+  `ui` (so in `recommended`):
+  - `apple-motion-design.md` and `android-motion-design.md` rules: purpose
+    before properties, motion tokens in the design-system module, timing and
+    easing by element, render-only animation, capped stagger, haptics,
+    reduced-motion alternatives, and Lottie playback.
+  - `motion-design-pro` skill (either platform) for designers and
+    developers: motion personality and tokens, a `docs/design/motion.md` spec
+    template, Lottie / dotLottie handoff, recipes with SwiftUI and Compose
+    sketches, and a review checklist. The MIT notice ships in its `NOTICE.md`.
+  - Audit topic `motion` and the `swift-motion-loop-no-reduce-motion` /
+    `kt-motion-loop-no-reduce-motion` checks (a looping animation in a file
+    that never reads the reduced-motion setting).
+
 - **Knowledge from Apple's Xcode 27 agent skills**, as extracted and published
   by Artem Novichkov in
   [`artemnovichkov/xcode-skills`](https://github.com/artemnovichkov/xcode-skills).

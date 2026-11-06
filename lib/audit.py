@@ -429,6 +429,7 @@ def scan_sources(target: str, platforms: set, findings: dict) -> dict:
             except OSError:
                 continue
             _collect_facts(fn, rel, ext, text, facts)
+            _motion_loops(rel, ext, text, platforms, findings)
 
             applicable = [c for c in active if ext in c.exts
                           and not (c.skip_tests and _is_test(rel))
@@ -450,6 +451,32 @@ _DISK_SPACE_API = re.compile(r"volumeAvailableCapacity|volumeTotalCapacity|syste
 _FILE_TIMESTAMP_API = re.compile(
     r"contentModificationDateKey|creationDateKey|contentAccessDateKey|FileAttributeKey\.(creationDate|modificationDate)"
     r"|\[\.(creationDate|modificationDate)\]|attributesOfItem\(atPath")
+
+
+_MOTION_LOOP = {
+    ".swift": re.compile(r"\.repeatForever\(|loopMode:\s*\.loop\b|\.playing\(loopMode:\s*\.loop"),
+    ".kt": re.compile(r"\brememberInfiniteTransition\(|\binfiniteRepeatable\(|LottieConstants\.IterateForever"),
+}
+_REDUCED_MOTION = re.compile(
+    r"accessibilityReduceMotion|isReduceMotionEnabled|ANIMATOR_DURATION_SCALE|areAnimatorsEnabled"
+    r"|(?i:reduce[d]?_?motion)")
+
+
+def _motion_loops(rel, ext, text, platforms, findings) -> None:
+    """A looping animation in a file that never consults the reduced-motion setting."""
+    pattern = _MOTION_LOOP.get(ext)
+    platform = "apple" if ext == ".swift" else "android"
+    if not pattern or platform not in platforms or _is_test(rel) or _REDUCED_MOTION.search(text):
+        return
+    line = _first_line(text, pattern)
+    if not line:
+        return
+    fid = f"{'swift' if platform == 'apple' else 'kt'}-motion-loop-no-reduce-motion"
+    f = findings.setdefault(fid, Finding(
+        fid, "Looping animation ignores reduced motion", "medium",
+        f"{platform}-motion-design.md", "motion-design-pro",
+        "Show a still frame (or a slow opacity change) when the person turns motion off."))
+    f.add(f"{rel}:{line}")
 
 
 def _first_line(text, pattern):

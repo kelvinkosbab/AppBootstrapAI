@@ -157,5 +157,15 @@
     "skills": {
       "apple": ["instruments-profiling-pro"]
     }
+  },
+  "motion": {
+    "description": "Animation and transitions: purpose, motion tokens, timing and easing, choreography, Reduce Motion alternatives, Lottie playback.",
+    "rules": {
+      "apple": ["apple-motion-design.md"],
+      "android": ["android-motion-design.md"]
+    },
+    "skills": {
+      "shared": ["motion-design-pro"]
+    }
   }
 }

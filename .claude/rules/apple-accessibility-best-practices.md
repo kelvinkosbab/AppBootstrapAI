@@ -50,6 +50,7 @@ All views must be fully accessible. VoiceOver, Dynamic Type, and Reduce Motion s
 - Always check `@Environment(\.accessibilityReduceMotion)` before animating.
 - Use `withAnimation(reduceMotion ? nil : .default)` instead of bare `withAnimation`.
 - This applies to show/hide transitions, state changes, and any animated UI updates.
+- Prefer a crossfade over no animation for show/hide, and stop loops entirely. Motion tokens and per-pattern alternatives are in [`apple-motion-design.md`](./apple-motion-design.md).
 
 ## Pickers with Hidden Labels
 
