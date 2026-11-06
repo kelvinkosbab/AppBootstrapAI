@@ -20,15 +20,15 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 
 | Area | What's inside |
 |------|---------------|
-| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · memory + storage · App Intents + Siri (opt-in) · Xcode build security (opt-in) · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
-| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · memory + storage · Gemini Nano / Firebase AI · Play beta · regional store compliance |
-| **Skills (Claude)** | 17 Apple + 10 Android + 2 cross-platform on-demand deep-review agents |
+| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · motion design · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · memory + storage · App Intents + Siri (opt-in) · Xcode build security (opt-in) · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
+| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · motion design · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · memory + storage · Gemini Nano / Firebase AI · Play beta · regional store compliance |
+| **Skills (Claude)** | 17 Apple + 10 Android + 3 cross-platform on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
 <details>
-<summary><strong>Apple — 26 rules + 17 skills</strong> (click to expand)</summary>
+<summary><strong>Apple — 27 rules + 17 skills</strong> (click to expand)</summary>
 
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text), plus Bluetooth assistive tech: Full Keyboard Access (`.focusable()`, focus rings), Switch Control scan order, braille-display label discipline, focus management (`@AccessibilityFocusState`), modern announcements (`AccessibilityNotification`), audio/hearing (no sound-only cues, captions), WCAG AA color/contrast (both themes, Increase Contrast, Smart Invert), and App Store Accessibility Nutrition Label honesty.
@@ -56,6 +56,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
 - **`swiftui-pro` skill** — reviews SwiftUI for modern APIs, a11y, resizable windows / iPhone Duo, localization, and performance.
 - **`coredata-swift6-pro` skill** — Core Data under Swift 6 strict concurrency, `viewContext`/`@MainActor`, SPM `.xcdatamodeld` caveats.
+- **`apple-motion-design.md`** *(ui)* — motion for SwiftUI: purpose before properties, role-named motion tokens in the DesignSystem module (springs and curves, a duration palette, a bounce budget), entrances longer than exits, no linear movement, value-scoped animations on render-only properties, the purpose-built APIs (`contentTransition`, `symbolEffect`, zoom transitions, `PhaseAnimator`, `KeyframeAnimator`), one hero per moment with capped stagger, haptics paired with feedback, a Reduce Motion alternative for every spatial or looping animation, and Lottie playback, theming, and accessibility.
 - **`swift-design-system-pro` skill** — bootstraps or audits the UI foundation: scaffolds a `DesignSystem` module (tokens, `AppIcon` facade + availability test, button styles, gallery) or inventories an existing app (literal colors, fixed fonts, raw symbol strings, duplicate components, Liquid Glass blockers, app-icon appearances) and returns a ranked, incremental migration plan.
 - **`swift-modularization-pro` skill** *(packaging)* — plans a module graph for a new or existing app, migrates code out of the app target one module at a time (what stays, extraction order, per-step checklist, common breakages), and audits an existing package with a tested dependency-rule script over `swift package dump-package` (feature→feature edges, upward edges, concrete-backend imports, missing test targets) plus `Bundle.main` / `@_exported` / app-target searches and a CI job.
 - **`swift-adaptive-layout-pro` skill** — deep resizability / iPhone Duo audit: the UIScene launch blocker, `UIRequiresFullScreen` semantics, launch-screen and iPad-orientation upload checks, idiom/orientation/`UIScreen.main` removals with concrete UIKit replacements, arrangement nesting constraints, hinge and reserved regions, vertical-bar items, multi-window availability and per-scene state, symmetric safe-area math, outer→inner navigation continuity, and pose/window-size test coverage.
@@ -77,7 +78,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Android — 19 rules + 9 skills</strong> (click to expand)</summary>
+<summary><strong>Android — 22 rules + 10 skills</strong> (click to expand)</summary>
 
 - **`android-project-rules.md`** — Kotlin, Jetpack Compose, MVVM, Hilt, StateFlow, Retrofit/Moshi, ktlint.
 - **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
@@ -86,6 +87,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`android-testing-strategy.md`** — test pyramid, source-set discipline (`src/test` vs `src/androidTest`), `runTest` + `StandardTestDispatcher` patterns, Turbine for `Flow`, Compose UI tests via semantics (not visible text), Hilt test modules, MockK conventions, JaCoCo coverage gates with generated-code exclusions.
 - **`android-iconography.md`** *(ui)* — Material Symbols imported as vector drawables behind a meaning-named `AppIcons` object (not `material-icons-extended`), 24dp icons / 48dp targets, tint from `LocalContentColor`, `autoMirrored` directional glyphs, icon `contentDescription` discipline, **adaptive launcher icons with a `<monochrome>` layer** for themed icons and the 66dp safe zone, alpha-only notification icons, and the SplashScreen API icon.
 - **`android-design-system.md`** *(ui)* — the core-UI foundation: a `:core:designsystem` module with one Material 3 `AppTheme` (generated schemes, dynamic color with a full brand fallback), color roles with `on*` pairs, extended tokens and spacing via `staticCompositionLocalOf`, M3 type/shape scales, thin stateless wrappers over M3 components (modifier-first optional param, slots, `Defaults` objects), edge-to-edge insets, multipreview annotations, a component catalog, and screenshot tests.
+- **`android-motion-design.md`** *(ui)* — motion for Compose: purpose before properties, motion tokens in `:core:designsystem` (M3 `MotionScheme`, easing and duration tokens), spatial vs. effects specs (no overshoot on color or alpha), the right animation API per job, draw-phase animation via `graphicsLayer`, shared elements and predictive back, capped stagger, haptics, a reduced alternative when system animations are off (the animator duration scale), and Lottie playback, theming, and semantics.
 - **`android-mvvm-architecture.md`** *(architecture)* — MVVM with unidirectional data flow: one `StateFlow<UiState>` per screen derived with `combine` + `stateIn(WhileSubscribed(5_000))`, events as ViewModel functions, one-off effects modeled as state, `SavedStateHandle` + type-safe nav args, stateful Route vs stateless Screen, when a use case earns its place.
 - **`android-repository-pattern.md`** *(architecture)* — the data layer: `Flow` for observation + main-safe `suspend` one-shots, offline-first with Room as the single source of truth, DTO / entity / domain mapping, Hilt `@Binds` singletons, application-scope and WorkManager for work that outlives the caller, fakes in a shared test module.
 - **`android-documentation-strategy.md`** — KDoc syntax (`@param` / `@return` / `@throws` / `@property` / `@sample` / `@see`), Composable docs (state hoisting, semantics, skippable vs. restartable), Hilt module docs, suspend / cancellation behavior, deprecation with `ReplaceWith`, Dokka conventions and external links.
@@ -114,13 +116,14 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Cross-platform — 4 rules + 2 skills</strong> (click to expand)</summary>
+<summary><strong>Cross-platform — 4 rules + 3 skills</strong> (click to expand)</summary>
 
 - **`concise-comments-and-commits.md`** *(core)* — fires on all Swift/Kotlin/ObjC source: in-code comments default to *none* (write only what code can't express — why, traps, ticket refs; never narration, diff commentary, or commented-out code), and commit messages stay short (imperative ≤72-char subject; body only when the why isn't in the diff — never file-by-file inventories or process reports). Aimed squarely at AI-assistant verbosity.
 - **`ai-steering-files.md`** *(core)* — fires on `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Copilot / Cursor / Kiro rules, and `.claude/` rules, skills, and settings: what earns a place (working commands, the module map, project-specific decisions, gotchas) and what doesn't (generic advice, restated lint or bundle rules, secrets), the ~300-line budget for always-loaded files, per-agent path scoping, one source across agents, keeping paths and commands true, minimal committed permissions, and the order to improve an existing set in. `install.sh audit` checks a repo's steering files against it.
 - **`cross-platform-development.md`** *(core; installs only with `--platform both`)* — building one app on Apple and Android at once with AI agents: native × 2 vs Kotlin Multiplatform as a recorded decision, a monorepo with nested `CLAUDE.md` files per platform, spec-first features (`docs/features/`), one vocabulary of names across platforms (types, modules, string keys, icons, events, flags), single sources of truth for the API (OpenAPI), design tokens, strings, analytics, flags, and deep links, parity as behavior-not-pixels, `docs/parity.md`, and CI path filters.
 - **`cross-platform-parity-pro` skill** *(core; `--platform both`)* — ports a feature from one platform to the other (spec → reference behavior → idiomatic target code → verify both), audits drift with scripts that diff string keys, icon vocabularies, analytics events, flags, and deep links, and sets up the repo: root + per-platform `CLAUDE.md`, `apple-engineer` / `android-engineer` subagents, shared-contract generation, PR template, CI. Includes a Swift ↔ Kotlin / SwiftUI ↔ Compose concept map and a Kotlin Multiplatform guide (share logic, never UI; a Swift adapter at the boundary).
 - **`store-compliance-pro` skill** *(compliance; Apple and/or Android)* — audits an app and its store listings for regional rejection risks: third-party AI brand mentions in strings and metadata, storefront gating (locale misuse, fail-open defaults, ungated shortcuts), consent-before-collection for Chinese Android stores, licensed categories, and a console checklist. Respond mode classifies a regional rejection, picks exclude / gate / license, sweeps the app and listing, and drafts the Resolution Center reply and review notes.
+- **`motion-design-pro` skill** *(ui; Apple and/or Android)* — designs, specs, builds, and reviews UI motion for designers and developers alike: a motion personality and token set for both platforms, the three pillars (intent, narrative, craft), timing and easing tables with SwiftUI and Compose spring mappings, entrance / feedback / loading / success / error / choreography recipes, a `docs/design/motion.md` spec template, Lottie / dotLottie handoff rules, and a review checklist with smells and fixes. Adapted from the LottieFiles motion design skill.
 - **`project-documentation.md`** — README structure, [Keep a Changelog](https://keepachangelog.com) format, `CONTRIBUTING.md` essentials, ADR conventions (`docs/adr/####-title.md`, immutable once accepted), inline-comment philosophy (*why* not *what*), and link-rot defenses (pinned versions, permalinked source). Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`.
 
 </details>
@@ -376,6 +379,8 @@ After install, edit the new `CLAUDE.md` (or your agent's equivalent) and fill in
 - "Use `app-intents-pro` to review our App Intents and make the shopping-list actions work with Siri."
 - "Use `xcode-security-pro` to audit our build settings and plan turning on Enhanced Security."
 - "Use `instruments-profiling-pro` to find out why the feed hangs on first launch."
+- "Use `motion-design-pro` to define our motion tokens and write the motion spec with our designer."
+- "Use `motion-design-pro` to review the onboarding animations for timing, consistency, and Reduce Motion."
 - "Use `swift-package-pro` to review `Package.swift` and the public API surface."
 - "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
 - "Use `xml-to-compose-migration-pro` to plan migrating `SettingsFragment` to Compose."
@@ -409,7 +414,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 |------|--------|
 | Audit a repo without installing | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this package. Don't change any files."* |
 | Review and improve your AI rules | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit our CLAUDE.md, AGENTS.md, and Cursor rules and suggest improvements."* (`install.sh audit . --steering-only`) |
-| Audit one area only, reading just its rules and skills | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit only the concurrency safety of this repo."* (`/appbootstrap-audit concurrency` after an install, or `install.sh audit . --topic concurrency`; topics: concurrency, architecture, accessibility, ui, localization, testing, compliance, logging, docs, deployment, linting, memory, storage, intents, security, performance) |
+| Audit one area only, reading just its rules and skills | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit only the concurrency safety of this repo."* (`/appbootstrap-audit concurrency` after an install, or `install.sh audit . --topic concurrency`; topics: concurrency, architecture, accessibility, ui, localization, testing, compliance, logging, docs, deployment, linting, memory, storage, intents, security, performance, motion) |
 | Bootstrap a new Apple SwiftUI app with the recommended set | *"Run `/path/to/AppBootstrapAI/install.sh . --platform apple` in this directory, then walk me through what landed."* |
 | Bootstrap an Android Compose app with everything | *"Run `/path/to/AppBootstrapAI/install.sh . --platform android --features all` and summarize the new files."* |
 | Pick categories interactively | *"Show me `./install.sh --list --features all`, then ask me which categories to install."* |
@@ -656,6 +661,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-logging-strategy.md                # Timber, level discipline, release-stripping (logging)
 │   │   ├── android-modular-architecture.md            # Thin :app over feature/core modules (packaging)
 │   │   ├── android-memory-management.md               # Leaks, bitmaps, caches, onTrimMemory (memory-storage)
+│   │   ├── android-motion-design.md                   # Motion tokens, MotionScheme, reduced motion, Lottie (ui)
 │   │   ├── android-mvvm-architecture.md               # MVVM / UDF, UiState, Route vs Screen (architecture)
 │   │   ├── android-play-beta-deployment.md            # Play beta tracks, signing, CI (deployment)
 │   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
@@ -677,6 +683,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── apple-logging-strategy.md                  # os.Logger, privacy markers, levels (logging)
 │   │   ├── apple-mac-touch.md                         # Touchscreen Mac / Sidecar touch (ui, macos-gated)
 │   │   ├── apple-memory-management.md                 # Retain cycles, image decode size, jetsam (memory-storage)
+│   │   ├── apple-motion-design.md                     # Motion tokens, springs, Reduce Motion, Lottie (ui)
 │   │   ├── apple-modular-architecture.md              # Thin app shell + fat local SPM package
 │   │   ├── apple-objc-accessibility-best-practices.md # UIKit a11y in ObjC
 │   │   ├── apple-objc-best-practices.md               # Modern Objective-C
@@ -706,6 +713,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── coredata-swift6-pro/
 │   │   ├── instruments-profiling-pro/          # xctrace profiling + hang triage (performance)
 │   │   ├── cross-platform-parity-pro/          # Port features, audit drift, set up a two-platform repo (both)
+│   │   ├── motion-design-pro/                  # Motion system, spec, patterns, review (ui; either platform)
 │   │   ├── r8-shrink-pro/                      # ProGuard/R8 rules
 │   │   ├── store-compliance-pro/               # Regional store-rejection audit + response (compliance)
 │   │   ├── swift-concurrency-pro/
@@ -773,7 +781,7 @@ See [CLAUDE.md](CLAUDE.md) for:
 
 ## Roadmap
 
-**Shipped:** 51 rules (26 Apple, 21 Android, 4 cross-platform) and 29 skills (17 Apple, 10 Android, 2 cross-platform), all loaded equally by `globs` — there is no "primary" platform in the bundle's design.
+**Shipped:** 53 rules (27 Apple, 22 Android, 4 cross-platform) and 30 skills (17 Apple, 10 Android, 3 cross-platform), all loaded equally by `globs` — there is no "primary" platform in the bundle's design.
 
 **Next — closing the day-one gaps for new app developers:**
 
@@ -799,6 +807,8 @@ Notable changes are tracked in [`CHANGELOG.md`](CHANGELOG.md), following the [Ke
 - Android skills (`android-gradle-architecture-pro`, `xml-to-compose-migration-pro`, `r8-shrink-pro`) authored by AppBootstrapAI contributors. Grounded in [Android's Now in Android](https://github.com/android/nowinandroid) reference app and the official [Android Developers documentation](https://developer.android.com/build) for AGP, Compose, and R8 — the canonical primary sources. Licensed MIT.
 
 - App Intents, Siri, Xcode security, Instruments profiling, and parts of the accessibility, adaptive-layout, and testing guidance draw on the agent skills Apple ships with Xcode 27, which **Artem Novichkov** ([@artemnovichkov](https://github.com/artemnovichkov)) extracted and published in [`artemnovichkov/xcode-skills`](https://github.com/artemnovichkov/xcode-skills). Thank you, Artem, for making them readable outside Xcode. The underlying content is Apple's and that repository has no license, so nothing is copied: the guidance here is rewritten and condensed in this bundle's own words, and every file that draws on it credits Artem's repository in a **Sources** note. Files: `apple-app-intents.md`, `apple-build-security.md`, and `apple-testing-strategy.md` (rules); `app-intents-pro`, `xcode-security-pro`, and `instruments-profiling-pro` (skills); `swift-accessibility-pro/references/nutrition-label-audit.md`, `swift-adaptive-layout-pro/references/uikit-api-replacements.md`, and `readiness-checklist.md`.
+
+- Motion design guidance (`apple-motion-design.md`, `android-motion-design.md`, and the `motion-design-pro` skill) is adapted from the [motion design skill](https://github.com/lottiefiles/motion-design-skill) by **LottieFiles** ([@LottieFiles](https://github.com/LottieFiles)), MIT-licensed, © 2025 LottieFiles. Thank you, LottieFiles, for publishing it openly. Its principles, timing tables, and patterns are rewritten for SwiftUI and Jetpack Compose and checked against Apple's and Material 3's motion guidance; each file that draws on it credits LottieFiles in a **Sources** note, and the MIT notice ships in `.claude/skills/motion-design-pro/NOTICE.md`.
 
 ## License
 

@@ -47,6 +47,7 @@ All Composables must be fully accessible. TalkBack, dynamic text scaling, and su
 
 - Respect the system "Remove animations" setting by checking `LocalAccessibilityManager.current?.isReduceMotionEnabled` (API 33+) or `Settings.Global.ANIMATOR_DURATION_SCALE == 0f` and skip or shorten non-essential animations.
 - Use `animateContentSize()` and `AnimatedVisibility` with a duration guard — `tween(if (reduceMotion) 0 else 300)`.
+- Prefer a crossfade over a slide when motion is reduced, and stop loops on a chosen frame. Motion tokens and per-pattern alternatives are in [`android-motion-design.md`](./android-motion-design.md).
 
 ## Focus & Navigation (Bluetooth Keyboards, Switch Access, D-pad)
 

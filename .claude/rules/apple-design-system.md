@@ -53,6 +53,10 @@ An app without a design system accretes `Color(red:green:blue:)`, `.font(.system
 - **Corners follow their container** — `ConcentricRectangle()` / `.containerShape(_:)` so nested rounded shapes stay concentric with the device and window corners on iOS 26+. A hardcoded `cornerRadius: 12` inside a sheet looks wrong next to the system's.
 - **Minimum hit target 44×44pt** for every control, regardless of glyph size. On macOS the touch target is **36×36pt** with the control's size unchanged — see [`apple-mac-touch.md`](./apple-mac-touch.md).
 
+### Motion
+
+- **Motion tokens live here too** — a role-named `Motion` namespace (`feedback`, `standard`, `enter`, `exit`) instead of durations and curves at call sites. See [`apple-motion-design.md`](./apple-motion-design.md).
+
 ## Liquid Glass (iOS 26+ SDKs)
 
 - **Standard components adopt it for free** when built with the current SDK — navigation bars, toolbars, tab bars, sheets, menus, and system button styles. **Remove custom bar backgrounds and blur hacks**; they fight the material.

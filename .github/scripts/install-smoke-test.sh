@@ -202,6 +202,9 @@ assert_dir_exists  "$target_rec/.claude/skills/swift-memory-storage-pro"        
 assert_dir_exists  "$target_rec/.claude/skills/android-memory-storage-pro"                  "recommended includes memory/storage skill (android)"
 assert_dir_exists  "$target_rec/.claude/skills/swift-package-pro"                           "recommended includes packaging skill"
 assert_dir_exists  "$target_rec/.claude/skills/instruments-profiling-pro"                   "recommended includes performance skill"
+assert_file_exists "$target_rec/.claude/rules/apple-motion-design.md"                      "recommended includes motion rule (apple)"
+assert_file_exists "$target_rec/.claude/rules/android-motion-design.md"                    "recommended includes motion rule (android)"
+assert_file_exists "$target_rec/.claude/skills/motion-design-pro/NOTICE.md"                "recommended includes motion skill with its license notice"
 
 # recommended EXCLUDES: persistence, ai, migration, shrinking, intents, security.
 assert_dir_empty_or_missing "$target_rec/.claude/skills/app-intents-pro"                    "recommended excludes intents"
@@ -2690,6 +2693,38 @@ else
     FAIL=$((FAIL + 1))
 fi
 rm -rf "$t"
+
+# --- motion design (ui) --------------------------------------------------------
+
+bold "==> motion: rules follow platform, motion-design-pro lands for either, audit --topic motion flags loops"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android > /dev/null
+m_ok=$([[ -f "$t/.claude/rules/android-motion-design.md" \
+       && ! -f "$t/.claude/rules/apple-motion-design.md" \
+       && -f "$t/.claude/skills/motion-design-pro/references/motion-spec.md" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform apple --apple-language objc > /dev/null
+o_ok=$([[ ! -d "$t/.claude/skills/motion-design-pro" ]] && echo y)
+rm -rf "$t"
+t="$(mktemp -d)"
+mkdir -p "$t/Sources/App"
+printf 'let a = Animation.easeInOut.repeatForever()\n' > "$t/Sources/App/Loop.swift"
+printf '@Environment(\\.accessibilityReduceMotion) var r\nlet a = Animation.easeInOut.repeatForever()\n' > "$t/Sources/App/Guarded.swift"
+mo="$("$INSTALL" audit "$t" --no-install-check --no-baseline --topic motion --json 2>&1)"
+rm -rf "$t"
+if [[ "$m_ok" == "y" && "$o_ok" == "y" ]] && python3 -c "
+import json, sys
+d = json.loads(sys.argv[1])
+f = {x['id']: x for x in d['findings']}
+assert f['swift-motion-loop-no-reduce-motion']['locations'] == ['Sources/App/Loop.swift:1'], f
+assert [s['skill'] for s in d['skills_to_run']] == ['motion-design-pro']
+" "$mo" 2>/dev/null; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: motion rules/skill scoping or the motion audit check (android=$m_ok objc-only=$o_ok)"
+    FAIL=$((FAIL + 1))
+fi
 
 # --- compliance category (regional store rules) ------------------------------
 

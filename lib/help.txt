@@ -47,7 +47,7 @@
 #                rules and skills to read: concurrency, architecture,
 #                accessibility, ui, localization, testing, compliance,
 #                logging, docs, deployment, linting, memory, storage,
-#                intents, security, performance (see
+#                intents, security, performance, motion (see
 #                lib/topics.json).
 #   upgrade      3-way diff a prior install vs. the current bundle (plan-only;
 #                add --apply to write). Alias: the --upgrade flag.
@@ -130,7 +130,7 @@
 #                                           (+ cross-platform steering with --platform both)
 #                          concurrency      Swift concurrency / Kotlin coroutines
 #                          ui               SwiftUI/MVVM / Jetpack Compose + accessibility
-#                                           + iconography / design system
+#                                           + iconography / design system + motion design
 #                          testing          test strategy + coverage gates
 #                          docs             DocC / KDoc documentation strategy
 #                          error-handling   Swift typed throws / Result / LocalizedError

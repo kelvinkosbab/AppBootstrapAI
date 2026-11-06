@@ -30,7 +30,7 @@ file_category() {
             echo "core" ;;
         apple-swift6-strict-concurrency.md|swift-concurrency-pro|android-coroutines-best-practices.md|android-coroutines-pro)
             echo "concurrency" ;;
-        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|apple-adaptive-layout.md|apple-mac-touch.md|swiftui-pro|swift-accessibility-pro|swift-adaptive-layout-pro|android-compose-best-practices.md|android-accessibility-best-practices.md|android-compose-pro|android-accessibility-pro|android-large-screen-best-practices.md|android-adaptive-layout-pro|apple-iconography.md|apple-design-system.md|swift-design-system-pro|android-iconography.md|android-design-system.md|android-design-system-pro)
+        apple-swiftui-mvvm.md|apple-accessibility-best-practices.md|apple-objc-accessibility-best-practices.md|apple-adaptive-layout.md|apple-mac-touch.md|swiftui-pro|swift-accessibility-pro|swift-adaptive-layout-pro|android-compose-best-practices.md|android-accessibility-best-practices.md|android-compose-pro|android-accessibility-pro|android-large-screen-best-practices.md|android-adaptive-layout-pro|apple-iconography.md|apple-design-system.md|swift-design-system-pro|android-iconography.md|android-design-system.md|android-design-system-pro|apple-motion-design.md|android-motion-design.md|motion-design-pro)
             echo "ui" ;;
         apple-testing-strategy.md|swift-testing-pro|android-testing-strategy.md)
             echo "testing" ;;
@@ -164,9 +164,10 @@ should_install_skill() {
             # Cross-platform skill — needs both platforms in scope.
             [[ "$PLATFORM" == "both" ]] && is_in_features "$name"
             ;;
-        store-compliance-pro)
-            # Store-submission skill for either platform. Like every skill, it
-            # needs Swift or Android in scope (ObjC-only installs ship no skills).
+        store-compliance-pro|motion-design-pro)
+            # Skills for either platform (store submission, motion design). Like
+            # every skill, they need Swift or Android in scope (ObjC-only installs
+            # ship no skills).
             { [[ "$PLATFORM" != "apple" ]] || [[ "$APPLE_LANG" != "objc" ]]; } && is_in_features "$name"
             ;;
         android-adaptive-layout-pro)

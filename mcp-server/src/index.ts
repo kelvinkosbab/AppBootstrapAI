@@ -85,7 +85,7 @@ const AUDIT_PLAYBOOK = join(REPO_ROOT, "playbooks", "audit.md");
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     core:             "Project-level README/CHANGELOG/CONTRIBUTING/ADR patterns, plus cross-platform (Apple + Android) steering when platform is both.",
     concurrency:      "Swift 6.2 strict concurrency / Kotlin coroutines structured concurrency.",
-    ui:               "SwiftUI/MVVM / Jetpack Compose patterns + accessibility.",
+    ui:               "SwiftUI/MVVM / Jetpack Compose patterns + accessibility, design system, iconography, and motion design.",
     testing:          "Test strategy + coverage gates (Apple + Android).",
     docs:             "DocC / KDoc documentation strategy.",
     "error-handling": "Swift typed throws / Result / LocalizedError.",

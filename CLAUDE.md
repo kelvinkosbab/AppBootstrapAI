@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 17 Apple, 10 Android, 2 cross-platform — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 17 Apple, 10 Android, 3 cross-platform — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -24,6 +24,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
 │   ├── android-logging-strategy.md                # Android: Timber, levels, release-stripping
 │   ├── android-memory-management.md               # Android: leaks, bitmaps, caches, onTrimMemory
+│   ├── android-motion-design.md                   # Android: motion tokens, MotionScheme, reduced motion, Lottie
 │   ├── android-modular-architecture.md            # Android: thin :app over feature/core modules (NiA)
 │   ├── android-mvvm-architecture.md               # Android: MVVM / UDF, UiState, Route vs Screen (opt-in)
 │   ├── android-play-beta-deployment.md            # Android: Play beta tracks, signing, CI
@@ -46,6 +47,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-logging-strategy.md                  # Apple: os.Logger, privacy markers, levels
 │   ├── apple-mac-touch.md                         # Apple: touchscreen Mac / Sidecar touch (macos-gated)
 │   ├── apple-memory-management.md                 # Apple: retain cycles, image decode size, jetsam
+│   ├── apple-motion-design.md                     # Apple: motion tokens, springs, Reduce Motion, Lottie
 │   ├── apple-modular-architecture.md              # Apple: thin app shell + fat local SPM package
 │   ├── apple-objc-accessibility-best-practices.md # Apple: UIKit a11y in Objective-C
 │   ├── apple-objc-best-practices.md               # Apple: Modern Objective-C
@@ -75,6 +77,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── cross-platform-parity-pro/          # Both: port features, audit drift, set up a two-platform repo
 │   ├── instruments-profiling-pro/          # Apple: xctrace profiling + hang triage
+│   ├── motion-design-pro/                  # Both: motion system, designer spec, patterns, review
 │   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
 │   ├── store-compliance-pro/               # Both: regional store-rejection audit + response
 │   ├── swift-accessibility-pro/            # Apple: VoiceOver / keyboard / contrast audit
@@ -194,6 +197,8 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `app-intents-pro` to review our App Intents and make the shopping-list actions work with Siri."
 - "Use `xcode-security-pro` to audit build settings and plan turning on Enhanced Security."
 - "Use `instruments-profiling-pro` to find out why the feed hangs on first launch."
+- "Use `motion-design-pro` to define our motion tokens and write the motion spec with our designer."
+- "Use `motion-design-pro` to review the onboarding animations for timing, consistency, and Reduce Motion."
 - "Use `swift-package-pro` to review `Package.swift` and the public API."
 - "Use `swift-modularization-pro` to plan moving this app's code into a local Swift package."
 - "Use `swift-modularization-pro` to audit the module graph in `MyAppPackages`."
@@ -352,6 +357,19 @@ In `recommended` (ui). Fires on `.kt`/`.kts`/`.xml`. Encodes:
 - `contentDescription` from resources for meaningful icons, `null` (not `""`) for decorative ones.
 - **Adaptive launcher icon with a `<monochrome>` layer** (themed icons, Android 13+), art inside the 66dp safe zone, no baked shape; Play listing icon matches.
 - Notification small icons are alpha-only silhouettes (`ic_stat_*`); splash via the SplashScreen API, not a custom Activity.
+
+### Motion design (`apple-motion-design.md`, `android-motion-design.md`)
+
+In `recommended` (ui). Fires on `.swift` and `.kt`/`.kts`. Adapted from the LottieFiles [motion design skill](https://github.com/lottiefiles/motion-design-skill) (MIT), credited in each file.
+
+- **Purpose before properties**: feedback, orientation, state change, attention, or delight; no purpose, no animation. System components keep their own motion.
+- **Motion tokens by role** in the design-system module: SwiftUI springs (`.smooth`, `.snappy`, `.spring(duration:bounce:)`) and curves; Compose `MaterialTheme.motionScheme` or named specs with the M3 easing and duration tokens. Spatial specs may overshoot; color and alpha never do.
+- **Timing**: phone-baseline durations by element, longer for distance, exits ~65–75% of entrances; decelerate in, accelerate out; never linear movement.
+- **Craft**: render-only properties (SwiftUI `opacity`/`scaleEffect`/`offset`, Compose `graphicsLayer`), one hero per moment, stagger capped at ~500 ms, input never blocked, haptics paired with feedback.
+- **Reduced motion**: every spatial, scaling, or looping animation has a crossfade-or-nothing alternative (`accessibilityReduceMotion`; the animator duration scale on Android); motion never carries information alone.
+- **Lottie**: one wrapper component per platform, play once for feedback, still frame under reduced motion, themed layers, hidden from screen readers when decorative.
+
+The `motion-design-pro` skill (either platform) defines a motion personality and tokens, writes the `docs/design/motion.md` spec designers and developers share (with Lottie / dotLottie handoff rules), builds sequences from recipes, and reviews existing motion. `install.sh audit --topic motion` flags looping animations in files that never check reduced motion.
 
 ### Android design system (`android-design-system.md`)
 

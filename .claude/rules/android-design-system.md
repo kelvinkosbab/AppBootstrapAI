@@ -91,6 +91,10 @@ fun AppTheme(
 - **Spacing**: a small `@Immutable data class Spacing(val xs: Dp = 4.dp, val s: Dp = 8.dp, val m: Dp = 16.dp, val l: Dp = 24.dp, val xl: Dp = 32.dp)` read as `AppTheme.spacing.m`. A `13.dp` in a feature is a finding.
 - **Elevation** is tonal in M3 — prefer `surfaceContainer*` roles over shadows for hierarchy.
 
+### Motion
+
+- **Motion tokens live here too** — `MaterialTheme.motionScheme` or a named `AppMotion` object instead of `tween(…)` literals in features. See [`android-motion-design.md`](./android-motion-design.md).
+
 ## Components — Thin, Stateless, Slot-Based
 
 ```kotlin
