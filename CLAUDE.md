@@ -719,6 +719,8 @@ Short intro: why this rule exists.
 
 Keep rules **prescriptive, not descriptive**. "Use `@MainActor` at the type level" is actionable; "Think about isolation" is not.
 
+Keep each rule under 12 KB (`validate-frontmatter.py` enforces it): a rule loads every time a matching file is open. When a topic needs more, keep the rule as a checklist and move the full text into the matching skill's `references/`, as `apple-adaptive-layout.md` does.
+
 ## Writing your own skills
 
 Skills live in `.claude/skills/<skill-name>/` and must contain a `SKILL.md` with YAML frontmatter:

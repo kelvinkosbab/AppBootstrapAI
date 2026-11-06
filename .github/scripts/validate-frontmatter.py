@@ -4,6 +4,9 @@ Validate YAML frontmatter on every .claude/rules/*.md and
 .claude/skills/*/SKILL.md, plus verify that any references/<name>.md
 mentioned in a SKILL.md body actually exists on disk.
 
+Also holds each rule to a size budget (RULE_MAX_BYTES, with a shrink-only
+allowlist for rules not yet split into a checklist plus skill references).
+
 Catches the silent-bad mode where a rule loads with no scope (missing
 globs:, or a paths: list that drifted from it — Claude Code scopes rules by
 paths: only, so a rule without it loads in every session), or a skill claims to load reference docs that were renamed/
@@ -33,6 +36,21 @@ MUST_ITEMS = (2, 5)
 MUST_ITEM_CHARS = 160
 MUST_RULE_CHARS = 600
 REQUIRED_SKILL_KEYS = ("name", "description", "license")
+# A rule loads into context whenever a matching file is open, so its size is
+# a recurring cost. Long detail belongs in a skill's references/.
+RULE_MAX_BYTES = 12 * 1024
+# Rules not yet split, each capped at its size when the budget landed
+# (rounded up to the next KB) so it can shrink but not grow.
+# Remove an entry once the rule fits under RULE_MAX_BYTES.
+OVERSIZED_RULES = {
+    "android-linting-strategy.md": 13 * 1024,
+    "android-play-beta-deployment.md": 19 * 1024,
+    "apple-foundation-models.md": 13 * 1024,
+    "apple-objc-accessibility-best-practices.md": 17 * 1024,
+    "apple-regional-compliance.md": 13 * 1024,
+    "apple-testflight-deployment.md": 24 * 1024,
+    "apple-visionos-best-practices.md": 15 * 1024,
+}
 
 
 def split_frontmatter(text: str) -> str | None:
@@ -97,6 +115,26 @@ def must_errors(frontmatter: str) -> list[str]:
     return errors
 
 
+def size_errors(path: Path) -> list[str]:
+    """Rules stay under RULE_MAX_BYTES; allowlisted ones never grow."""
+    size = path.stat().st_size
+    limit = OVERSIZED_RULES.get(path.name)
+    if limit is None:
+        if size > RULE_MAX_BYTES:
+            return [
+                (
+                    f"{size} bytes is over the {RULE_MAX_BYTES}-byte rule budget; "
+                    f"move detail into a skill's references/ and keep a checklist"
+                )
+            ]
+        return []
+    if size > limit:
+        return [f"{size} bytes grew past its {limit}-byte allowance in OVERSIZED_RULES"]
+    if size <= RULE_MAX_BYTES:
+        return [f"now fits the {RULE_MAX_BYTES}-byte budget; remove it from OVERSIZED_RULES"]
+    return []
+
+
 def main() -> int:
     errors: list[str] = []
     rule_count = 0
@@ -121,6 +159,7 @@ def main() -> int:
             )
         if has_key(fm, "must"):
             errors += [f"{path.relative_to(REPO_ROOT)}: {e}" for e in must_errors(fm)]
+        errors += [f"{path.relative_to(REPO_ROOT)}: {e}" for e in size_errors(path)]
 
     # --- Skills ---
     for path_str in sorted(glob.glob(str(SKILLS_DIR / "*" / "SKILL.md"))):
@@ -144,6 +183,9 @@ def main() -> int:
                     f"{path.relative_to(REPO_ROOT)}: references 'references/{ref_name}' "
                     f"but it does not exist at {ref_path.relative_to(REPO_ROOT)}"
                 )
+
+    for name in sorted(set(OVERSIZED_RULES) - {Path(p).name for p in glob.glob(str(RULES_DIR / "*.md"))}):
+        errors.append(f"OVERSIZED_RULES names missing rule '{name}'")
 
     # Every rule and skill an audit topic names must exist.
     topics = json.loads((REPO_ROOT / "lib" / "topics.json").read_text(encoding="utf-8"))

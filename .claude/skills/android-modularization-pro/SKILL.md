@@ -94,3 +94,4 @@ End of example.
 - `references/migration.md` — what stays in `:app`, prerequisites, extraction order, per-step checklist, resources and non-transitive R, Hilt and manifest merging, common breakages.
 - `references/navigation-and-di.md` — type-safe routes in `api` modules, `NavGraphBuilder` entries, lambdas wired in `:app`, Hilt bindings per module, `internal` modules, test replacement with `@TestInstallIn`.
 - `references/audit.md` — inventory commands, a dependency-rule script over `build.gradle.kts` files, searches, the module-graph-assertion setup, and the CI job.
+- `references/architecture-conventions.md` — the full `android-modular-architecture` rule (the installed rule is its checklist): why modularize, the module-type table, dependency rules, Hilt, resources, build performance, migration.
