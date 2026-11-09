@@ -3075,13 +3075,56 @@ else
     FAIL=$((FAIL + 1))
 fi
 
+# --- Installer safety --------------------------------------------------------
+check() {  # check <description> <command...>: pass when the command succeeds
+    local why="$1"; shift
+    if "$@"; then PASS=$((PASS + 1)); else red "FAIL: $why"; FAIL=$((FAIL + 1)); fi
+}
+
+bold "==> Package.resolved is ignored only for a library"
+t_app="$(mktemp -d)"; mkdir -p "$t_app/App.xcodeproj"; touch "$t_app/Package.swift"
+"$INSTALL" "$t_app" --platform apple >/dev/null
+check "app install must not ignore Package.resolved" bash -c "! grep -qx 'Package.resolved' '$t_app/.gitignore'"
+t_lib="$(mktemp -d)"; touch "$t_lib/Package.swift"
+"$INSTALL" "$t_lib" --platform apple >/dev/null
+check "library install should ignore Package.resolved" grep -qx 'Package.resolved' "$t_lib/.gitignore"
+
+bold "==> unknown flags and missing values are rejected"
+t_flag="$(mktemp -d)"
+check "a typo'd flag must fail, not become the target" bash -c "! '$INSTALL' '$t_flag' --dryrun >/dev/null 2>&1"
+check "a typo'd flag must not create a directory" bash -c "[[ ! -e ./--dryrun ]]"
+check "a value flag with no value must fail clearly" bash -c "'$INSTALL' '$t_flag' --platform 2>&1 | grep -q 'needs a value'"
+check "a second positional must fail" bash -c "! '$INSTALL' '$t_flag' '$t_flag' >/dev/null 2>&1"
+check "scaffold rejects a flag with no value" bash -c "'$REPO_ROOT/scripts/scaffold-spm-package.sh' '$t_flag' --name 2>&1 | grep -q 'needs a value'"
+
+bold "==> install keeps existing, different rule and skill files"
+t_keep="$(mktemp -d)"; mkdir -p "$t_keep/.claude/rules" "$t_keep/.claude/skills/swiftui-pro"
+echo "my own rule" > "$t_keep/.claude/rules/apple-logging-strategy.md"
+echo "my own skill" > "$t_keep/.claude/skills/swiftui-pro/SKILL.md"
+cp "$REPO_ROOT/.claude/rules/apple-testing-strategy.md" "$t_keep/.claude/rules/"
+keep_out="$("$INSTALL" "$t_keep" --platform apple 2>&1)"
+check "user-edited rule must not be overwritten" grep -qx 'my own rule' "$t_keep/.claude/rules/apple-logging-strategy.md"
+check "user-edited skill file must not be overwritten" grep -qx 'my own skill' "$t_keep/.claude/skills/swiftui-pro/SKILL.md"
+check "kept files are reported" grep -q 'apple-logging-strategy.md' <<<"$keep_out"
+check "skill dir must not be nested inside itself" bash -c "[[ ! -e '$t_keep/.claude/skills/swiftui-pro/swiftui-pro' ]]"
+check "other files of a kept skill still install" test -d "$t_keep/.claude/skills/swiftui-pro/references"
+check "identical pre-existing rule is adopted into the manifest" \
+    grep -q '"path": ".claude/rules/apple-testing-strategy.md"' "$t_keep/.claude/.appbootstrap-manifest.json"
+check "kept user file is not claimed by the manifest" \
+    bash -c "! grep -q '\"path\": \".claude/rules/apple-logging-strategy.md\"' '$t_keep/.claude/.appbootstrap-manifest.json'"
+
+bold "==> shipped settings.json doesn't pre-approve pushes or gh writes"
+check "settings.json must not allow git push" bash -c "! grep -q '\"Bash(git push:' '$REPO_ROOT/.claude/settings.json'"
+check "settings.json must not allow every gh command" bash -c "! grep -q 'Bash(gh:\*)' '$REPO_ROOT/.claude/settings.json'"
+rm -rf "$t_app" "$t_lib" "$t_flag" "$t_keep"
+
 # The bundle is app- and company-agnostic: no employer, product, or program
 # names in rules, skills, docs, templates, or tooling. Add new terms to
 # FORBIDDEN_NAMES; this file is excluded so the list itself doesn't match.
 bold "==> no app- or company-specific names in the bundle"
 
 FORBIDDEN_NAMES='amazon|kuiper|\bleo\b'
-forbidden_hits="$(grep -rniIE --exclude-dir=.git --exclude="$(basename "${BASH_SOURCE[0]}")" \
+forbidden_hits="$(grep -rniIE --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist --exclude="$(basename "${BASH_SOURCE[0]}")" \
     "$FORBIDDEN_NAMES" "$REPO_ROOT" || true)"
 if [[ -z "$forbidden_hits" ]]; then
     PASS=$((PASS + 1))

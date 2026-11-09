@@ -52,12 +52,15 @@ die() { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 note() { printf '\033[1m%s\033[0m\n' "$*"; }
 
 # --- Arg parsing -------------------------------------------------------------
+need_value() {  # need_value "$@" with the flag in $1
+    [[ $# -ge 2 && -n "$2" && "$2" != -* ]] || die "$1 needs a value (see --help)"
+}
 positional_seen=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --name)          PKG_NAME="${2:-}"; shift 2 ;;
-        --modules)       MODULES_CSV="${2:-}"; shift 2 ;;
-        --tools-version) TOOLS_VERSION="${2:-}"; shift 2 ;;
+        --name)          need_value "$@"; PKG_NAME="$2"; shift 2 ;;
+        --modules)       need_value "$@"; MODULES_CSV="$2"; shift 2 ;;
+        --tools-version) need_value "$@"; TOOLS_VERSION="$2"; shift 2 ;;
         --dry-run)       DRY_RUN=1; shift ;;
         --force)         FORCE=1; shift ;;
         -h|--help)       usage 0 ;;

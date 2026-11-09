@@ -118,7 +118,7 @@ The agent picks the right arguments because the MCP tool descriptions enumerate 
 | Argument validation | Bash error after launch | Validated in the MCP layer, clearer messages |
 | Structured output | Free-form text (agent parses) | JSON for catalog tools; raw text for install/preview |
 | Schema for agent | None (agent reads `--help`) | Typed `inputSchema` per tool |
-| Dependencies | bash only | bash + node 20+ |
+| Dependencies | bash only | bash + node 22+ |
 
 The shell path is fine for most cases. The MCP server is for teams that want the structured-tool experience or are wiring AppBootstrapAI into multi-tool workflows.
 

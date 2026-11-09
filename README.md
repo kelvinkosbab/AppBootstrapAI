@@ -131,7 +131,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 <details>
 <summary><strong>Baseline &amp; bundle files</strong> — settings, .gitignore, the full <code>install.sh</code> flag reference, templates (click to expand)</summary>
 
-- **`settings.json`** — safe defaults for `xcodebuild`, `swift`, `swiftlint`, `./gradlew`, `gradle`, `ktlint`, `adb`, `git`, `gh`, plus Apple/Android docs domains for `WebFetch`.
+- **`settings.json`** — safe defaults: builds and tests (`xcodebuild`, `swift build`/`test`, `swiftlint`, `./gradlew`, `ktlint`), read-only `git` and `gh` verbs, and Apple/Android docs domains for `WebFetch`. Commits, pushes, and `gh` writes still prompt. A `deny` list blocks force-pushes, `gh repo delete`, and reading `.env`, signing keys, and keystores.
 - **`.gitignore`** — recommended entries for Xcode, SPM, CocoaPods, Carthage, fastlane, plus Gradle/Android Studio/Kotlin.
 - **`install.sh`** — one-command bootstrap into any target repo.
   - **Commands** (verb form): `install [TARGET]` (default — verb optional), `recommend [TARGET]` (analyze a dir → suggested command, `--json` for agents), `upgrade TARGET`, `uninstall TARGET`, `list`, `list-mcps`, `setup` (guided), `help`. Each has a legacy `--flag` alias (`--upgrade`, `--uninstall`, `--list`, `--list-mcps`, `-i`/`--interactive`, `-h`/`--help`) — verbs and flags are interchangeable, so existing scripts keep working. A directory whose name collides with a verb can be targeted via an explicit path (`./upgrade`) or the `--flag` form.

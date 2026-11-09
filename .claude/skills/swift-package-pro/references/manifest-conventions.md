@@ -223,7 +223,7 @@ dependencies: [
 - **App packages (executable, end-user product):** **commit it.** Build reproducibility matters — your CI and every contributor's machine should resolve to the same transitive versions. Without it, two builds of the same source can land on different dependency versions and one of them has a regression you can't reproduce.
 - **Library packages (consumed as dependencies):** **gitignore it.** Consumers do their own dependency resolution against your `from:` / `exact:` constraints. Your `Package.resolved` is irrelevant to them — committing it just generates merge-conflict noise when you bump deps.
 
-For a monorepo with both shapes: commit `Package.resolved` at the *app* package's root, gitignore at every *library* package's root. The `.gitignore` entries from the AppBootstrapAI bundle already exclude it; un-ignore it explicitly for app packages.
+For a monorepo with both shapes: commit `Package.resolved` at the *app* package's root, gitignore at every *library* package's root. The AppBootstrapAI installer adds `Package.resolved` to `.gitignore` only for a library (a root `Package.swift` with no Xcode project); for apps it leaves the file tracked.
 
 ```
 # In the app package's .gitignore — un-ignore Package.resolved:

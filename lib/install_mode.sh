@@ -124,6 +124,33 @@ INSTALLED_MCPS_ADDED=()
 # shellcheck disable=SC2034   # read by lib/install_mcps.sh
 INSTALLED_MCPS_SKIPPED=()
 
+# install_bundle_file <src> <rel_path> <type> <category> [skill_name]
+# Copies a bundle file into TARGET and records it. A file that already exists
+# with different content is the user's (for example rules copied by hand
+# before adopting), so it's kept and reported unless --force. An identical
+# file is adopted into the manifest as-is.
+CLOBBER_SKIPPED=()
+install_bundle_file() {
+    local src="$1" rel="$2" type_="$3" cat_="$4" skill="${5:-}"
+    local dst="$TARGET/$rel"
+    if [[ -f "$dst" && "$FORCE" != "true" ]]; then
+        if [[ "$(sha256_file "$dst")" == "$(sha256_file "$src")" ]]; then
+            record_install "$rel" "$type_" "$cat_" "$src" "$skill"
+        else
+            CLOBBER_SKIPPED+=("$rel")
+        fi
+        return 0
+    fi
+    if [[ "$DRY_RUN" == "true" ]]; then
+        # Skills announce themselves once per skill dir, not once per file.
+        [[ -z "$skill" ]] && echo "[dry-run] copy $rel"
+    else
+        mkdir -p "$(dirname "$dst")"
+        cp "$src" "$dst"
+    fi
+    record_install "$rel" "$type_" "$cat_" "$src" "$skill"
+}
+
 # The manifest lives at .claude/.appbootstrap-manifest.json regardless of which
 # agents are selected. Ensure the dir exists so the late-stage manifest write
 # can land even on a non-Claude-only install (e.g., --agents copilot).
@@ -144,14 +171,14 @@ if agents_has claude; then
             if should_install_skill "$name"; then
                 cat="$(file_category "$name")"
                 [[ -z "$cat" ]] && cat="-"
-                act "copy skill $name" cp -R "$d" "$TARGET/.claude/skills/$name"
-                # Walk every file inside the source skill dir; record_install each
-                # so the manifest has a per-file hash. `find -type f` includes
-                # nested references/, agents/, assets/ — exactly what we copied.
+                [[ "$DRY_RUN" == "true" ]] && echo "[dry-run] copy skill $name"
+                # Copy file by file (not `cp -R dir`, which nests into an existing
+                # dir on GNU cp but merges on BSD cp) so each file gets the same
+                # never-clobber check and its own manifest hash.
                 while IFS= read -r -d '' src_file; do
                     # Strip the SCRIPT_DIR prefix so rel_path is target-relative.
                     rel_path="${src_file#"$SCRIPT_DIR"/}"
-                    record_install "$rel_path" "skill-file" "$cat" "$src_file" "$name"
+                    install_bundle_file "$src_file" "$rel_path" "skill-file" "$cat" "$name"
                 done < <(find "$d" -type f -print0)
             fi
         done
@@ -195,8 +222,7 @@ if agents_has claude || agents_has gemini || agents_has codex; then
         if should_install_rule "$name"; then
             cat="$(file_category "$name")"
             [[ -z "$cat" ]] && cat="-"
-            act "copy rule $name" cp "$f" "$TARGET/.claude/rules/$name"
-            record_install ".claude/rules/$name" "rule" "$cat" "$f"
+            install_bundle_file "$f" ".claude/rules/$name" "rule" "$cat"
         fi
     done
 fi
@@ -315,6 +341,12 @@ if agents_has kiro; then
 fi
 
 # /appbootstrap-sync and /appbootstrap-audit commands per selected agent — never overwrite.
+if [[ "${#CLOBBER_SKIPPED[@]}" -gt 0 ]]; then
+    echo "--> Kept ${#CLOBBER_SKIPPED[@]} existing file(s) that differ from the bundle (not overwritten):"
+    for rel in "${CLOBBER_SKIPPED[@]}"; do echo "    $rel"; done
+    echo "    Compare them with the bundle copy, or re-run with --force to replace them."
+fi
+
 echo "--> Installing /appbootstrap-sync and /appbootstrap-audit commands"
 while IFS='|' read -r cmd_agent cmd_src cmd_rel; do
     agents_has "$cmd_agent" || continue
@@ -326,6 +358,17 @@ while IFS='|' read -r cmd_agent cmd_src cmd_rel; do
     act "copy $cmd_rel" cp "$SCRIPT_DIR/$cmd_src" "$TARGET/$cmd_rel"
     record_install "$cmd_rel" "agent-command" "-" "$SCRIPT_DIR/$cmd_src"
 done < <(agent_command_files)
+
+# A root Package.swift with no Xcode project or workspace is a library: its
+# Package.resolved is noise for consumers. Anything else is treated as an app,
+# which should commit the file for reproducible builds.
+target_is_swift_library() {
+    [[ -f "$TARGET/Package.swift" ]] || return 1
+    local hit
+    hit="$(find "$TARGET" -maxdepth 3 \( -name '*.xcodeproj' -o -name '*.xcworkspace' \) \
+        -not -path '*/.build/*' -not -path '*/.swiftpm/*' -not -name 'project.xcworkspace' -print -quit 2>/dev/null)"
+    [[ -z "$hit" ]]
+}
 
 # .gitignore — append platform entries, deduped by marker.
 GITIGNORE="$TARGET/.gitignore"
@@ -351,11 +394,15 @@ build/
 *.dSYM.zip
 .build/
 .swiftpm/
-Package.resolved
 Carthage/Build/
 fastlane/report.xml
 fastlane/test_output
 APPLE
+                # Package.resolved: commit it in apps, ignore it in libraries
+                # (apple-spm-package-conventions.md).
+                if target_is_swift_library; then
+                    echo "Package.resolved"
+                fi
             fi
             if [[ "$PLATFORM" != "apple" ]]; then
                 cat <<'ANDROID'
