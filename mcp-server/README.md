@@ -60,8 +60,9 @@ cd mcp-server && npm pack                       # → kelvinkosbab-appbootstrap-
 npx -y ./kelvinkosbab-appbootstrap-mcp-0.1.0.tgz
 ```
 
-The same package is ready for `npm publish`; once it's on the registry the
-config becomes `"command": "npx", "args": ["-y", "@kelvinkosbab/appbootstrap-mcp"]`.
+A release tag publishes this package to npm (`.github/workflows/release.yml`)
+when `package.json` has a new version. Once it's on the registry the config
+becomes `"command": "npx", "args": ["-y", "@kelvinkosbab/appbootstrap-mcp"]`.
 
 ### Wire into Claude Code
 
@@ -134,7 +135,6 @@ The server logs to stderr (`appbootstrap-mcp server connected via stdio`); stdou
 
 ## Roadmap
 
-- Publish to npm as `@kelvinkosbab/appbootstrap-mcp` (the package already packs the bundle; see "Pack for npx").
 - Consider a `describe_skill(name)` tool that returns the full SKILL.md body + reference contents for skills the agent wants to deep-read.
 - Consider a `read_rule(name)` tool for the same on the rules side.
 - Track `install.sh`'s feature-category list automatically rather than maintaining the parallel TypeScript list in `src/index.ts`.

@@ -8,6 +8,16 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ## [Unreleased]
 
+### Changed
+
+- **CI runs weekly.** `ci.yml` also runs every check on Monday mornings and
+  on demand, so upstream breakage shows up between PRs. The third-party
+  `action-shellcheck` and `ruff-action` are pinned by commit SHA, and ruff by
+  version.
+- **The release tag publishes the MCP server.** `release.yml` publishes
+  `@kelvinkosbab/appbootstrap-mcp` to npm (with provenance) when
+  `mcp-server/package.json` has a version npm doesn't have yet.
+
 ## [1.1.0] - 2026-11-09
 
 ### Added
