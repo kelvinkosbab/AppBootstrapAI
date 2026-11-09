@@ -7,6 +7,8 @@ on:
       - '.claude/rules/**'
       - '.claude/skills/**'
       - '.github/scripts/validate-frontmatter.py'
+      - '.github/scripts/generate-catalog.py'
+      - 'docs/catalog.md'
       - '.github/workflows/frontmatter.yml'
   # Pull requests run this through ci.yml, which skips it when no matching
   # path changed and gates merging on one required check.
@@ -25,3 +27,6 @@ jobs:
 
       - name: Validate rule and skill frontmatter
         run: python3 .github/scripts/validate-frontmatter.py
+
+      - name: docs/catalog.md matches the frontmatter
+        run: python3 .github/scripts/generate-catalog.py --check
