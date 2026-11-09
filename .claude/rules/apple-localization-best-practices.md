@@ -12,201 +12,32 @@ must:
 
 # Apple Localization Best Practices
 
-Every user-facing string is localized. *Including* accessibility labels, error messages, alert bodies, and short pieces of text that "are obviously the same in every language" (they aren't). The cost of localizing from day one is near zero; the cost of retrofitting after the fact is high.
+The must-follow rules for user-facing strings on Apple platforms. The facade code, plural catalog entries, formatter examples, and Xcode 27 catalog tooling are in [`localization-pro/references/apple.md`](../skills/localization-pro/references/apple.md); read the matching section only when a line below isn't enough. Audit with `localization-pro`.
 
-## Source of Truth: String Catalogs
+## Source of truth
 
-- **Use String Catalogs (`.xcstrings`)** as the project's localization format. Apple-supported since Xcode 15 / iOS 17. Single JSON file, native plurals, native variations (device, length), Xcode UI for translators.
-- **One String Catalog per module** (`Localizable.xcstrings` inside the module's resources). Per-module catalogs prevent merge conflicts in monorepos and let modules ship independently.
-- **Don't add new entries to legacy `.strings` / `.stringsdict` files.** If they exist, leave them stable but route new strings through the catalog. Migration is per-module, not big-bang.
-- **`NSLocalizedString` is permitted only inside the type-safe facade** (see below) — never sprinkled throughout views.
+- **String Catalogs (`.xcstrings`)**, one per module. Don't add new entries to legacy `.strings` / `.stringsdict`; migrate per module.
+- **A typed `Strings` facade** (`Strings.<Section>.<key>`) returning `LocalizedStringResource` is the only place that calls `String(localized:)` or `NSLocalizedString`. Parameterized strings are facade functions.
+- **No hardcoded literals in UI**: `Text("Save")`, `Button("Cancel")`, alert titles, and accessibility labels all come from the facade.
 
-## Type-Safe Strings Facade
+## Plurals and sentences
 
-Sprinkling `String(localized: "user.profile.title")` across views means a typo becomes a runtime broken string instead of a compile error. Hide all keys behind a single typed enum.
+- **Plural variations in the catalog** for every count, even when English looks obvious. Never `count == 1 ? … : …`.
+- **Never concatenate sentence fragments.** Translators need to reorder; use one parameterized resource.
 
-```swift
-public enum Strings {
-    public enum NavigationTitles {
-        public static let home = LocalizedStringResource("home.title")
-        public static let nearbyServices = LocalizedStringResource("nearby_services.title")
-    }
+## Formatting
 
-    public enum Errors {
-        public static func portMin(_ minimum: Int) -> LocalizedStringResource {
-            LocalizedStringResource("errors.port.min", defaultValue: "Port must be at least \(minimum).")
-        }
-    }
-}
-```
+- **`.formatted()`, `FormatStyle`, and `Text(_:format:)`** for numbers, dates, currency, and measurements. No `String(format:)` for user-visible values.
+- No `DateFormatter()` per render; cache a `static let` or use `FormatStyle`. Code that formats outside a view takes a `Locale` parameter so tests can pin it.
 
-- **Use `LocalizedStringResource`** (not raw `String`) — SwiftUI's `Text(_:)` and `.accessibilityLabel(_:)` accept it directly.
-- **Format-string helpers are functions**, not interpolation at the call site (so the lookup remains a stable key per string).
-- **All UI code uses `Strings.<Section>.<key>`**, never `String(localized:)` directly.
-- **The facade module** is the only place that owns localization knowledge — UI modules depend on it.
+## Right-to-left
 
-## SwiftUI Usage
+- **`.leading` / `.trailing`**, never `.left` / `.right`.
+- Mirror directional images with `.flipsForRightToLeftLayoutDirection(true)`; don't mirror logos or photos.
+- Check screens with the Right-to-Left, Double-Length, and Accented pseudolanguages.
 
-```swift
-// Good — Text accepts LocalizedStringResource directly
-Text(Strings.NavigationTitles.home)
+## Translator context
 
-// Good — error message via the format-function helper
-Text(Strings.Errors.portMin(1024))
-
-// Good — explicit String when you actually need a String value
-let label = String(localized: Strings.NavigationTitles.home)
-view.accessibilityLabel(label)
-```
-
-- **Don't use `Text("Home")`** — that's a hardcoded English literal even if it "works" today.
-- **Don't pre-format with `String(format:)`** — `LocalizedStringResource` interpolation handles positional args correctly across locales.
-
-## Plurals
-
-```json
-"items.count" : {
-  "extractionState" : "manual",
-  "localizations" : {
-    "en" : {
-      "variations" : {
-        "plural" : {
-          "one"   : { "stringUnit" : { "value" : "%d item",  "state" : "translated" } },
-          "other" : { "stringUnit" : { "value" : "%d items", "state" : "translated" } }
-        }
-      }
-    }
-  }
-}
-```
-
-- **Always use plural variations**, even for "obvious" English (`%d items`). Russian has 4 plural forms, Polish has 3, Arabic has 6 — your "0 items / 1 item / 2 items" assumption breaks.
-- **Lookup via the facade**: `Strings.Items.count(viewModel.itemCount)`. Inside the facade, the `LocalizedStringResource` automatically picks the right variation.
-- **Never** stitch plural strings together (`"\(count) " + (count == 1 ? "item" : "items")`).
-
-## Locale-Aware Formatting
-
-Numbers, dates, currencies, and units must format per-locale. **Never** use raw `String(format: "%.2f", value)` or `"\(date)"`.
-
-```swift
-// Numbers — respects locale separators (1,234.56 vs 1.234,56)
-Text(itemCount, format: .number)
-
-// Currency — uses the user's locale + a specific currency
-Text(price, format: .currency(code: "USD"))
-
-// Dates — chooses 12h/24h, day-month-year order, locale-specific weekday names
-Text(timestamp, format: .dateTime.year().month().day())
-
-// Strings via .formatted() helpers
-let formatted = price.formatted(.currency(code: "USD"))
-```
-
-- **`Text(_:format:)` initializers and `.formatted()`** are the right entry points. Avoid `DateFormatter` / `NumberFormatter` instantiation in view code; if you need them, cache as a `static let` (init is expensive) or use the modern `FormatStyle` types.
-- **Accept `Locale` as a parameter** in code that produces formatted strings outside SwiftUI views, so tests can pass a fixed locale.
-
-## Right-to-Left (RTL) Support
-
-- **Use leading/trailing**, never **left/right**, in layout APIs (`.padding(.leading, ...)`, `HStack` natural ordering). SwiftUI mirrors leading/trailing automatically under RTL locales.
-- **Test with the RTL pseudo-language**: Edit Scheme → Run → Options → App Language → "Right-to-Left Pseudolanguage." This catches hardcoded `.left`/`.right` and unflippable images.
-- **Mirror images that have a directional meaning** (back arrows, progress indicators) via `.flipsForRightToLeftLayoutDirection(true)`. Don't mirror images that don't (a person's photograph, a logo).
-- **Numbers, dates, prices stay left-to-right** even inside RTL paragraphs — the system handles bidi runs; don't override.
-
-## Translator Context
-
-A translator opening `Localizable.xcstrings` sees only the key and the source string. Without context, *"Save"* is ambiguous (verb? noun? what's being saved?).
-
-- **Provide a `comment:` on every entry** when using `String(localized:)`:
-
-  ```swift
-  static let saveButton = LocalizedStringResource(
-      "settings.save_button",
-      defaultValue: "Save",
-      comment: "Label on the button that persists the user's edits in the settings screen."
-  )
-  ```
-
-- **Key naming carries context too** — `settings.save_button` says where it appears; `save` alone doesn't.
-- **Avoid abbreviations in keys**: `nav.title.home` over `nv.t.h`. Translators don't have your project map.
-- **Mark strings that must not be translated.** A comment containing *"do not translate"* tags the entry **Don't Translate** in the String Catalog editor (and emits `translate="no"` in exported XLIFF), so brand names, code identifiers, and format tokens aren't "localized" into breakage. Use it instead of leaving such strings un-commented and hoping.
-
-## Xcode 27 String Catalog Tooling
-
-Xcode 27 (Swift 6.4) tightens the String Catalog workflow — lean on it, but keep the type-safe facade as the source of truth:
-
-- **`NSLocalizedString` is now extracted from header files too**, not just `.m`/`.swift`. Mixed-language targets that declared user-facing strings in `.h` now surface them in the catalog — audit those entries for missing `comment:` context after the first export.
-- **"Generate Translations"** (button + context menu in the String Catalog editor) produces machine translations for empty entries. Treat output as a *draft* for a human translator, not a ship-ready string — and machine-translated entries are flagged `state-qualifier="leveraged-mt"` in XLIFF so reviewers can find them.
-- **Agent-assisted translation**: Xcode 27's coding assistant can read/plan/edit String Catalog translations (and there's an MCP tool for it). Same rule — review before shipping; never let an agent invent strings for keys the facade doesn't define.
-
-## Pseudo-Localization for Testing
-
-- **Set the run scheme's App Language to "Double-Length Pseudolanguage"** to catch truncation bugs (German is roughly 30% longer than English; Finnish more).
-- **"Accented Pseudolanguage"** surfaces hardcoded English (anything that doesn't show up with diacritics is unlocalized).
-- **Add a CI screenshot test on the longest pseudo-locale** for critical screens — catches regressions before translators do.
-
-## Common Pitfalls
-
-- **Hardcoded English literals.** `Text("Save")`, `Button("Cancel") { ... }`, `Alert(title: Text("Error"))`. All of these need to come from the facade.
-- **String concatenation for sentences.** `"\(user.name) sent you a message"` — translators can't reorder. Use a parameterized resource: `Strings.Notifications.userSentMessage(user.name)`.
-- **Singular/plural via `?:`.** `count == 1 ? "item" : "items"` — use plural variations.
-- **`String(format: "%.2f", price)`** — pass through `.formatted(.currency(code:))` instead.
-- **`DateFormatter()` allocated per render.** Either use the modern `FormatStyle` API or hold a `static let` formatter.
-- **`NSLocalizedString` directly in views.** Route through the facade.
-- **`.left` / `.right` in modifiers.** Use `.leading` / `.trailing`.
-- **Localized strings missing `comment:`.** Translators get ambiguity; you get bug reports.
-- **Hardcoded English in accessibility attributes** — see [`apple-accessibility-best-practices.md`](./apple-accessibility-best-practices.md). The facade applies to a11y too.
-- **Per-view date formatters.** Centralize via a small formatting utility or use `Text(date, format: ...)`.
-
-## Patterns to Follow
-
-```swift
-// Strings module — single source of truth
-public enum Strings {
-    public enum NavigationTitles {
-        public static let home = LocalizedStringResource(
-            "navigation.home",
-            defaultValue: "Home",
-            comment: "Tab bar / nav title for the home screen."
-        )
-    }
-
-    public enum Notifications {
-        public static func userSentMessage(_ userName: String) -> LocalizedStringResource {
-            LocalizedStringResource(
-                "notifications.user_sent_message",
-                defaultValue: "\(userName) sent you a message.",
-                comment: "Push-notification body. %@ is the sender's display name."
-            )
-        }
-    }
-
-    public enum Items {
-        public static func count(_ value: Int) -> LocalizedStringResource {
-            LocalizedStringResource(
-                "items.count",
-                defaultValue: "\(value) items",
-                comment: "Item-count label. Plural variations defined in the String Catalog."
-            )
-        }
-    }
-}
-
-// Consuming view
-struct HomeView: View {
-    let count: Int
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(Strings.NavigationTitles.home)
-                .font(.largeTitle)
-
-            Text(Strings.Items.count(count))      // plural-aware
-                .accessibilityLabel(Strings.Items.count(count))
-        }
-        .padding(.leading)                         // RTL-safe (not .left)
-    }
-}
-
-// View that needs a `String` (e.g., for an accessibility identifier)
-let title = String(localized: Strings.NavigationTitles.home)
-```
+- **Every entry has a `comment:`** saying where it appears and what each argument is. Keys carry context too (`settings.save_button`).
+- Mark brand names and code tokens **do not translate** in the comment.
+- Machine or agent translations (Xcode 27 "Generate Translations") are drafts for human review, never new keys.
