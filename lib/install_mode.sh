@@ -447,76 +447,36 @@ MANIFEST_PATH="$TARGET/.claude/.appbootstrap-manifest.json"
 TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 write_manifest() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "error: python3 is required to write $MANIFEST_PATH (upgrade and uninstall read it)." >&2
+        exit 1
+    fi
     {
-        printf '{\n'
-        printf '  "schema_version": 2,\n'
-        printf '  "installed_at": "%s",\n' "$TIMESTAMP"
-        printf '  "bundle_commit": "%s",\n' "$BUNDLE_COMMIT"
-        printf '  "bundle": {"path": "%s", "repo": "%s"},\n' "$SCRIPT_DIR" "$BUNDLE_REPO_URL"
-        printf '  "selection": {\n'
-        printf '    "platform": "%s",\n' "$PLATFORM"
-        printf '    "apple_language": "%s",\n' "$APPLE_LANG"
-        printf '    "apple_platforms_input": "%s",\n' "$APPLE_PLATFORMS_INPUT"
-        printf '    "apple_platforms_resolved": '
-        json_string_array "$SELECTED_APPLE_PLATFORMS"
-        printf ',\n'
-        printf '    "android_platforms_input": "%s",\n' "$ANDROID_PLATFORMS_INPUT"
-        printf '    "android_platforms_resolved": '
-        json_string_array "$SELECTED_ANDROID_PLATFORMS"
-        printf ',\n'
-        printf '    "features_input": "%s",\n' "$FEATURES_INPUT"
-        printf '    "features_resolved": '
-        json_string_array "$SELECTED_FEATURES"
-        printf ',\n'
-        printf '    "agents_input": "%s",\n' "$AGENTS_INPUT"
-        printf '    "agents_resolved": '
-        json_string_array "$SELECTED_AGENTS"
-        printf '\n  },\n'
-        printf '  "files": [\n'
-        local first=1 entry path type_ cat_ hash skill hash_field
+        local entry
         for entry in "${INSTALLED_FILES[@]}"; do
-            # rel_path|type|category|sha256|skill_name
-            IFS='|' read -r path type_ cat_ hash skill <<<"$entry"
-            if [[ "$first" -eq 1 ]]; then first=0; else printf ',\n'; fi
-            # Emit sha256 as null when empty (gitignore-block); JSON string otherwise.
-            if [[ -z "$hash" ]]; then
-                hash_field='"sha256": null'
-            else
-                hash_field=$(printf '"sha256": "%s"' "$hash")
-            fi
-            # Emit "skill" field only for skill-file entries.
-            if [[ -n "$skill" ]]; then
-                printf '    {"path": "%s", "type": "%s", "category": "%s", %s, "skill": "%s"}' \
-                    "$path" "$type_" "$cat_" "$hash_field" "$skill"
-            else
-                printf '    {"path": "%s", "type": "%s", "category": "%s", %s}' \
-                    "$path" "$type_" "$cat_" "$hash_field"
-            fi
+            printf 'F|%s\n' "$entry"
         done
-        printf '\n  ],\n'
-        # mcps_installed — array of {name, config_sha256}. Records what we
-        # actually wrote into settings.local.json (not what was requested but
-        # skipped because already present).
-        printf '  "mcps_installed": ['
-        first=1
-        # Guard the array expansion — `set -u` + bash 3.x errors on "${arr[@]}"
-        # when the array is unset/empty.
+        # Guard the array expansion: `set -u` + bash 3.x errors on "${arr[@]}"
+        # when the array is empty. Only MCPs actually written are recorded.
         if [[ "${#INSTALLED_MCPS_ADDED[@]}" -gt 0 ]]; then
-            local mcp_entry mcp_name mcp_hash
-            for mcp_entry in "${INSTALLED_MCPS_ADDED[@]}"; do
-                mcp_name="${mcp_entry%%|*}"
-                mcp_hash="${mcp_entry#*|}"
-                if [[ "$first" -eq 1 ]]; then first=0; printf '\n'; else printf ',\n'; fi
-                if [[ -z "$mcp_hash" ]]; then
-                    printf '    {"name": "%s", "config_sha256": null}' "$mcp_name"
-                else
-                    printf '    {"name": "%s", "config_sha256": "%s"}' "$mcp_name" "$mcp_hash"
-                fi
+            for entry in "${INSTALLED_MCPS_ADDED[@]}"; do
+                printf 'M|%s\n' "$entry"
             done
         fi
-        if [[ "$first" -eq 0 ]]; then printf '\n  '; fi
-        printf ']\n'
-        printf '}\n'
-    } > "$MANIFEST_PATH"
+    } | python3 "$SCRIPT_DIR/lib/write_manifest.py" "$MANIFEST_PATH" \
+        --installed-at "$TIMESTAMP" \
+        --bundle-commit "$BUNDLE_COMMIT" \
+        --bundle-path "$SCRIPT_DIR" \
+        --bundle-repo "$BUNDLE_REPO_URL" \
+        --platform "$PLATFORM" \
+        --apple-language "$APPLE_LANG" \
+        --apple-platforms-input "$APPLE_PLATFORMS_INPUT" \
+        --apple-platforms-resolved "$SELECTED_APPLE_PLATFORMS" \
+        --android-platforms-input "$ANDROID_PLATFORMS_INPUT" \
+        --android-platforms-resolved "$SELECTED_ANDROID_PLATFORMS" \
+        --features-input "$FEATURES_INPUT" \
+        --features-resolved "$SELECTED_FEATURES" \
+        --agents-input "$AGENTS_INPUT" \
+        --agents-resolved "$SELECTED_AGENTS"
     echo "--> Wrote manifest to $MANIFEST_PATH"
 }
