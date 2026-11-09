@@ -8,42 +8,13 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ## [Unreleased]
 
-### Fixed
-
-- **Adopted apps keep `Package.resolved` under version control.** The
-  installer's `.gitignore` block now ignores it only for a library (a root
-  `Package.swift` with no Xcode project), as `apple-spm-package-conventions.md`
-  says. Existing installs keep their old block; remove the line by hand.
-- **Install no longer overwrites rule or skill files that are already there.**
-  A file that differs from the bundle copy is kept and listed (use `--force` to
-  replace it); an identical one is adopted into the manifest. Skills are copied
-  file by file, so a re-install no longer nests `skills/x/x/` on Linux.
-- **Mistyped flags fail instead of becoming the target.** `install.sh` and
-  `scaffold-spm-package.sh` reject unknown options, a second positional, and a
-  value flag with no value, with a clear message.
-- **The MCP `install` tool auto-detects the platform** when none is given,
-  like the shell install. It used to force `--platform both`, which put
-  Android rules into iOS-only repos. Every `target_dir` must now be absolute,
-  and tools pass an explicit verb (`install`, `upgrade`, `uninstall`).
-
-- **Scaffolded packages follow the bundle's own rules.** Placeholders are
-  named `<Module>Placeholder` (a type named like its module breaks
-  module-qualified lookups), only `AppCore` is a product when there's an
-  umbrella, and `AppCore` gets an `AppRootView` for the app's `@main`. The
-  scaffold rejects duplicate module names, system-module names, and names
-  ending in `Tests`, and its `makeTargets()` now matches the template's.
-- **`install.sh audit` detects SwiftUI `App` and `UIApplicationDelegate`
-  types again**, so `apple-no-scene-lifecycle` can fire. The check was looking
-  for them only in Gradle files.
-- **Package manifests with an example app are audited as packages.** A root
-  `Package.swift` whose only Xcode projects sit in `Example/`, `Demo/`, or
-  `Samples/` no longer gets app-store findings.
-- **`manifest-conventions.md`:** a library with no `type:` is automatic (the
-  client decides, usually static), not dynamic; Swift 5 mode uses
-  `enableUpcomingFeature("StrictConcurrency")`.
+## [1.1.0] - 2026-11-09
 
 ### Added
 
+- **Release workflow.** Pushing a `vX.Y.Z` tag runs every check on the tagged
+  commit, requires a matching CHANGELOG section, and publishes the GitHub
+  release with that section as its notes.
 - **Swift 6.2 app-package settings.** `scaffold-spm-package.sh --main-actor
   <csv|all>` writes a tools-6.2 manifest with `.defaultIsolation(MainActor.self)`
   on UI and feature modules plus `NonisolatedNonsendingByDefault` and
@@ -136,6 +107,12 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Changed
 
+- **`/appbootstrap-sync`, `/appbootstrap-audit`, and both playbooks clone the
+  latest release tag** instead of the default branch, so an unreleased push to
+  `main` doesn't run in adopters' sessions. Ask for the default branch to get
+  unreleased changes.
+- **CHANGELOG `[Unreleased]` grouped** into one Added / Changed / Fixed set and
+  released as 1.1.0.
 - **Four long rules are now short checklists**, with the full text moved
   into the matching skill's `references/`: `apple-adaptive-layout`
   (19 KB to 4 KB, full text in `swift-adaptive-layout-pro`),
@@ -339,8 +316,6 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   target, identifiers that must never be translated, and purpose strings
   specific enough to pass App Review.
 
-### Changed
-
 - **Adaptive layout refreshed for Xcode 27.2.** Xcode 27.2 is now the
   recommended toolchain for iPhone Duo, since its iOS 27.2 SDK includes the
   27.1 APIs. The rule and skill cover two changes existing code feels on the
@@ -435,8 +410,6 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   a body only when the why isn't visible in the diff. Targets the verbosity AI
   assistants produce that stops teammates reading either.
 
-### Changed
-
 - **`apple-swiftui-mvvm.md` and `apple-testing-strategy.md` are checklists
   now.** Both load for every `.swift` file; their examples and reasoning moved
   to `swiftui-pro/references/mvvm-conventions.md` and
@@ -487,6 +460,40 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   agent slips, and the upgrade pointer. Fixed the stale Android note claiming
   Android skills don't exist yet (they do — `android-compose-pro`,
   `android-coroutines-pro`).
+
+### Fixed
+
+- **Adopted apps keep `Package.resolved` under version control.** The
+  installer's `.gitignore` block now ignores it only for a library (a root
+  `Package.swift` with no Xcode project), as `apple-spm-package-conventions.md`
+  says. Existing installs keep their old block; remove the line by hand.
+- **Install no longer overwrites rule or skill files that are already there.**
+  A file that differs from the bundle copy is kept and listed (use `--force` to
+  replace it); an identical one is adopted into the manifest. Skills are copied
+  file by file, so a re-install no longer nests `skills/x/x/` on Linux.
+- **Mistyped flags fail instead of becoming the target.** `install.sh` and
+  `scaffold-spm-package.sh` reject unknown options, a second positional, and a
+  value flag with no value, with a clear message.
+- **The MCP `install` tool auto-detects the platform** when none is given,
+  like the shell install. It used to force `--platform both`, which put
+  Android rules into iOS-only repos. Every `target_dir` must now be absolute,
+  and tools pass an explicit verb (`install`, `upgrade`, `uninstall`).
+
+- **Scaffolded packages follow the bundle's own rules.** Placeholders are
+  named `<Module>Placeholder` (a type named like its module breaks
+  module-qualified lookups), only `AppCore` is a product when there's an
+  umbrella, and `AppCore` gets an `AppRootView` for the app's `@main`. The
+  scaffold rejects duplicate module names, system-module names, and names
+  ending in `Tests`, and its `makeTargets()` now matches the template's.
+- **`install.sh audit` detects SwiftUI `App` and `UIApplicationDelegate`
+  types again**, so `apple-no-scene-lifecycle` can fire. The check was looking
+  for them only in Gradle files.
+- **Package manifests with an example app are audited as packages.** A root
+  `Package.swift` whose only Xcode projects sit in `Example/`, `Demo/`, or
+  `Samples/` no longer gets app-store findings.
+- **`manifest-conventions.md`:** a library with no `type:` is automatic (the
+  client decides, usually static), not dynamic; Swift 5 mode uses
+  `enableUpcomingFeature("StrictConcurrency")`.
 
 ## [1.0.0] - 2026-06-11
 

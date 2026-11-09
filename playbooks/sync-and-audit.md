@@ -26,11 +26,15 @@ Everything below runs through `$BUNDLE/install.sh`. Every step before
    `bundle.repo` from the manifest, or the canonical repo, outside the target:
 
    ```bash
-   git clone --depth 1 https://github.com/kelvinkosbab/AppBootstrapAI "${TMPDIR:-/tmp}/AppBootstrapAI"
+   REPO=https://github.com/kelvinkosbab/AppBootstrapAI
+   # Latest release tag, so a bad push to main doesn't run in your session.
+   TAG="$(git ls-remote --tags --refs --sort=-v:refname "$REPO" 'v*' | head -1 | sed 's#.*/##')"
+   git clone --depth 1 ${TAG:+--branch "$TAG"} "$REPO" "${TMPDIR:-/tmp}/AppBootstrapAI"
    ```
 
-   If you already have a clone, `git -C "$BUNDLE" pull --ff-only` so "latest"
-   means latest.
+   Use the default branch only when the user asks for unreleased changes. If
+   you already have a clone, `git -C "$BUNDLE" fetch --tags` and check out the
+   latest tag (or `pull --ff-only` on the branch the user chose).
 2. **Check the target's git state** (`git -C "$TARGET" status --short`). If it
    has uncommitted changes, tell the user, since the sync writes files. Don't
    stash, reset, or commit anything yourself.
