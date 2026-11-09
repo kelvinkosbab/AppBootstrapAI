@@ -59,3 +59,5 @@ End of example.
 - `references/regions.md` — per-region requirements for both stores: China mainland (Apple and Chinese Android stores), the EU, Japan, South Korea, age-assurance regions, and licensed categories, with where each is declared.
 - `references/audit.md` — scan commands for AI brand mentions in code, strings, and metadata; storefront-gating checks; consent-before-collection checks for Android; and an App Store Connect / Play Console checklist.
 - `references/rejection-response.md` — classifying a regional rejection, choosing among exclude / gate / license, the sweep, reply and review-notes templates, and the register and `RegionPolicy` seam.
+- `references/apple-storefronts.md` — the full Apple rule detail: storefront availability, China mainland, other regions, brand and AI use, the StoreKit `RegionPolicy` code, metadata, and the compliance register format.
+- `references/android-countries.md` — the full Android rule detail: Play country availability, Chinese stores and the `china` flavor, other regions, brand and AI use, the `BillingConfig` `RegionPolicy` code, and listings.

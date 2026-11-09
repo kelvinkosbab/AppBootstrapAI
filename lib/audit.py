@@ -213,7 +213,7 @@ CHECKS = [
           path_ok=lambda rel: not _in_theme(rel)),
     Check("swift-text-literal", "Hardcoded English in `Text(\"…\")`",
           "low", "apple", SWIFT, re.compile(r"\bText\(\s*\"[A-Za-z][^\"]*\s[^\"]*\"\s*\)"),
-          "apple-localization-best-practices.md", "swiftui-pro",
+          "apple-localization-best-practices.md", "localization-pro",
           "Route UI strings through the typed Strings facade.", skip_tests=True),
     Check("swift-mouse-override", "Mouse-method override gets only single-finger touch emulation",
           "medium", "apple", OBJC_SWIFT,
@@ -612,14 +612,14 @@ def _structural(target, platforms, facts, findings, kind) -> None:
             facts["scene_manifest"] = True
         if not facts["privacy_manifests"]:
             add("apple-no-privacy-manifest", "No PrivacyInfo.xcprivacy (App Store upload gate)",
-                "high", "apple-testflight-deployment.md", None,
+                "high", "apple-testflight-deployment.md", "beta-deployment-pro",
                 "Add a privacy manifest declaring required-reason APIs and collected data.",
                 "(app target)")
         elif facts["uses_userdefaults"] and not any(
                 "NSPrivacyAccessedAPICategoryUserDefaults" in _read(p)
                 for p in facts["privacy_manifests"]):
             add("apple-privacy-userdefaults", "UserDefaults used but not declared in the privacy manifest",
-                "high", "apple-testflight-deployment.md", None,
+                "high", "apple-testflight-deployment.md", "beta-deployment-pro",
                 "Declare NSPrivacyAccessedAPICategoryUserDefaults with reason CA92.1.",
                 os.path.relpath(facts["privacy_manifests"][0], target))
         if facts["privacy_manifests"]:
@@ -649,7 +649,7 @@ def _structural(target, platforms, facts, findings, kind) -> None:
 
     if "apple" in platforms and facts["source_files"] and not _any_file(target, ".swiftlint.yml"):
         add("apple-no-swiftlint", "No SwiftLint configuration", "low",
-            "apple-linting-strategy.md", None,
+            "apple-linting-strategy.md", "linting-pro",
             "Add a .swiftlint.yml with the high-value opt_in_rules and run it with --strict in CI.",
             ".swiftlint.yml")
 
@@ -657,7 +657,7 @@ def _structural(target, platforms, facts, findings, kind) -> None:
         for rel, text in facts["android_manifests"]:
             if "<application" in text and "supportsRtl=\"true\"" not in text:
                 add("android-no-rtl", "Manifest doesn't set android:supportsRtl=\"true\"", "low",
-                    "android-localization-best-practices.md", None,
+                    "android-localization-best-practices.md", "localization-pro",
                     "Set supportsRtl on <application> and use start/end modifiers.", rel)
             _large_screen_restrictions(rel, text, add)
             _storage_manifest(rel, text, add, kind)
@@ -674,7 +674,7 @@ def _structural(target, platforms, facts, findings, kind) -> None:
                 "(app module)")
         if facts["source_files"] and not os.path.isfile(os.path.join(target, ".editorconfig")):
             add("android-no-ktlint-config", "No .editorconfig for ktlint", "low",
-                "android-linting-strategy.md", None,
+                "android-linting-strategy.md", "linting-pro",
                 "Add .editorconfig with ktlint_code_style and run ktlintCheck, detekt, and lintDebug in CI.",
                 ".editorconfig")
 

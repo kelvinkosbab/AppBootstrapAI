@@ -22,16 +22,16 @@ At each Xcode release: every beta seed, every release candidate, and the GM of a
 
 | Symbol | Cited in | Status when written | Last verified |
 |---|---|---|---|
-| `LanguageModel` (protocol a session runs against) | `.claude/rules/apple-foundation-models.md` | Beta | — |
-| `PrivateCloudComputeLanguageModel` | `.claude/rules/apple-foundation-models.md` | Beta | — |
-| `LanguageModelExecutor` | `.claude/rules/apple-foundation-models.md` | Beta | — |
-| `LanguageModelExecutorGenerationRequest` | `.claude/rules/apple-foundation-models.md` | Beta | — |
-| `LanguageModelExecutorGenerationChannel` | `.claude/rules/apple-foundation-models.md` | Beta | — |
-| `LanguageModelCapabilities` | `.claude/rules/apple-foundation-models.md` | Beta | — |
-| `Prompt` with `Attachment`, `AttachmentContent`, `ImageAttachmentContent` | `.claude/rules/apple-foundation-models.md` | Beta | — |
-| `ImageReference` in `Transcript` | `.claude/rules/apple-foundation-models.md` | Beta | — |
-| `LanguageModelError` cases (`unavailable`, `exceededContextWindowSize`) | `.claude/rules/apple-foundation-models.md` | Beta; the rule says not to match cases | — |
-| Foundation Models Instrument | `.claude/rules/apple-foundation-models.md` | New in Xcode 27 | — |
+| `LanguageModel` (protocol a session runs against) | `.claude/rules/apple-foundation-models.md`, `.claude/skills/foundation-models-pro/references/foundation-models.md` | Beta | — |
+| `PrivateCloudComputeLanguageModel` | `.claude/rules/apple-foundation-models.md`, `.claude/skills/foundation-models-pro/references/foundation-models.md` | Beta | — |
+| `LanguageModelExecutor` | `.claude/rules/apple-foundation-models.md`, `.claude/skills/foundation-models-pro/references/foundation-models.md` | Beta | — |
+| `LanguageModelExecutorGenerationRequest` | `.claude/skills/foundation-models-pro/references/foundation-models.md` | Beta | — |
+| `LanguageModelExecutorGenerationChannel` | `.claude/skills/foundation-models-pro/references/foundation-models.md` | Beta | — |
+| `LanguageModelCapabilities` | `.claude/skills/foundation-models-pro/references/foundation-models.md` | Beta | — |
+| `Prompt` with `Attachment`, `AttachmentContent`, `ImageAttachmentContent` | `.claude/skills/foundation-models-pro/references/foundation-models.md` | Beta | — |
+| `ImageReference` in `Transcript` | `.claude/skills/foundation-models-pro/references/foundation-models.md` | Beta | — |
+| `LanguageModelError` cases (`unavailable`, `exceededContextWindowSize`) | `.claude/skills/foundation-models-pro/references/foundation-models.md` | Beta; the reference says not to match cases | — |
+| Foundation Models Instrument | `.claude/rules/apple-foundation-models.md`, `.claude/skills/foundation-models-pro/references/foundation-models.md` | New in Xcode 27 | — |
 
 ## App Intents and Siri (27.3, beta)
 
@@ -64,7 +64,7 @@ At each Xcode release: every beta seed, every release candidate, and the GM of a
 |---|---|---|---|
 | `ENABLE_ENHANCED_SECURITY`, `ENABLE_POINTER_AUTHENTICATION` | `.claude/rules/apple-build-security.md`, `.claude/skills/xcode-security-pro/` | Xcode 27 settings | — |
 | Entitlements `com.apple.security.hardened-process` and `…enhanced-security-version-string = "2"` | `.claude/rules/apple-build-security.md` | Xcode 27 | — |
-| `-ld_classic` removed | `.claude/rules/apple-testflight-deployment.md`, `.claude/rules/apple-spm-package-conventions.md` | Xcode 27 | — |
+| `-ld_classic` removed | `.claude/rules/apple-testflight-deployment.md`, `.claude/skills/beta-deployment-pro/references/testflight.md`, `.claude/rules/apple-spm-package-conventions.md` | Xcode 27 | — |
 
 ## Adaptive layout and iPhone Duo (iOS 27.1)
 
