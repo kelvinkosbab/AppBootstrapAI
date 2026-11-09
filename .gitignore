@@ -37,7 +37,7 @@ build/
 # Swift Package Manager
 .build/
 .swiftpm/
-Package.resolved
+# Package.resolved — commit it in app projects; ignore it only in libraries.
 Packages/
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/

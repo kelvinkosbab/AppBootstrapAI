@@ -21,7 +21,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MCP_RECIPES_DIR="$SCRIPT_DIR/mcp-recipes"
-TARGET="${1:-.}"
+TARGET="."
+TARGET_SET="false"
 # Empty PLATFORM = auto-detect from TARGET dir after arg parsing.
 # Explicit --platform <value> sets it and bypasses detection.
 PLATFORM=""
@@ -74,6 +75,15 @@ AGENTS_EXPLICIT="false"
 
 # --- Argument parsing ---------------------------------------------------------
 
+# need_value "$@" — call with the flag still in $1. Fails with a clear message
+# when a value-taking flag is last on the line or followed by another flag.
+need_value() {
+    if [[ $# -lt 2 || -z "$2" || "$2" == --* ]]; then
+        echo "error: $1 needs a value (see ./install.sh help)" >&2
+        exit 1
+    fi
+}
+
 # Subcommand verbs (optional, backward-compatible). If the first argument is a
 # bare verb matching a known command, consume it and set the action; the rest of
 # the line is parsed exactly as before. The legacy flag forms (--upgrade /
@@ -99,25 +109,30 @@ fi
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --platform)
+            need_value "$@"
             PLATFORM="$2"
             shift 2
             ;;
         --apple-language)
+            need_value "$@"
             APPLE_LANG="$2"
             APPLE_LANG_EXPLICIT="true"
             shift 2
             ;;
         --apple-platforms)
+            need_value "$@"
             APPLE_PLATFORMS_INPUT="$2"
             APPLE_PLATFORMS_EXPLICIT="true"
             shift 2
             ;;
         --android-platforms)
+            need_value "$@"
             ANDROID_PLATFORMS_INPUT="$2"
             ANDROID_PLATFORMS_EXPLICIT="true"
             shift 2
             ;;
         --features)
+            need_value "$@"
             FEATURES_INPUT="$2"
             FEATURES_EXPLICIT="true"
             shift 2
@@ -147,11 +162,13 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --fail-on)
+            need_value "$@"
             FAIL_ON="$2"
             shift 2
             ;;
         --baseline)
-            BASELINE_PATH="${2:-}"
+            need_value "$@"
+            BASELINE_PATH="$2"
             shift 2
             ;;
         --no-baseline)
@@ -167,7 +184,8 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --topic)
-            AUDIT_TOPIC="${2:-}"
+            need_value "$@"
+            AUDIT_TOPIC="$2"
             shift 2
             ;;
         --write-baseline)
@@ -175,7 +193,8 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --baseline-reason)
-            BASELINE_REASON="${2:-}"
+            need_value "$@"
+            BASELINE_REASON="$2"
             shift 2
             ;;
         --new)
@@ -215,10 +234,12 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --with-mcps)
+            need_value "$@"
             WITH_MCPS="$2"
             shift 2
             ;;
         --agents|--agent)
+            need_value "$@"
             AGENTS_INPUT="$2"
             AGENTS_EXPLICIT="true"
             shift 2
@@ -236,8 +257,17 @@ while [[ $# -gt 0 ]]; do
             cat "$SCRIPT_DIR/lib/help.txt"
             exit 0
             ;;
+        -*)
+            echo "error: unknown option: $1 (see ./install.sh help)" >&2
+            exit 1
+            ;;
         *)
+            if [[ "$TARGET_SET" == "true" ]]; then
+                echo "error: unexpected argument: $1 (target is already $TARGET)" >&2
+                exit 1
+            fi
             TARGET="$1"
+            TARGET_SET="true"
             shift
             ;;
     esac

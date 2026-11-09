@@ -10,13 +10,21 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Fixed
 
-- **Claude Code rules are path-scoped again.** Claude Code scopes
-  `.claude/rules/*.md` by a `paths:` list and ignores `globs:`, so every
-  installed rule loaded in every session (about 50k tokens for an Apple
-  install). Each rule now carries a `paths:` list matching its `globs:`
-  (kept for Cursor and Kiro), and `validate-frontmatter.py` fails when the
-  two drift. The TestFlight and Play beta rules no longer match every YAML
-  file, only CI configs.
+- **Adopted apps keep `Package.resolved` under version control.** The
+  installer's `.gitignore` block now ignores it only for a library (a root
+  `Package.swift` with no Xcode project), as `apple-spm-package-conventions.md`
+  says. Existing installs keep their old block; remove the line by hand.
+- **Install no longer overwrites rule or skill files that are already there.**
+  A file that differs from the bundle copy is kept and listed (use `--force` to
+  replace it); an identical one is adopted into the manifest. Skills are copied
+  file by file, so a re-install no longer nests `skills/x/x/` on Linux.
+- **Mistyped flags fail instead of becoming the target.** `install.sh` and
+  `scaffold-spm-package.sh` reject unknown options, a second positional, and a
+  value flag with no value, with a clear message.
+- **The MCP `install` tool auto-detects the platform** when none is given,
+  like the shell install. It used to force `--platform both`, which put
+  Android rules into iOS-only repos. Every `target_dir` must now be absolute,
+  and tools pass an explicit verb (`install`, `upgrade`, `uninstall`).
 
 ### Added
 
@@ -393,6 +401,21 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   assistants produce that stops teammates reading either.
 
 ### Changed
+
+- **The shipped `.claude/settings.json` is narrower.** It no longer
+  pre-approves `git commit`, `git push`, or every `gh` command; `gh` is limited
+  to read verbs, and `swift` to `build`/`test`/`package` reads. A new `deny`
+  list blocks force-pushes, `git reset --hard`, `gh repo delete`, and reading
+  `.env`, `.p8`/`.p12` keys, and keystores. Existing installs keep their file.
+- **The MCP server needs Node 22+** (Node 20 reached end of life in April 2026).
+
+- **Claude Code rules are path-scoped again.** Claude Code scopes
+  `.claude/rules/*.md` by a `paths:` list and ignores `globs:`, so every
+  installed rule loaded in every session (about 50k tokens for an Apple
+  install). Each rule now carries a `paths:` list matching its `globs:`
+  (kept for Cursor and Kiro), and `validate-frontmatter.py` fails when the
+  two drift. The TestFlight and Play beta rules no longer match every YAML
+  file, only CI configs.
 
 - **Accessibility rules — Bluetooth assistive tech + latest-practice refresh**
   across all three a11y rules. New coverage: Full Keyboard Access / Switch

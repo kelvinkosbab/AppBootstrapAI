@@ -49,7 +49,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 
 // --- Locate the AppBootstrapAI repo root --------------------------------------
 //
@@ -150,6 +150,21 @@ function validateFeatures(input: string): string[] {
         }
     }
     return list;
+}
+
+/**
+ * Require an absolute target_dir. A relative value like "audit" or "upgrade"
+ * would be read by install.sh as a command verb, and one starting with "-" as
+ * a flag.
+ */
+function requireTargetDir(dir: string | undefined): string {
+    if (!dir) {
+        throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
+    }
+    if (!isAbsolute(dir)) {
+        throw new McpError(ErrorCode.InvalidParams, `target_dir must be an absolute path (got: ${dir})`);
+    }
+    return dir;
 }
 
 /** Run a shell command and capture stdout/stderr/exit code. */
@@ -278,15 +293,15 @@ async function toolInstall(args: {
     agents?: string;
     with_mcps?: string;
 }) {
-    if (!args.target_dir) {
-        throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
-    }
+    requireTargetDir(args.target_dir);
 
-    const platform = args.platform ?? "both";
+    // No platform given → let install.sh auto-detect it from target_dir, the
+    // same as a shell install. Forcing "both" put Android rules into iOS repos.
+    const platform = args.platform;
     const appleLanguage = args.apple_language ?? "swift";
     const features = args.features ?? "recommended";
 
-    if (!["apple", "android", "both"].includes(platform)) {
+    if (platform !== undefined && !["apple", "android", "both"].includes(platform)) {
         throw new McpError(ErrorCode.InvalidParams, `platform must be apple, android, or both`);
     }
     if (!["swift", "objc", "both"].includes(appleLanguage)) {
@@ -297,11 +312,11 @@ async function toolInstall(args: {
     // Build args incrementally so optional flags are only passed when provided
     // (install.sh defaults --agents to claude and --with-mcps to empty).
     const installArgs = [
-        INSTALL_SH, args.target_dir,
-        "--platform", platform,
+        INSTALL_SH, "install", args.target_dir,
         "--apple-language", appleLanguage,
         "--features", features,
     ];
+    if (platform) installArgs.push("--platform", platform);
     if (args.apple_platforms) installArgs.push("--apple-platforms", args.apple_platforms);
     if (args.android_platforms) installArgs.push("--android-platforms", args.android_platforms);
     if (args.agents) installArgs.push("--agents", args.agents);
@@ -312,7 +327,7 @@ async function toolInstall(args: {
     const summary = {
         exit_code: result.code,
         target_dir: args.target_dir,
-        platform,
+        platform: platform ?? "auto-detected (see stdout)",
         apple_language: appleLanguage,
         apple_platforms: args.apple_platforms ?? "ios,macos,tvos,watchos (default)",
         features,
@@ -333,15 +348,13 @@ async function toolInstall(args: {
 }
 
 async function toolPreviewUpgrade(args: { target_dir: string; features?: string }) {
-    if (!args.target_dir) {
-        throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
-    }
+    requireTargetDir(args.target_dir);
     if (args.features) validateFeatures(args.features);
 
     // Plan-only: `--upgrade` without `--apply` never writes. Selection flags
     // default from the target's manifest, so we only forward --features when
     // the caller explicitly wants to opt into new categories.
-    const upgradeArgs = [INSTALL_SH, args.target_dir, "--upgrade"];
+    const upgradeArgs = [INSTALL_SH, "upgrade", args.target_dir];
     if (args.features) upgradeArgs.push("--features", args.features);
 
     const result = await runCommand("bash", upgradeArgs);
@@ -355,9 +368,7 @@ async function toolPreviewUpgrade(args: { target_dir: string; features?: string 
 }
 
 async function toolRecommend(args: { target_dir: string }) {
-    if (!args.target_dir) {
-        throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
-    }
+    requireTargetDir(args.target_dir);
     // Read-only analysis. Returns the parsed recommendation object so the agent
     // can act on `command` / `preview_command` directly.
     const result = await runCommand("bash", [INSTALL_SH, "recommend", args.target_dir, "--json"]);
@@ -377,9 +388,7 @@ async function toolRecommend(args: { target_dir: string }) {
 }
 
 async function toolAudit(args: { target_dir: string; no_baseline?: boolean; skip_install_check?: boolean; steering_only?: boolean }) {
-    if (!args.target_dir) {
-        throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
-    }
+    requireTargetDir(args.target_dir);
     // Read-only. Returns findings with rule/skill paths the agent reads next.
     const cmd = [INSTALL_SH, "audit", args.target_dir, "--json"];
     if (args.no_baseline) cmd.push("--no-baseline");
@@ -408,10 +417,8 @@ async function toolUninstall(args: {
     keep_mcps?: boolean;
     force_conflicts?: boolean;
 }) {
-    if (!args.target_dir) {
-        throw new McpError(ErrorCode.InvalidParams, "target_dir is required");
-    }
-    const uninstallArgs = [INSTALL_SH, args.target_dir, "--uninstall"];
+    requireTargetDir(args.target_dir);
+    const uninstallArgs = [INSTALL_SH, "uninstall", args.target_dir];
     if (args.dry_run) uninstallArgs.push("--dry-run");
     if (args.purge) uninstallArgs.push("--purge");
     if (args.keep_mcps) uninstallArgs.push("--keep-mcps");
@@ -500,7 +507,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                 type: "object",
                 properties: {
                     target_dir: { type: "string", description: "Absolute path to the directory where AppBootstrapAI should be installed. Required." },
-                    platform: { type: "string", enum: ["apple", "android", "both"], description: "Default: both" },
+                    platform: { type: "string", enum: ["apple", "android", "both"], description: "Default: auto-detected from target_dir" },
                     apple_language: { type: "string", enum: ["swift", "objc", "both"], description: "Default: swift. Only relevant when platform includes apple." },
                     apple_platforms: { type: "string", description: "Comma-separated Apple sub-platforms (ios, macos, tvos, watchos, visionos) or 'all'. Default: ios,macos,tvos,watchos (no visionOS). Naming 'visionos' adds the visionOS rule; 'macos' gates the touch-on-Mac rule (apple-mac-touch.md). Only relevant when platform includes apple." },
                     android_platforms: { type: "string", description: "Comma-separated Android form factors (phone, tablet, wear, tv, auto) or 'all'. Default: phone,tablet. 'tablet' gates the large-screen / foldable rule (android-large-screen-best-practices.md) and the android-adaptive-layout-pro skill; other tokens are recorded in the manifest for future form-factor rules. Only relevant when platform includes android." },
