@@ -32,6 +32,13 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   including install, upgrade, audit, and uninstall against a temp directory,
   and CI runs it.
 
+### Fixed
+
+- **Install manifest is real JSON.** `lib/write_manifest.py` writes
+  `.appbootstrap-manifest.json` with `json` instead of `printf`, so a bundle
+  path or repo URL containing `"` or `\` no longer breaks `upgrade` and
+  `uninstall`. Writing it now needs `python3`, as those modes already do.
+
 ## [1.1.0] - 2026-11-09
 
 ### Added
