@@ -42,23 +42,23 @@ file_category() {
             echo "packaging" ;;
         swift-logging-pro|apple-logging-strategy.md|android-logging-strategy.md)
             echo "logging" ;;
-        apple-localization-best-practices.md|apple-infoplist-localization.md|android-localization-best-practices.md)
+        apple-localization-best-practices.md|apple-infoplist-localization.md|android-localization-best-practices.md|localization-pro)
             echo "localization" ;;
-        apple-linting-strategy.md|android-linting-strategy.md)
+        apple-linting-strategy.md|android-linting-strategy.md|linting-pro)
             echo "linting" ;;
         apple-memory-management.md|apple-storage-management.md|swift-memory-storage-pro|android-memory-management.md|android-storage-management.md|android-memory-storage-pro)
             echo "memory-storage" ;;
         coredata-swift6-pro|swiftdata-pro)
             echo "persistence" ;;
-        apple-foundation-models.md|android-ai-best-practices.md)
+        apple-foundation-models.md|android-ai-best-practices.md|foundation-models-pro)
             echo "ai" ;;
         xml-to-compose-migration-pro)
             echo "migration" ;;
         r8-shrink-pro)
             echo "shrinking" ;;
-        apple-visionos-best-practices.md)
+        apple-visionos-best-practices.md|visionos-pro)
             echo "spatial" ;;
-        apple-testflight-deployment.md|android-play-beta-deployment.md)
+        apple-testflight-deployment.md|android-play-beta-deployment.md|beta-deployment-pro)
             echo "deployment" ;;
         android-mvvm-architecture.md|apple-repository-pattern.md|android-repository-pattern.md)
             echo "architecture" ;;
@@ -164,8 +164,9 @@ should_install_skill() {
             # Cross-platform skill — needs both platforms in scope.
             [[ "$PLATFORM" == "both" ]] && is_in_features "$name"
             ;;
-        store-compliance-pro|motion-design-pro)
-            # Skills for either platform (store submission, motion design). Like
+        store-compliance-pro|motion-design-pro|linting-pro|localization-pro|beta-deployment-pro)
+            # Skills for either platform (store submission, motion design, linting,
+            # localization, beta deployment). Like
             # every skill, they need Swift or Android in scope (ObjC-only installs
             # ship no skills).
             { [[ "$PLATFORM" != "apple" ]] || [[ "$APPLE_LANG" != "objc" ]]; } && is_in_features "$name"
