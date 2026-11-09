@@ -8,6 +8,23 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ## [Unreleased]
 
+### Added
+
+- **npm publishing.** A release tag also publishes
+  `@kelvinkosbab/appbootstrap-mcp` to npm with provenance, at the tag's
+  version and with the bundle packed inside. It needs an `NPM_TOKEN`
+  repository secret and skips with a warning without one. The release
+  workflow can be re-run by hand from a tag to finish a release; steps that
+  already happened are skipped.
+- **`docs/verify-on-sdk.md`**, a checklist of the Xcode 27 beta and
+  point-release symbols the rules and skills cite (symbol, files, last
+  verified seed), to re-check at each Xcode release.
+
+### Changed
+
+- The MCP server's version now follows the bundle (`1.1.0`) and is read from
+  `package.json` instead of being hard-coded.
+
 ## [1.1.0] - 2026-11-09
 
 ### Added
