@@ -23,8 +23,11 @@ Clone it **outside** the target, or update a clone you already have:
 
 ```bash
 BUNDLE="${TMPDIR:-/tmp}/AppBootstrapAI"
-if [ -d "$BUNDLE/.git" ]; then git -C "$BUNDLE" pull --ff-only
-else git clone --depth 1 https://github.com/kelvinkosbab/AppBootstrapAI "$BUNDLE"; fi
+REPO=https://github.com/kelvinkosbab/AppBootstrapAI
+# The latest release tag, not whatever is on main right now.
+TAG="$(git ls-remote --tags --refs --sort=-v:refname "$REPO" 'v*' | head -1 | sed 's#.*/##')"
+if [ -d "$BUNDLE/.git" ]; then git -C "$BUNDLE" fetch --depth 1 origin ${TAG:+tag "$TAG"} && git -C "$BUNDLE" checkout -q "${TAG:-FETCH_HEAD}"
+else git clone --depth 1 ${TAG:+--branch "$TAG"} "$REPO" "$BUNDLE"; fi
 ```
 
 It needs `bash` and `python3`, nothing else. If you can't run a shell (a chat

@@ -1,0 +1,73 @@
+name: release
+
+# Push a SemVer tag (v1.2.3) to publish a GitHub release. The tag must have a
+# matching `## [1.2.3] - YYYY-MM-DD` section in CHANGELOG.md, and every check
+# must pass on the tagged commit before the release is created. The
+# /appbootstrap-sync and /appbootstrap-audit commands clone the latest tag, so
+# a tag is what adopters get.
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: read
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.notes.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: notes
+        name: Extract the CHANGELOG section for this tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::CHANGELOG.md has no '## [$version]' section"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+
+  frontmatter:
+    uses: ./.github/workflows/frontmatter.yml
+  smoke-test:
+    uses: ./.github/workflows/install-smoke-test.yml
+  mcp-server:
+    uses: ./.github/workflows/mcp-server.yml
+  python:
+    uses: ./.github/workflows/python.yml
+  shellcheck:
+    uses: ./.github/workflows/shellcheck.yml
+  swift:
+    uses: ./.github/workflows/swift.yml
+
+  publish:
+    needs: [changelog, frontmatter, smoke-test, mcp-server, python, shellcheck, swift]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.changelog.outputs.version }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "AppBootstrapAI $VERSION" \
+            --notes-file release-notes.md \
+            --verify-tag
