@@ -507,7 +507,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         {
             name: "install",
-            description: "Run AppBootstrapAI's installer against a target directory. Copies skills, rules, settings.json, CLAUDE.md template, and .gitignore entries matching the selection. With --agents, also writes per-agent files (.github/copilot-instructions.md, .cursor/rules/*.mdc, GEMINI.md, AGENTS.md, .kiro/steering/*.md). Never overwrites existing CLAUDE.md/settings.json/agent files (prints what was skipped). Returns install.sh's stdout/stderr + exit code.",
+            description: "Run AppBootstrapAI's installer against a target directory. Copies skills, rules, settings.json, CLAUDE.md template, and .gitignore entries matching the selection. With --agents, also writes per-agent files (.github/copilot-instructions.md, .cursor/rules/*.mdc, GEMINI.md, AGENTS.md, .kiro/steering/*.md, .agents/skills/ + .aiexclude for Android Studio). Never overwrites existing CLAUDE.md/settings.json/agent files (prints what was skipped). Returns install.sh's stdout/stderr + exit code.",
             inputSchema: {
                 type: "object",
                 properties: {
@@ -517,7 +517,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     apple_platforms: { type: "string", description: "Comma-separated Apple sub-platforms (ios, macos, tvos, watchos, visionos) or 'all'. Default: ios,macos,tvos,watchos (no visionOS). Naming 'visionos' adds the visionOS rule; 'macos' gates the touch-on-Mac rule (apple-mac-touch.md). Only relevant when platform includes apple." },
                     android_platforms: { type: "string", description: "Comma-separated Android form factors (phone, tablet, wear, tv, auto) or 'all'. Default: phone,tablet. 'tablet' gates the large-screen / foldable rule (android-large-screen-best-practices.md) and the android-adaptive-layout-pro skill; other tokens are recorded in the manifest for future form-factor rules. Only relevant when platform includes android." },
                     features: { type: "string", description: "Comma-separated category list, or one of: 'recommended' (default), 'all'." },
-                    agents: { type: "string", description: "Comma-separated AI agents to install for: claude (default), copilot, cursor, gemini, codex, kiro, or 'all'. Additive." },
+                    agents: { type: "string", description: "Comma-separated AI agents to install for: claude (default), copilot, cursor, gemini, codex, kiro, android-studio, or 'all'. Additive." },
                     with_mcps: { type: "string", description: "Comma-separated MCP recipe names to add to .claude/settings.local.json (e.g. 'xcodebuildmcp,sentry'). See list-mcps in the bundle for available recipes." },
                 },
                 required: ["target_dir"],

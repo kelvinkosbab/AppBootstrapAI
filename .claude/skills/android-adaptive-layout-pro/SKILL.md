@@ -21,6 +21,8 @@ Review process:
 
 If doing a partial review, load only the relevant reference files.
 
+**Official companion:** when Google's Android skills ([android/skills](https://github.com/android/skills), Apache-2.0) are installed, see `adaptive`, which builds responsive layouts for window sizes and input methods. Use it when writing new adaptive UI; use this skill to audit an existing app against the quality tiers.
+
 ## Core Instructions
 
 - **The unit of adaptation is the window, not the device.** Any device-type heuristic (`isTablet`, `smallestScreenWidthDp`) is a finding regardless of how well it happens to work today — foldables and multi-window break it.

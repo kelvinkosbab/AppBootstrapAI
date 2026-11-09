@@ -1361,6 +1361,36 @@ else
 fi
 rm -rf "$t"
 
+bold "==> --agents android-studio → AGENTS.md index, Android skills in .agents/skills/, .aiexclude"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform android --features recommended --agents android-studio > /dev/null
+if [[ -f "$t/AGENTS.md" && -f "$t/.aiexclude" \
+    && -f "$t/.agents/skills/android-compose-pro/SKILL.md" \
+    && ! -d "$t/.claude/skills" && ! -f "$t/CLAUDE.md" \
+    && -f "$t/.claude/rules/android-project-rules.md" ]] \
+    && grep -q "Android Studio" "$t/AGENTS.md" \
+    && grep -qx "\*.jks" "$t/.aiexclude"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: --agents android-studio should write AGENTS.md, .agents/skills/, .aiexclude, and the rules it indexes"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
+bold "==> --agents android-studio: only Android + cross-platform skills mirrored; round-trips on upgrade"
+t="$(mktemp -d)"
+"$INSTALL" "$t" --platform both --features recommended --agents android-studio,codex > /dev/null
+up="$("$INSTALL" "$t" --upgrade 2>&1)"
+if [[ -d "$t/.agents/skills/cross-platform-parity-pro" && ! -d "$t/.agents/skills/swiftui-pro" ]] \
+    && grep -q "Codex CLI, Gemini in Android Studio" "$t/AGENTS.md" \
+    && grep -q "0 safe update" <<<"$up" && grep -q "0 addition" <<<"$up" && grep -q "0 orphan" <<<"$up"; then
+    PASS=$((PASS + 1))
+else
+    red "FAIL: android-studio should mirror only Android/cross-platform skills and round-trip clean on upgrade"
+    FAIL=$((FAIL + 1))
+fi
+rm -rf "$t"
+
 bold "==> --agents all → every agent's file lands (incl. kiro)"
 t="$(mktemp -d)"
 "$INSTALL" "$t" --platform apple --features recommended --agents all > /dev/null
@@ -1369,7 +1399,8 @@ if [[ -f "$t/CLAUDE.md" \
     && -d "$t/.cursor/rules" \
     && -f "$t/GEMINI.md" \
     && -f "$t/AGENTS.md" \
-    && -d "$t/.kiro/steering" ]]; then
+    && -d "$t/.kiro/steering" \
+    && -f "$t/.aiexclude" ]]; then
     PASS=$((PASS + 1))
 else
     red "FAIL: --agents all didn't install every agent"

@@ -16,12 +16,27 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   repository secret and skips with a warning without one. The release
   workflow can be re-run by hand from a tag to finish a release; steps that
   already happened are skipped.
+- **`--agents android-studio`** for Gemini in Android Studio. It writes the
+  `AGENTS.md` rule index (shared with `codex`), mirrors the Android and
+  cross-platform skills into `.agents/skills/`, and writes an `.aiexclude`
+  that hides keystores, `local.properties`, service-account JSON, and build
+  output. `upgrade` and `uninstall` track all of it; `recommend` detects an
+  existing `.aiexclude`.
+- **Official Android skills.** Android installs end with how to add Google's
+  [android/skills](https://github.com/android/skills) (Apache-2.0), and the six
+  bundle skills that overlap them name the official companion.
+- **Android CLI guidance** in `android-project-rules.md` (`android docs`,
+  `android studio find-usages` and friends, `android run`), with the
+  read-only commands allowed in `settings.json`.
 - **`docs/verify-on-sdk.md`**, a checklist of the Xcode 27 beta and
   point-release symbols the rules and skills cite (symbol, files, last
   verified seed), to re-check at each Xcode release.
 
 ### Changed
 
+- `android-mcp-server` recipe notes that Gemini in Android Studio can't load
+  stdio MCP servers (HTTP and SSE only).
+- `ai-steering-files.md` lists Android Studio's steering paths and `.aiexclude`.
 - The MCP server's version now follows the bundle (`1.1.0`) and is read from
   `package.json` instead of being hard-coded.
 

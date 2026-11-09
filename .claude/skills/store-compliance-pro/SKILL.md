@@ -18,6 +18,8 @@ Pick the mode from the request:
 
 If doing a partial task, load only the relevant reference file.
 
+**Official companion:** when Google's Android skills ([android/skills](https://github.com/android/skills), Apache-2.0) are installed, see `play-policy-insights`, which audits Google Play policy compliance. Run it alongside this skill for Play-wide policy; this skill covers per-country rules and rejection response.
+
 ## Core Instructions
 
 - **Region is decided per storefront, and the store decides.** Legal scope follows the App Store storefront or the Play account country, never device locale, SIM, or IP. Gating on locale is a finding.

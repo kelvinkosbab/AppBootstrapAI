@@ -22,6 +22,8 @@ Review process:
 
 If doing a partial review, load only the relevant reference files.
 
+**Official companion:** when Google's Android skills ([android/skills](https://github.com/android/skills), Apache-2.0) are installed, see `migrate-xml-views-to-jetpack-compose`. Follow its step order when it's installed; this skill adds the interop, RecyclerView, Fragment, and theme mappings.
+
 ## Core Instructions
 
 - **Migrate incrementally.** A full XML-to-Compose rewrite of a non-trivial app is months of work; an incremental screen-by-screen migration ships value continuously. `ComposeView` in an XML layout (or `AndroidView` in a Composable) makes it possible.

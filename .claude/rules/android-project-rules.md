@@ -35,6 +35,16 @@ must:
 - Lint: `./gradlew ktlintCheck`
 - Run `./gradlew ktlintCheck` before every commit to ensure formatting matches project standards.
 
+## Android CLI (agents)
+
+When the [Android CLI](https://developer.android.com/tools/agents/android-cli) (`android`) is on `PATH`, prefer it to guessing:
+
+- **Check fast-moving APIs** with `android docs search "<keywords>"`, then `android docs fetch <kb:// url>`, before you write code from memory (AGP, Compose, Navigation, Play policy).
+- **Navigate code** with `android studio check`. If it reports a connected project, use `android studio find-declaration`, `find-usages`, and `analyze-file` rather than text search, and `render-compose-preview` to check Compose UI. Run `android help studio` for arguments.
+- **Set up and run** with `android sdk install` (only the components needed), `android emulator`, and `android run`.
+- **Official Android skills** ([android/skills](https://github.com/android/skills)) install with `android skills add <name>` or `--all`. Re-running `add` overwrites an installed skill, so rename any skill you customize.
+- Without the CLI, fall back to `./gradlew` and `adb`.
+
 ## Safety
 
 - Never hardcode API keys or secrets.

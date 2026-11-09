@@ -142,7 +142,7 @@ run_interactive() {
 
     # --- 6. Agents ------------------------------------------------------------
     echo ""
-    echo "    Agents: claude (default) | copilot | cursor | gemini | codex | kiro | all (additive CSV)"
+    echo "    Agents: claude (default) | copilot | cursor | gemini | codex | kiro | android-studio | all (additive CSV)"
     local agents
     _iask agents "Agents" "claude"
     if [[ "$agents" != "claude" ]]; then AGENTS_INPUT="$agents"; AGENTS_EXPLICIT="true"; fi

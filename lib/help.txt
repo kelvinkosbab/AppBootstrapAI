@@ -7,7 +7,7 @@
 #                                     [--apple-platforms ios,macos,tvos,watchos,visionos|all]
 #                                     [--android-platforms phone,tablet,wear,tv,auto|all]
 #                                     [--features all|recommended|<csv>]
-#                                     [--agents claude,copilot,cursor,gemini,codex,kiro|all]
+#                                     [--agents claude,copilot,cursor,gemini,codex,kiro,android-studio|all]
 #                                     [--with-mcps <csv>] [--new] [--force] [--dry-run]
 #   ./install.sh recommend [TARGET_DIR] [--json]     # analyze a dir → suggested command
 #   ./install.sh audit [TARGET_DIR] [--json] [--fail-on high|medium|low]
@@ -212,9 +212,11 @@
 #                          gemini   → GEMINI.md + .claude/rules/          (index of in-scope rules)
 #                          codex    → AGENTS.md + .claude/rules/          (index of in-scope rules)
 #                          kiro     → .kiro/steering/<name>.md           (per-rule; fileMatch frontmatter)
+#                          android-studio → AGENTS.md + .claude/rules/ (index), Android +
+#                                     cross-platform skills in .agents/skills/, .aiexclude
 #                          all      → every agent above
-#                        Skills are Claude-only — non-Claude agents get rules
-#                        only. Existing agent files are NEVER overwritten by
+#                        Skills go to Claude and Android Studio; other agents
+#                        get rules only. Existing agent files are NEVER overwritten by
 #                        install; --upgrade does 3-way diff like any other
 #                        tracked file. Generated files are deterministic for
 #                        the same --platform / --apple-language / --features.

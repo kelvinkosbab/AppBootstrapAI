@@ -279,9 +279,13 @@ def resolve_rename(rel_path):
         # Skill-dir prefix rewrite.
         rewritten = None
         for old_skill, new_skill in skill_renames.items():
-            prefix = f".claude/skills/{old_skill}/"
-            if cur.startswith(prefix):
-                rewritten = f".claude/skills/{new_skill}/" + cur[len(prefix):]
+            # Claude skills and the Android Studio mirror under .agents/skills/.
+            for root in (".claude/skills/", ".agents/skills/"):
+                prefix = f"{root}{old_skill}/"
+                if cur.startswith(prefix):
+                    rewritten = f"{root}{new_skill}/" + cur[len(prefix):]
+                    break
+            if rewritten:
                 break
         if rewritten:
             cur = rewritten
@@ -891,7 +895,7 @@ for new_rel, src_row in renamed_to_paths:
         "sha256": sha256_path(abs_p),
     }
     # If the new path is under a skill dir, infer the new skill name from it.
-    if new_rel.startswith(".claude/skills/"):
+    if new_rel.startswith((".claude/skills/", ".agents/skills/")):
         parts = new_rel.split("/")
         if len(parts) >= 3:
             e_out["skill"] = parts[2]

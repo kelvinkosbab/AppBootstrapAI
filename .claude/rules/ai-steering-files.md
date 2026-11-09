@@ -71,6 +71,7 @@ Leave out:
   | Cursor | `.cursor/rules/*.mdc` | `description`, `globs`, `alwaysApply` |
   | GitHub Copilot | `.github/instructions/*.instructions.md` | `applyTo:` |
   | Kiro | `.kiro/steering/*.md` | `inclusion: always \| fileMatch \| manual` + `fileMatchPattern` |
+  | Gemini in Android Studio | `AGENTS.md` (current and parent dirs; `GEMINI.md` wins in the same dir), `.agents/skills/` | directory scan; skills by `description:`; `.aiexclude` hides files |
 
 - **Nest per area in a monorepo**: `apple/CLAUDE.md`, `android/CLAUDE.md` (see [`cross-platform-development.md`](./cross-platform-development.md)). The root file holds only what every task needs.
 - **Long procedures become skills or commands**, loaded on demand, not paragraphs in the root file.
@@ -98,6 +99,7 @@ A stale instruction is worse than none: the agent runs the dead command or edits
 
 - **Committed agent settings grant the minimum.** No blanket `Bash(*)` / bare `Bash` allow, no `bypassPermissions` default in a shared `.claude/settings.json`. Per-developer loosening goes in the git-ignored `settings.local.json`.
 - **Git-ignore local files**: `CLAUDE.local.md`, `.claude/settings.local.json`.
+- **Hide secrets from IDE agents**: Android Studio reads `.aiexclude` (gitignore syntax) and keeps listed files out of chat, agent mode, and completion. List keystores, `local.properties`, and service-account JSON.
 - **Treat third-party steering as code.** A rule file or skill copied from the internet runs with the agent's permissions; read it before committing it.
 
 ## Improving an Existing Set
