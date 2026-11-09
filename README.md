@@ -4,194 +4,34 @@ A drop-in bundle of **AI agent steering** — rules, skills (Claude), and MCP re
 
 One `install.sh` bootstraps modern review, testing, style, accessibility, localization, and regional store-compliance guidance into any new or existing app repo — and keeps it up to date with `--upgrade`. Day-one consistency without writing the rules yourself; day-N reproducibility without drifting from upstream.
 
-**Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex,kiro` (or `all`) and `install.sh` drops the right file shape per agent: `.github/instructions/*.instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`. Every agent gets rules scoped to the files they cover; Gemini and Codex, which can't scope by path, get a short index that names the rule to read for each file type. Skills stay Claude-only. For Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) below.
+**Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex,kiro` (or `all`) and `install.sh` drops the right file shape per agent: `.github/instructions/*.instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`. Every agent gets rules scoped to the files they cover; Gemini and Codex, which can't scope by path, get a short index that names the rule to read for each file type. Skills stay Claude-only. For Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [docs/agents.md](docs/agents.md).
 
-**Audit your package or app without installing anything:** tell your AI agent *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this repo."* Any agent that can run a shell (Claude Code, Codex, Gemini CLI, Cursor, Copilot, Kiro) clones the bundle to a temp directory and follows [`playbooks/audit.md`](playbooks/audit.md): it scans for rule hotspots, checks each one against the rule that covers it, runs the matching deep-review skills, reviews your own AI steering files (`CLAUDE.md`, `AGENTS.md`, Cursor / Copilot / Kiro rules) with suggested improvements, and reports in chat. Your repo is left untouched. Agents: start at [`AGENTS.md`](AGENTS.md).
+**Audit without installing:** see [Audit a repo](#audit-a-repo). Agents: start at [`AGENTS.md`](AGENTS.md).
 
 **Get started in one line:** `./install.sh setup` runs a guided flow that detects whether you're creating, adopting, or updating — and walks you through the rest. Prefer flags? See [Getting started](#getting-started).
 
 ## Contents
 
-[What you get](#what-you-get) · [Getting started](#getting-started) · [Quick start](#quick-start) · [How it fires](#how-it-fires) · [Using AI to install](#using-ai-to-install) · [Upgrading](#upgrading-an-existing-install) · [Removing](#removing-the-install) · [Saving AI tokens](#saving-ai-tokens) · [Non-Claude agents](#using-with-non-claude-ai-agents) · [Repo layout](#repo-layout) · [Extending](#extending-for-your-project) · [Roadmap](#roadmap)
+[What you get](#what-you-get) · [Getting started](#getting-started) · [Audit a repo](#audit-a-repo) · [Documentation](#documentation) · [Roadmap](#roadmap) · [Credits](#credits)
 
 ## What you get
-
-The 30-second view. Expand any section below for the full rule-by-rule detail, or run `./install.sh --list --features all` for the always-current catalog.
 
 | Area | What's inside |
 |------|---------------|
 | **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · motion design · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · memory + storage · App Intents + Siri (opt-in) · Xcode build security (opt-in) · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
 | **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · motion design · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · memory + storage · Gemini Nano / Firebase AI · Play beta · regional store compliance |
-| **Skills (Claude)** | 17 Apple + 10 Android + 3 cross-platform on-demand deep-review agents |
+| **Skills (Claude)** | On-demand deep-review agents for both platforms |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
-<details>
-<summary><strong>Apple — 27 rules + 17 skills</strong> (click to expand)</summary>
+The full list of rules and skills, with counts and categories, is in
+[docs/catalog.md](docs/catalog.md) (generated from the frontmatter). Run
+`./install.sh --list --features all` for the same catalog in a terminal.
 
-- **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
-- **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text), plus Bluetooth assistive tech: Full Keyboard Access (`.focusable()`, focus rings), Switch Control scan order, braille-display label discipline, focus management (`@AccessibilityFocusState`), modern announcements (`AccessibilityNotification`), audio/hearing (no sound-only cues, captions), WCAG AA color/contrast (both themes, Increase Contrast, Smart Invert), and App Store Accessibility Nutrition Label honesty.
-- **`apple-foundation-models.md`** — Apple Foundation Models patterns: session ownership, two-level availability gating, streaming placeholder-then-mutate, `Task.isCancelled` discipline, protocol + mock + simulator testability.
-- **`apple-swiftui-mvvm.md`** — SwiftUI MVVM conventions: when to extract a view model, `@State` vs `@Bindable` ownership, dependency plumbing, what stays on the View vs the view model, splitting large VMs across extension files.
-- **`apple-objc-best-practices.md`** — Modern Objective-C for legacy / mixed-language codebases: ARC discipline, nullability, lightweight generics, `instancetype`, designated initializers, modern literals/blocks, Swift bridging-header conventions.
-- **`apple-objc-accessibility-best-practices.md`** — UIKit accessibility in Objective-C: `accessibilityLabel` / `accessibilityHint` / `accessibilityTraits` discipline, `accessibilityIdentifier` vs `accessibilityLabel`, Dynamic Type via `preferredFontForTextStyle:`, `UIAccessibilityIsReduceMotionEnabled()`, VoiceOver announcements (`UIAccessibilityPostNotification`), modal-focus management (`accessibilityViewIsModal`), custom-action support, Full Keyboard Access + Switch Control via the focus system (`canBecomeFocused`, `accessibilityRespondsToUserInteraction`), braille-friendly labels, announcement priority (`UIAccessibilitySpeechAttributeAnnouncementPriority`), and WCAG AA color/contrast (semantic colors, Darker System Colors, `shouldDifferentiateWithoutColor`, Smart Invert).
-- **`apple-testing-strategy.md`** — what to test (and what not), Given/When/Then naming, determinism (inject clocks/UUIDs/network), Swift Testing vs XCTest split, XCUITest discipline, CI coverage gates with sensible exclusions.
-- **`apple-adaptive-layout.md`** *(ui)* — resizable-app and **iPhone Duo** readiness: building against the iOS 27 SDK opts apps into resizability, and the **UIScene lifecycle is mandatory** (legacy-lifecycle apps no longer launch). Size classes over idiom/orientation/`UIScreen.main`, the containers that adapt for free, `ArrangementView` / `UIArrangementViewController` and the hinge APIs (iOS 27.1, in Xcode 27.2's SDK), vertical bars, Split View and multiple windows, scene accessories, zero UIKit layout margins on the 27.1+ SDK, asymmetric safe areas, state continuity across fold, and Device Hub testing.
-- **`apple-mac-touch.md`** *(ui; gated by the `macos` platform)* — **touch on Mac** for the touchscreen MacBook Pro and Sidecar (macOS 27): touch as a secondary input, 36pt hit targets without bigger controls, SwiftUI `GestureInputKinds` (`inputKinds:` on every gesture) and `directTouchSystemGesturesDisabled()` (27.3 beta), touch reveals for hover-only controls, AppKit gesture recognizers instead of `mouseDown(with:)` overrides and tracking loops (`NSControl.Events`, `buttonMask = 0`, scroll-view touch properties), `NSIsTouchNative`, games (TN3216), and Sidecar testing. `install.sh audit` flags mouse-method overrides and tracking loops.
-- **`apple-iconography.md`** *(ui)* — SF Symbols behind a typed `AppIcon` facade (raw `systemName:` strings render nothing on a typo or a too-new symbol — a `CaseIterable` test catches both), sizing through font / `imageScale` / `@ScaledMetric` instead of frames, rendering modes, variants and variable values, symbol effects gated on Reduce Motion, custom symbols as Symbol Image Sets loaded with `bundle: .module`, icon accessibility, and **app icons built in Icon Composer** (layered `.icon` for Liquid Glass; Default / Dark / Clear / Tinted).
-- **`apple-design-system.md`** *(ui)* — the core-UI foundation: one `DesignSystem` module of role-named color tokens (system semantic colors first, brand sets with Dark + High Contrast variants), text-style typography with Dynamic Type-safe custom fonts, spacing/radius scales and concentric corners, **Liquid Glass adoption** (remove custom bar backgrounds; glass only on the control layer), component **styles before wrapper views**, slot-based composites, `@Entry` environment theming, previews and a component gallery, plus an incremental adoption path for existing apps.
-- **`apple-documentation-strategy.md`** — what to document (and what not), DocC discipline (summary line, `- Parameter`/`- Returns`/`- Throws`, double-backtick symbol linking, `## Topics` organization), deprecation discipline with mandatory migration paths, when to write a DocC Article vs. a doc comment.
-- **`apple-localization-best-practices.md`** — String Catalogs (`.xcstrings`) as the modern format, type-safe `Strings` enum facade pattern, `LocalizedStringResource` over `NSLocalizedString`, plurals, locale-aware `.formatted()` for numbers/dates/currency, RTL via leading/trailing modifiers, translator-context comments.
-- **`apple-modular-architecture.md`** — the *architecture* stance behind the SPM conventions: a thin Xcode app target over a local Swift package split into many small modules (the KozBon / BasicSwiftUtilities shape). Why it wins (build parallelism, compile-enforced boundaries, headless `swift test`, reuse across widgets/extensions), what must stay in the app target (`@main`, the `AppShortcutsProvider` and main-bundle catalogs), the layered graph up to an `AppCore` umbrella, interface/implementation modules for interchangeable backends, re-exports, documenting the graph in `CLAUDE.md`, the incremental migration playbook, and the `Bundle.module` / `.xcdatamodeld` caveats. Pairs with `scripts/scaffold-spm-package.sh` and the `swift-modularization-pro` skill.
-- **`apple-repository-pattern.md`** *(architecture)* — the data layer: protocol repositories in a domain module returning `Sendable` value types (never `NSManagedObject` / `@Model` / DTOs), `actor` implementations under Swift 6, local store as the single source of truth observed through `AsyncSequence`, typed-throws error mapping, in-flight dedup, injection at the `AppCore` composition root, in-memory fakes + contract tests — and when `@Query` alone is enough.
-- **`apple-spm-package-conventions.md`** — `Package.swift` authoring: `swift-tools-version` discipline, mandatory `platforms:`, flat per-module folder layout (`{Module}/Sources/` + `{Module}/Tests/`, matching KozBon and BasicSwiftUtilities), `makeTargets()` helper for many similar modules with `hasTests` / `hasResources` / `plugins` toggles, resources (`.process` vs `.copy`), build plugins (SwiftLintPlugins, swift-docc-plugin), `Package.resolved` discipline (commit for apps, gitignore for libraries), local-path overrides for sibling-package development, modern features (`InternalImportsByDefault`, `.swiftLanguageMode(.v6)`, `public import`), dependency hygiene (`from:` vs `exact:`).
-- **`apple-infoplist-localization.md`** *(localization)* — the localization channel the `Strings` facade **can't** reach: `InfoPlist.xcstrings` vs legacy `InfoPlist.strings`, why the `INFOPLIST_KEY_*` build setting is the base value (and how omitting it yields `ITMS-90683` at upload), untranslated rows silently falling back, one catalog per target, and writing purpose strings specific enough to pass App Review.
-- **`apple-linting-strategy.md`** *(linting)* — SwiftLint as primary linter + a single formatter (SwiftFormat or Apple's swift-format, not both): `.swiftlint.yml` structure, the high-value `opt_in_rules` (`force_unwrapping`, `empty_count`, …), analyzer rules, scoped `// swiftlint:disable:next` hygiene, `--strict` in CI, build-phase vs SPM-plugin vs CI placement, incremental adoption on legacy code, version pinning, plus a triage decision-order.
-- **`apple-logging-strategy.md`** *(logging)* — `Logger` / `OSLog` over `print` / `NSLog`, subsystem/category conventions (one `Logger` per category), privacy markers (`.public` / `.private` / `.private(mask: .hash)` — the part people get wrong), log levels (debug/info/notice/error/fault) and their persistence behavior, lazy `@autoclosure` interpolation, signposts for perf, what never to log (secrets/PII/bodies), retrieving logs via Console / `log` CLI / `OSLogStore`. Complements the `swift-logging-pro` skill.
-- **`apple-regional-compliance.md`** *(compliance)* — region-specific App Store rules: storefront availability as a deliberate decision, China mainland (ICP filing, generative-AI filing, no third-party AI brand names like ChatGPT in the UI or metadata, NPPA game licenses, CallKit, maps), EU DSA trader status and other regional requirements, third-party trademarks and 5.1.2(i) AI consent everywhere, one `RegionPolicy` gated on `Storefront.countryCode` (alpha-3, never `Locale`), neutral metadata per storefront, answering a regional rejection, and a `docs/compliance/regions.md` register. Written after KozBon's China rejection over ChatGPT mentions.
-- **`apple-visionos-best-practices.md`** *(spatial)* — visionOS: scene types (Window / Volume / ImmersiveSpace), immersion styles, spatial gestures + hover affordances, head-mounted-display accessibility (Reduce Motion as vestibular safety), RealityKit / ECS conventions, 90fps performance budgets, USDZ pipeline.
-- **`apple-testflight-deployment.md`** *(deployment)* — shipping to TestFlight: `CFBundleVersion` monotonicity, App Store Connect API key (.p8) auth, `xcodebuild archive` → `-exportArchive` → `altool` flow, ExportOptions.plist gotchas, manual signing for CI, internal vs external tester groups, dSYM upload, ranked gotchas.
-- **`swift-concurrency-pro` skill** — reviews async/await, actors, structured concurrency.
-- **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
-- **`swiftui-pro` skill** — reviews SwiftUI for modern APIs, a11y, resizable windows / iPhone Duo, localization, and performance.
-- **`coredata-swift6-pro` skill** — Core Data under Swift 6 strict concurrency, `viewContext`/`@MainActor`, SPM `.xcdatamodeld` caveats.
-- **`apple-motion-design.md`** *(ui)* — motion for SwiftUI: purpose before properties, role-named motion tokens in the DesignSystem module (springs and curves, a duration palette, a bounce budget), entrances longer than exits, no linear movement, value-scoped animations on render-only properties, the purpose-built APIs (`contentTransition`, `symbolEffect`, zoom transitions, `PhaseAnimator`, `KeyframeAnimator`), one hero per moment with capped stagger, haptics paired with feedback, a Reduce Motion alternative for every spatial or looping animation, and Lottie playback, theming, and accessibility.
-- **`swift-design-system-pro` skill** — bootstraps or audits the UI foundation: scaffolds a `DesignSystem` module (tokens, `AppIcon` facade + availability test, button styles, gallery) or inventories an existing app (literal colors, fixed fonts, raw symbol strings, duplicate components, Liquid Glass blockers, app-icon appearances) and returns a ranked, incremental migration plan.
-- **`swift-modularization-pro` skill** *(packaging)* — plans a module graph for a new or existing app, migrates code out of the app target one module at a time (what stays, extraction order, per-step checklist, common breakages), and audits an existing package with a tested dependency-rule script over `swift package dump-package` (feature→feature edges, upward edges, concrete-backend imports, missing test targets) plus `Bundle.main` / `@_exported` / app-target searches and a CI job.
-- **`swift-adaptive-layout-pro` skill** — deep resizability / iPhone Duo audit: the UIScene launch blocker, `UIRequiresFullScreen` semantics, launch-screen and iPad-orientation upload checks, idiom/orientation/`UIScreen.main` removals with concrete UIKit replacements, arrangement nesting constraints, hinge and reserved regions, vertical-bar items, multi-window availability and per-scene state, symmetric safe-area math, outer→inner navigation continuity, and pose/window-size test coverage.
-- **`swift-accessibility-pro` skill** — deep accessibility audit: the VoiceOver surface (labels/traits/merging/rotor/announcements), Bluetooth assistive input (Full Keyboard Access reachability, Switch Control scan order, braille label quality), visual accessibility (WCAG AA contrast in both themes, Dynamic Type at AX sizes, color-independence, Reduce Motion), and Nutrition-Label claim verification with per-screen PASS / FAIL / NEEDS VERIFICATION verdicts for VoiceOver, Larger Text, and Sufficient Contrast.
-- **`swiftdata-pro` skill** — SwiftData review: core model/context rules, safe `#Predicate` usage, CloudKit constraints, iOS 18+ indexing, iOS 26+ class inheritance.
-- **`swift-docc-pro` skill** — DocC comment review: parameter/return/throws tags, double-backtick symbol linking, Topics organization.
-- **`swift-error-handling-pro` skill** — typed throws, Result vs throws, `LocalizedError`, Sendable errors, async propagation.
-- **`apple-memory-management.md`** *(memory-storage)* — retain cycles that actually leak (stored closures, long-lived `Task`s with `for await`, Combine `sink` / `assign(to:on:)`, target-retaining timers and display links, strong delegates), image downsampling (decoded size is width × height × 4), `NSCache` with cost limits, memory warnings, lazy containers, streaming large data, extension and watchOS budgets, the increased-memory-limit entitlement as a last resort, and measuring with the memory graph, Instruments generations, leak tests, and MetricKit jetsam exits.
-- **`apple-storage-management.md`** *(memory-storage)* — Documents vs Application Support vs Caches vs tmp, backup exclusion for offline content, UserDefaults for small values only, Keychain accessibility classes, file protection, app group containers, atomic off-main-actor writes, free-space checks before large writes, capped disk caches, app size (Background Assets, thinning report), and the disk-space / file-timestamp privacy manifest reasons.
-- **`swift-memory-storage-pro` skill** *(memory-storage)* — memory and storage audit: traces ownership to confirm cycles, sizes image decodes and caches in bytes, checks every file write for location, backup, protection, size cap, and privacy reason, and confirms fixes with the memory graph, Instruments, leak tests, and MetricKit.
-- **`apple-app-intents.md`** *(intents)* — App Intents, App Shortcuts, and Siri tools: nonisolated `perform()`, restart-safe side effects, confirmation right before destructive work, stable entity ids and append-only `AppEnum` raw values, batched queries and a real `suggestedEntities()`, errors Siri can show, phrase rules, `supportedModes` over `openAppWhenRun`, `@AppIntent(schema:)` over the deprecated `@Assistant*` macros, and Siri 27.3 tool metadata.
-- **`app-intents-pro` skill** *(intents)* — writes and reviews App Intents: execution and results, entities and queries, parameters and App Shortcuts, the iOS 26 / 27 APIs (interactive snippets, schemas, Spotlight indexing, `EntityCollection`, `LongRunningIntent`), Siri's model in 27.3 (`@AppIntent(.tool)`, generable entities, `Skills.skillsbundle`, `sirimetadataanalyzer`), and testing with `AppIntentsTesting` and SiriEvaluations.
-- **`apple-build-security.md`** *(security)* — security compiler warnings and analyzer checks for C-family code, Enhanced Security at project level with the hardened-process entitlements, per-target pointer-authentication overrides only for arm64e-less dependencies, phased Memory Tagging, `-fbounds-safety`, and a decision record for every setting left off.
-- **`xcode-security-pro` skill** *(security)* — audits build settings and entitlements per target, plans the four-phase Enhanced Security rollout, and adopts C bounds safety file by file.
-- **`instruments-profiling-pro` skill** *(performance)* — profiling with `xctrace`: recording, the `toc` → `list tracks` → `show` flow, call trees and heaviest stacks, symbolication, output-size discipline, and hang triage (busy vs. blocked, severity tiers), with before / after numbers for every fix.
-- **`swift-logging-pro` skill** — `os.Logger` review: subsystem/category conventions, privacy markers, log-level semantics.
-- **`swift-package-pro` skill** — SPM library design: public API surface, `InternalImportsByDefault`, resources, versioning, dependency hygiene.
-
-</details>
-
-<details>
-<summary><strong>Android — 22 rules + 10 skills</strong> (click to expand)</summary>
-
-- **`android-project-rules.md`** — Kotlin, Jetpack Compose, MVVM, Hilt, StateFlow, Retrofit/Moshi, ktlint.
-- **`android-coroutines-best-practices.md`** — structured concurrency, scope discipline (`viewModelScope`/`lifecycleScope`, no `GlobalScope`), dispatcher choice, `Flow`/`StateFlow`/`SharedFlow` exposure, cancellation safety.
-- **`android-compose-best-practices.md`** — state hoisting, side effects (`LaunchedEffect`/`DisposableEffect`/`SideEffect`), `Modifier` ordering, recomposition stability (`@Stable`/`@Immutable`), lifecycle-aware `collectAsStateWithLifecycle()`, `LazyColumn` keys.
-- **`android-accessibility-best-practices.md`** — TalkBack semantics, 48dp touch targets, dynamic text, WCAG AA contrast, reduce-motion, Bluetooth keyboard / switch-access focus discipline, braille displays (HID over Bluetooth, Android 15+), and the Android 16 `announceForAccessibility` deprecation (use live regions / `paneTitle` / `stateDescription`).
-- **`android-testing-strategy.md`** — test pyramid, source-set discipline (`src/test` vs `src/androidTest`), `runTest` + `StandardTestDispatcher` patterns, Turbine for `Flow`, Compose UI tests via semantics (not visible text), Hilt test modules, MockK conventions, JaCoCo coverage gates with generated-code exclusions.
-- **`android-iconography.md`** *(ui)* — Material Symbols imported as vector drawables behind a meaning-named `AppIcons` object (not `material-icons-extended`), 24dp icons / 48dp targets, tint from `LocalContentColor`, `autoMirrored` directional glyphs, icon `contentDescription` discipline, **adaptive launcher icons with a `<monochrome>` layer** for themed icons and the 66dp safe zone, alpha-only notification icons, and the SplashScreen API icon.
-- **`android-design-system.md`** *(ui)* — the core-UI foundation: a `:core:designsystem` module with one Material 3 `AppTheme` (generated schemes, dynamic color with a full brand fallback), color roles with `on*` pairs, extended tokens and spacing via `staticCompositionLocalOf`, M3 type/shape scales, thin stateless wrappers over M3 components (modifier-first optional param, slots, `Defaults` objects), edge-to-edge insets, multipreview annotations, a component catalog, and screenshot tests.
-- **`android-motion-design.md`** *(ui)* — motion for Compose: purpose before properties, motion tokens in `:core:designsystem` (M3 `MotionScheme`, easing and duration tokens), spatial vs. effects specs (no overshoot on color or alpha), the right animation API per job, draw-phase animation via `graphicsLayer`, shared elements and predictive back, capped stagger, haptics, a reduced alternative when system animations are off (the animator duration scale), and Lottie playback, theming, and semantics.
-- **`android-mvvm-architecture.md`** *(architecture)* — MVVM with unidirectional data flow: one `StateFlow<UiState>` per screen derived with `combine` + `stateIn(WhileSubscribed(5_000))`, events as ViewModel functions, one-off effects modeled as state, `SavedStateHandle` + type-safe nav args, stateful Route vs stateless Screen, when a use case earns its place.
-- **`android-repository-pattern.md`** *(architecture)* — the data layer: `Flow` for observation + main-safe `suspend` one-shots, offline-first with Room as the single source of truth, DTO / entity / domain mapping, Hilt `@Binds` singletons, application-scope and WorkManager for work that outlives the caller, fakes in a shared test module.
-- **`android-documentation-strategy.md`** — KDoc syntax (`@param` / `@return` / `@throws` / `@property` / `@sample` / `@see`), Composable docs (state hoisting, semantics, skippable vs. restartable), Hilt module docs, suspend / cancellation behavior, deprecation with `ReplaceWith`, Dokka conventions and external links.
-- **`android-localization-best-practices.md`** — `strings.xml` discipline, `stringResource` / `pluralStringResource` in Compose, positional format args (`%1$s` not `%s`), `<plurals>` with `getQuantityString`, locale-aware `NumberFormat` / `DateTimeFormatter`, RTL with `start`/`end` modifiers and `android:supportsRtl="true"`, translator-context comment blocks.
-- **`android-gradle-conventions.md`** — Kotlin DSL only, version catalogs (`gradle/libs.versions.toml`) as single source of truth, AGP/Kotlin/Compose-compiler co-versioning, `jvmToolchain`, `api` vs `implementation`, multi-module graph patterns (`:app` + `:feature:*` + `:data:*` + `:core:*`), library publishing with `consumer-rules.pro`, KSP over kapt. **Now includes** an inline-strings → catalog migration walkthrough for legacy projects.
-- **`android-modular-architecture.md`** *(packaging)* — the Now in Android shape: a thin `:app` over `:feature:*` (with an `api`/`impl` split), `:core:data`, `:core:domain`, pure-Kotlin `:core:model`, data-source modules, `:core:designsystem`, and `:core:testing`. Allowed edges, navigation wired in `:app` through lambdas and type-safe routes, Hilt bindings per module, `internal` and explicit API, non-transitive R, build-cache and configuration-cache flags, graph enforcement with module-graph-assertion, and a leaf-first migration from a single-module app.
-- **`android-linting-strategy.md`** *(linting)* — three linters, three jobs: ktlint (`.editorconfig`, formatting), detekt (`detekt.yml` tuning, `buildUponDefaultConfig`, type resolution, baselines), and Android Lint (`lint {}`, `lint.xml`, `warningsAsErrors`, baselines). `@Suppress` / `@SuppressLint` hygiene, CI placement (`ktlintCheck detekt lintDebug`), version pinning, plus a triage decision-order.
-- **`android-logging-strategy.md`** *(logging)* — Timber over `android.util.Log` (plant a tree in `Application.onCreate`), log levels (V/D/I/W/E/WTF) and passing the `Throwable`, **stripping debug logs from release** (DebugTree-in-debug-only + R8 `assumenosideeffects`), no PII/secrets, crash-reporter integration (Crashlytics/Sentry breadcrumbs + non-fatals via a `CrashReportingTree`), Logcat hygiene.
-- **`android-memory-management.md`** *(memory-storage)* — no Activity / View / Context in singletons, objects, or ViewModels (`StaticFieldLeak` is a leak), unregister in the matching lifecycle callback (`DisposableEffect` in Compose), Fragment binding cleanup, LeakCanary in debug, bitmap decoding at display size (Coil, `ImageDecoder.setTargetSize`, `inSampleSize`), `LruCache` sized from `memoryClass`, `onTrimMemory` with the Android 14 levels, Paging 3, no `largeHeap`, low-RAM devices, process death, and measuring with the Memory Profiler, `dumpsys meminfo`, and `ApplicationExitInfo`.
-- **`android-storage-management.md`** *(memory-storage)* — `filesDir` vs `cacheDir` vs `noBackupFilesDir` vs `getExternalFilesDir`, MediaStore / Photo Picker / SAF instead of broad storage permissions (and Play's `MANAGE_EXTERNAL_STORAGE` and photo/video policies), DataStore over SharedPreferences, Room for structured data, Keystore-backed encryption (`security-crypto` is deprecated), Auto Backup data extraction rules, `AtomicFile`, StrictMode, `StorageManager` free-space checks and cache quotas, capped disk caches, and app size.
-- **`android-memory-storage-pro` skill** *(memory-storage)* — memory and storage audit: names the reference chain for each leak, sizes bitmap decodes and caches in bytes, checks file locations, permissions, preferences, encryption, and backup rules, and confirms fixes with LeakCanary, heap dumps, `dumpsys`, StrictMode, and `ApplicationExitInfo`.
-- **`android-ai-best-practices.md`** *(ai)* — in-app AI models on Android, the counterpart to the Apple Foundation Models rule: on-device Gemini Nano via ML Kit GenAI / AICore vs cloud Gemini via Firebase AI Logic, **never ship a raw model API key** (App Check / backend proxy), two-level availability gating (feature download + user preference), streaming into Compose with placeholder-then-mutate, structural cancellation, interface + fake testability, consent + Data-safety implications.
-- **`android-large-screen-best-practices.md`** *(ui; gated by the `tablet` form factor)* — tablets, foldables, desktop windows, connected displays, and Googlebook: window size classes over device heuristics (`currentWindowAdaptiveInfoV2()`, `BREAKPOINTS_V2` with large / extra-large), Material 3 adaptive canonical layouts (`NavigationSuiteScaffold`, list-detail and supporting-pane scaffolds or Navigation 3 scene strategies), fold posture (tabletop / book), state survival across fold/unfold and resize, multi-resume, multi-instance, the desktop caption bar, and the **Android 16 change that ignores orientation / resizability restrictions on ≥ 600dp screens, whose opt-out Android 17 removes**; large-screen input (keyboard, mouse, stylus, drag-and-drop).
-- **`android-regional-compliance.md`** *(compliance)* — region-specific distribution: Play country availability and per-country declarations (gambling, loans), China's non-Play stores (ICP filing, generative-AI filing, consent before any data collection or SDK init, a GMS-free `china` flavor), EU trader status, Android developer verification, a `RegionPolicy` gated on Play Billing's `BillingConfig.countryCode` (alpha-2), conditional feature delivery by country, country-targeted custom store listings, and answering a regional rejection.
-- **`android-play-beta-deployment.md`** *(deployment)* — shipping to Play beta tracks: `versionCode` monotonicity, Play App Signing (upload key vs app signing key), AAB-not-APK, service-account JSON for CI, internal/closed/open tracks, Triple-T / fastlane upload, `mapping.txt` upload, ranked gotchas.
-- **`android-accessibility-pro` skill** — deep accessibility audit: the TalkBack semantics tree (descriptions/roles/merging/state/custom actions/live regions incl. the Android 16 announcement migration), Bluetooth input (keyboard/Switch Access/braille), visual accessibility (contrast in both themes, sp scaling at 200%, 48dp targets, reduce motion).
-- **`android-design-system-pro` skill** — bootstraps or audits the UI foundation: scaffolds `:core:designsystem` (`AppTheme`, extended colors, spacing, `AppIcons`, core components with previews) or inventories an existing app (literal colors/sizes, `Icons.*` usage, clickable-box buttons, edge-to-edge gaps, launcher/notification/splash icons) and returns a ranked, incremental migration plan.
-- **`android-adaptive-layout-pro` skill** *(gated by `tablet`)* — large-screen / foldable readiness audit: size-class usage and deprecated device heuristics, canonical-layout fit, `FoldingFeature` posture handling and outer→inner continuity, state across fold/unfold, manifest restrictions under Android 16/17, multi-window / multi-instance / desktop windows and connected displays, window-vs-display math, camera orientation, hardware input, Play adaptive-quality tier mapping.
-- **`android-compose-pro` skill** — deep Compose review: recomposition stability + skippability (incl. strong-skipping-mode awareness), side-effect audit (`LaunchedEffect` keys, `rememberUpdatedState`, `DisposableEffect` teardown), lazy-list performance (keys, `contentType`, `derivedStateOf` for scroll), state modeling and hoisting.
-- **`android-coroutines-pro` skill** — deep coroutines/Flow review: scope-to-lifecycle mapping, cooperative cancellation (`CancellationException` discipline, `runCatching` traps), `launch` vs `async` exception propagation, supervisor boundaries, `stateIn`/`shareIn` configuration, `callbackFlow` teardown, coroutine testing (virtual time, Turbine).
-- **`android-gradle-architecture-pro` skill** — reviews multi-module Android builds against the **Now in Android** convention-plugin pattern: `build-logic/convention/` factoring, version-catalog depth, AGP co-versioning, KSP-over-kapt migration.
-- **`android-modularization-pro` skill** *(packaging)* — plans, migrates, and audits a multi-module Android app: module types and allowed edges, the feature `api`/`impl` split, cross-feature navigation and Hilt across modules, a migration checklist with common breakages (transitive `R`, missing bindings, manifest merges), and a tested dependency-rule script over `settings.gradle.kts` and module build files, plus the Gradle graph assertion and a CI job.
-- **`xml-to-compose-migration-pro` skill** — reviews and assists XML/Fragment → Compose migration: incremental interop via `ComposeView` / `AndroidView`, layout translation (LinearLayout/ConstraintLayout/FrameLayout → Modifier), RecyclerView → `LazyColumn` with stable keys, Fragment → Composable, Navigation Component → Navigation-Compose, ViewModel bridging, themes/styles → `MaterialTheme`.
-- **`r8-shrink-pro` skill** — reviews R8 / ProGuard configuration: `-keep` rule discipline, `consumer-rules.pro` contract for libraries, common reflection-library rules (Moshi, Room, Retrofit, Hilt, Glide, kotlinx-serialization), mapping-file workflow, debugging release-build crashes.
-
-</details>
-
-<details>
-<summary><strong>Cross-platform — 4 rules + 3 skills</strong> (click to expand)</summary>
-
-- **`concise-comments-and-commits.md`** *(core)* — fires on all Swift/Kotlin/ObjC source: in-code comments default to *none* (write only what code can't express — why, traps, ticket refs; never narration, diff commentary, or commented-out code), and commit messages stay short (imperative ≤72-char subject; body only when the why isn't in the diff — never file-by-file inventories or process reports). Aimed squarely at AI-assistant verbosity.
-- **`ai-steering-files.md`** *(core)* — fires on `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Copilot / Cursor / Kiro rules, and `.claude/` rules, skills, and settings: what earns a place (working commands, the module map, project-specific decisions, gotchas) and what doesn't (generic advice, restated lint or bundle rules, secrets), the ~300-line budget for always-loaded files, per-agent path scoping, one source across agents, keeping paths and commands true, minimal committed permissions, and the order to improve an existing set in. `install.sh audit` checks a repo's steering files against it.
-- **`cross-platform-development.md`** *(core; installs only with `--platform both`)* — building one app on Apple and Android at once with AI agents: native × 2 vs Kotlin Multiplatform as a recorded decision, a monorepo with nested `CLAUDE.md` files per platform, spec-first features (`docs/features/`), one vocabulary of names across platforms (types, modules, string keys, icons, events, flags), single sources of truth for the API (OpenAPI), design tokens, strings, analytics, flags, and deep links, parity as behavior-not-pixels, `docs/parity.md`, and CI path filters.
-- **`cross-platform-parity-pro` skill** *(core; `--platform both`)* — ports a feature from one platform to the other (spec → reference behavior → idiomatic target code → verify both), audits drift with scripts that diff string keys, icon vocabularies, analytics events, flags, and deep links, and sets up the repo: root + per-platform `CLAUDE.md`, `apple-engineer` / `android-engineer` subagents, shared-contract generation, PR template, CI. Includes a Swift ↔ Kotlin / SwiftUI ↔ Compose concept map and a Kotlin Multiplatform guide (share logic, never UI; a Swift adapter at the boundary).
-- **`store-compliance-pro` skill** *(compliance; Apple and/or Android)* — audits an app and its store listings for regional rejection risks: third-party AI brand mentions in strings and metadata, storefront gating (locale misuse, fail-open defaults, ungated shortcuts), consent-before-collection for Chinese Android stores, licensed categories, and a console checklist. Respond mode classifies a regional rejection, picks exclude / gate / license, sweeps the app and listing, and drafts the Resolution Center reply and review notes.
-- **`motion-design-pro` skill** *(ui; Apple and/or Android)* — designs, specs, builds, and reviews UI motion for designers and developers alike: a motion personality and token set for both platforms, the three pillars (intent, narrative, craft), timing and easing tables with SwiftUI and Compose spring mappings, entrance / feedback / loading / success / error / choreography recipes, a `docs/design/motion.md` spec template, Lottie / dotLottie handoff rules, and a review checklist with smells and fixes. Adapted from the LottieFiles motion design skill.
-- **`project-documentation.md`** — README structure, [Keep a Changelog](https://keepachangelog.com) format, `CONTRIBUTING.md` essentials, ADR conventions (`docs/adr/####-title.md`, immutable once accepted), inline-comment philosophy (*why* not *what*), and link-rot defenses (pinned versions, permalinked source). Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`.
-
-</details>
-
-<details>
-<summary><strong>Baseline &amp; bundle files</strong> — settings, .gitignore, the full <code>install.sh</code> flag reference, templates (click to expand)</summary>
-
-- **`settings.json`** — safe defaults: builds and tests (`xcodebuild`, `swift build`/`test`, `swiftlint`, `./gradlew`, `ktlint`), read-only `git` and `gh` verbs, and Apple/Android docs domains for `WebFetch`. Commits, pushes, and `gh` writes still prompt. A `deny` list blocks force-pushes, `gh repo delete`, and reading `.env`, signing keys, and keystores.
-- **`.gitignore`** — recommended entries for Xcode, SPM, CocoaPods, Carthage, fastlane, plus Gradle/Android Studio/Kotlin.
-- **`install.sh`** — one-command bootstrap into any target repo.
-  - **Commands** (verb form): `install [TARGET]` (default — verb optional), `recommend [TARGET]` (analyze a dir → suggested command, `--json` for agents), `upgrade TARGET`, `uninstall TARGET`, `list`, `list-mcps`, `setup` (guided), `help`. Each has a legacy `--flag` alias (`--upgrade`, `--uninstall`, `--list`, `--list-mcps`, `-i`/`--interactive`, `-h`/`--help`) — verbs and flags are interchangeable, so existing scripts keep working. A directory whose name collides with a verb can be targeted via an explicit path (`./upgrade`) or the `--flag` form.
-  Flags:
-  - `-i` / `--interactive` — guided, prompt-driven setup. Detects create vs. adopt vs. update and walks through platform / Apple-language / features / agents / MCP recipes with defaults. Works at a TTY or from piped stdin (Enter accepts each default); prints a plan and confirms before writing. See [Getting started](#getting-started).
-  - `--new` — create the target directory (and parents) and `git init` a fresh repo before installing, for green-field projects. Light scaffolding only — does not generate an Xcode/Gradle project. Install-only (rejected with `--upgrade`/`--uninstall`).
-  - `--force` — allow a plain `install` over a directory that's already a managed AppBootstrapAI install. Without it, re-installing over a managed repo is refused with guidance to use `--upgrade` (which preserves the manifest baseline). Install-only.
-  - `--platform apple|android|both` — optional; if omitted, the installer auto-detects from the target dir (`Package.swift` / `*.xcodeproj` → apple; `build.gradle*` / `gradlew` → android; both present → both; neither → falls back to `both`). Detection result + matched signals print in the install header. Explicit `--platform` always wins.
-  - `--apple-language swift|objc|both` (legacy ObjC projects skip Swift-only rules)
-  - `--apple-platforms ios,macos,tvos,watchos,visionos|all` — which Apple sub-platforms you target. Default `ios,macos,tvos,watchos` (every platform **except** visionOS — the lean default for typical app projects). Only meaningful when Apple is in scope. `visionos` stays in sync with the `spatial` feature: naming it installs the visionOS rule, omitting it keeps it out. **`macos` gates the touch-on-Mac rule** (`apple-mac-touch.md`) — drop it for an iOS-only app. Other tokens are recorded in the manifest for future platform-specific rules.
-  - `--android-platforms phone,tablet,wear,tv,auto|all` — which Android form factors you target. Default `phone,tablet`. Only meaningful when Android is in scope. **`tablet` gates the large-screen / foldable rule** (`android-large-screen-best-practices.md`) **and the `android-adaptive-layout-pro` skill** — drop it for a phone-only app. Other tokens are recorded in the manifest for future form-factor rules (Wear OS / Android TV / Auto would gate the same way).
-  - `--features all|recommended|<csv>` — **default `recommended`** is a curated subset for most apps (now includes `linting`, `compliance`, `memory-storage`, and `performance`); `all` adds specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`, `intents`, `security`); custom CSVs like `core,testing,docs` give fine-grained control
-  - `--list` previews the catalog with one-line descriptions + category tags
-  - `--list --json` emits the same catalog as machine-readable JSON (used by the MCP server)
-  - `--list-mcps` lists available MCP-server recipes (name, platform, description, homepage)
-  - `--with-mcps <csv>` writes one `mcpServers.<name>` entry per recipe into `.claude/settings.local.json`. Existing entries are never overwritten. Setup notes (auth, env vars) print after install. See [`mcp-recipes/`](mcp-recipes/) for the available recipes.
-  - `--agents <csv>` picks which AI agents to install for. Default `claude`; additive options: `copilot` (writes `.github/instructions/*.instructions.md`), `cursor` (writes `.cursor/rules/*.mdc`), `gemini` (writes a `GEMINI.md` index), `codex` (writes an `AGENTS.md` index), `kiro` (writes `.kiro/steering/*.md`), or `all`. Same rule content, per-agent file shape. Skills are Claude-only.
-  - `--dry-run` shows what an install would do without writing any files
-  - `--upgrade` prints a per-file plan of what would change if you re-installed today — classified as up-to-date / safe update / local-edits / conflict / orphan / addition / out-of-scope / rename. Add `--apply` to execute the plan; `--force-conflicts` to overwrite locally-edited files where the bundle also changed; `--prune` to delete orphans + out-of-scope files; `--migrate-manifest` to bring a v1 manifest forward. The header prints a GitHub compare URL when commits differ. See [Upgrading an existing install](#upgrading-an-existing-install).
-  - `--uninstall` reverses install: deletes every tracked file whose current hash matches what was installed (locally-edited files kept unless `--force-conflicts`; `CLAUDE.md` / `settings.json` kept unless `--purge`). MCP entries are removed if unchanged, unless `--keep-mcps`. Strips the `.gitignore` block and the manifest itself. See [Removing the install](#removing-the-install).
-  - `--help` documents every flag and enumerates all 22 categories
-  - Every install writes a manifest at `.claude/.appbootstrap-manifest.json` (schema v2 — records per-file SHA-256 hashes so `--upgrade` can diff 3-way: installed vs. current disk vs. bundle)
-- **Three starter `CLAUDE.md` templates** — `templates/CLAUDE.template.apple.md`, `templates/CLAUDE.template.android.md`, `templates/CLAUDE.template.md` (cross-platform). The installer picks the right one based on `--platform`.
-- **`templates/Package.template.swift`** — starter Swift Package Manager manifest with a `makeTargets(name:dependencies:hasTests:hasResources:testDependencies:testResources:)` helper. Adding a new module is a two-line change: one line in `products:` and one `+ makeTargets(...)` block in `targets:`. Copy it into a new SPM package as `Package.swift` and fill in the placeholders.
-- **`scripts/scaffold-spm-package.sh`** — generates a KozBon-style local package (`<App>Packages/`) so an existing app can move its logic out of the `.xcodeproj` and into modules. Emits a `makeTargets()`-based `Package.swift` from `--modules Core,…,AppCore` plus a compiling source + passing test placeholder per module; a module named `AppCore` becomes the umbrella and the only product, with an `AppRootView` for the app's `@main`. `--main-actor all` writes a tools-6.2 manifest where UI and feature modules default to `@MainActor` (`.defaultIsolation`) and Core stays nonisolated. CI builds and tests both forms. Non-destructive (never overwrites; `--dry-run` / `--force`). Pairs with the `apple-modular-architecture.md` rule.
-
-</details>
-
-<details>
-<summary><strong>Recommended companion MCP tooling</strong> (optional — click to expand)</summary>
-
-#### MCP servers for the Apple side
-
-- **Xcode 27 native MCP + agent platform** *(WWDC 2026)* — Apple massively expanded the in-Xcode agent story (building on the Xcode 26.3 `mcpbridge` foundation). The native **Xcode MCP server** now adds debug tools (run state, debugger console, schemes, destinations, build settings, entitlements, `Info.plist`), a **Preview Snapshot** tool, simulator control (boot/install/launch, synthesize touches, screenshots), and access to project insights (crashes, hangs, energy). **LLDB ships its own `lldb-mcp`** server ([docs](https://lldb.llvm.org/use/mcp.html)). Most relevant to *this* bundle: Xcode 27 gains **agent plug-ins** — bundling **skills, MCP servers, ACP (Agent Client Protocol) configurations, and slash commands** — plus Apple-built specialists (localization, accessibility, UIKit resizing) and a security layer governing agent filesystem access. First-party, no separate install. See Apple's [Giving agentic coding tools access to Xcode](https://developer.apple.com/documentation/xcode/giving-agentic-coding-tools-access-to-xcode).
-- **[XcodeBuildMCP](https://github.com/cameroncooke/XcodeBuildMCP)** — community MCP server that lets any agent drive Xcode: build schemes, run simulators, capture logs. Still useful alongside the native server — it leans into richer test/simulator tooling and works from agents outside Xcode. Especially valuable for legacy / mixed-language Apple codebases and for CI-style automation.
-
-#### MCP servers for the Android side
-
-- **[Android Studio's built-in MCP support](https://developer.android.com/studio/gemini/add-mcp-server)** — Google ships first-party MCP integration in Android Studio. Hook any MCP server (including this repo's, see below) directly into Studio's agent.
-- **[`android-mcp-server`](https://github.com/minhalvp/android-mcp-server)** — community MCP server that gives agents control over Android devices and emulators via ADB. The Android-side parallel to XcodeBuildMCP's simulator work.
-
-#### Cross-platform / shared
-
-- **[Firebase MCP](https://github.com/firebase/firebase-tools/tree/main/src/mcp)** — **first-party from Google.** Lives in `firebase-tools`. Covers Crashlytics, Remote Config, App Hosting, Realtime DB, and Cloud Functions logs. Crashlytics surface is marked experimental.
-- **[Sentry MCP](https://docs.sentry.io/product/sentry-mcp/)** — **first-party, hosted by Sentry** at `mcp.sentry.dev/mcp`. Streamable HTTP with OAuth — zero install for sentry.io users. Exposes issues, errors, projects, and Seer analysis.
-
-**See also** (specialized; add when the use case fits):
-
-- **[`ios-simulator-mcp`](https://github.com/joshuayoes/ios-simulator-mcp)** — npm-installable, iOS-Simulator-only (screenshots, UI hierarchy, tap/swipe). Lighter than XcodeBuildMCP if Simulator control is all you need.
-- **[Mobile MCP (`mobile-next/mobile-mcp`)](https://mcpservers.org/servers/mobile-next/mobile-mcp)** — cross-platform iOS + Android automation via accessibility snapshots + coordinate taps. QA-style workflows that span both platforms.
-- **[`kotlin-mcp-server`](https://github.com/normaltusker/kotlin-mcp-server)** — heavier-touch Android dev workflow MCP: Gradle, ktlint, Lint, Room / Retrofit / Compose scaffolding via AI prompts.
-- **[Figma MCP](https://help.figma.com/hc/en-us/articles/32132100833559-Guide-to-the-Figma-MCP-server)** — first-party Figma server for design → code workflow. Mobile-relevant when your design source is Figma; not mobile-specific.
-- **App Store Connect** and **Google Play Console** MCPs exist but the ecosystem is still consolidating around a winner — multiple competing community implementations. Worth watching but no recommendation yet.
-- **Linear / Jira / Atlassian** MCPs (Atlassian's is GA Feb 2026, Linear's is first-party) are excellent but cover generic project-management concerns, not mobile-app-specific work — they belong in your generic MCP setup, not this list.
-
-#### Cross-tool rule sync
-
-- **Multi-agent support** — pass `--agents copilot,cursor,gemini,codex,kiro` to `install.sh` and the bundle writes the right file shape for each agent (in addition to or instead of Claude). For agents not in that built-in set (Cline, Goose, Roo, Windsurf, etc.), point a sync tool at `.claude/`. See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents).
-
-</details>
+The default `--features recommended` set covers what most apps need on day one.
+Specialized categories (`persistence`, `ai`, `migration`, `shrinking`,
+`spatial`, `deployment`, `architecture`, `intents`, `security`) are opt-in.
 
 ## Getting started
 
@@ -236,7 +76,7 @@ Nothing you've authored gets overwritten — an existing `CLAUDE.md`,
 `settings.json`, or agent file is left alone and the installer prints what it
 skipped so you can merge by hand.
 
-### 3. Update an existing install (stay current with upstream)
+### 3. Update an existing install
 
 Once a repo is managed (it has a `.claude/.appbootstrap-manifest.json`), use
 `upgrade` — never a plain re-install:
@@ -250,539 +90,40 @@ Once a repo is managed (it has a `.claude/.appbootstrap-manifest.json`), use
 latest bundle) so your local edits are preserved. A plain `install` over a
 managed repo is **refused** with guidance to use `upgrade` — that guard stops
 a re-install from silently resetting the manifest baseline. If you genuinely
-want to re-install over a managed target, pass `--force`.
+want to re-install over a managed target, pass `--force`. More in [docs/upgrading.md](docs/upgrading.md).
 
-## Quick start
+## Audit a repo
 
-The full flag reference. Examples below use the bare/`install` form; prefix any
-of them with a verb (`install` / `upgrade` / `uninstall` / `list` / `setup`) or
-use the equivalent `--flag` — they're interchangeable. From the root of a new app
-repo:
+Read-only, nothing installed:
 
 ```bash
-# Zero-flag install — installer auto-detects platform from the target dir.
-# Package.swift / *.xcodeproj → apple; build.gradle* / gradlew → android;
-# both present → both; neither (fresh repo) → falls back to both.
-# The header prints which signals matched so you can verify.
-/path/to/AppBootstrapAI/install.sh .
-
-# Explicit platform always wins over detection
-/path/to/AppBootstrapAI/install.sh . --platform apple
-/path/to/AppBootstrapAI/install.sh . --platform android
-/path/to/AppBootstrapAI/install.sh . --platform both
-
-# Opt in to the FULL bundle including specialized opt-ins
-# (persistence/Core Data, ai/Foundation Models, migration, shrinking)
-/path/to/AppBootstrapAI/install.sh . --platform both --features all
-
-# Pick specific feature categories
-/path/to/AppBootstrapAI/install.sh . --platform apple --features core,testing,docs
-
-# Apple legacy project — Objective-C only
-/path/to/AppBootstrapAI/install.sh . --platform apple --apple-language objc
-
-# Apple mixed-language — Swift + ObjC
-/path/to/AppBootstrapAI/install.sh . --platform apple --apple-language both
-
-# Preview what any flag combo will install (no files written, with category tags)
-/path/to/AppBootstrapAI/install.sh --list --platform android --features all
-
-# Same catalog as JSON (for automation / the MCP server)
-/path/to/AppBootstrapAI/install.sh --list --json --platform apple --features all
-
-# Show what an install would do without actually writing files
-/path/to/AppBootstrapAI/install.sh /target --platform apple --features all --dry-run
-
-# Compose recommended + specific opt-ins (instead of writing the CSV by hand)
-/path/to/AppBootstrapAI/install.sh . --platform apple --features recommended,ai,persistence
-
-# visionOS app — pull in the visionOS rule (scene types, immersion styles,
-# RealityKit conventions, head-mounted-display accessibility, USDZ pipeline).
-# Either name the platform, or add the spatial feature — they're equivalent:
-/path/to/AppBootstrapAI/install.sh . --platform apple --apple-platforms ios,visionos
-/path/to/AppBootstrapAI/install.sh . --platform apple --features recommended,spatial
-
-# Target specific Apple platforms (default is everything except visionOS)
-/path/to/AppBootstrapAI/install.sh . --platform apple --apple-platforms ios,macos
-
-# Shipping to testers — add the deployment category for TestFlight (Apple) +
-# Play beta (Android): versioning, signing, CI patterns, common gotchas
-/path/to/AppBootstrapAI/install.sh . --features recommended,deployment
-
-# Bootstrap + wire in MCP servers at the same time
-# (writes one mcpServers entry per recipe into .claude/settings.local.json)
-/path/to/AppBootstrapAI/install.sh . --platform apple --with-mcps xcodebuildmcp,sentry
-
-# Browse available MCP recipes (see what --with-mcps can install)
-/path/to/AppBootstrapAI/install.sh --list-mcps
-
-# Install for a non-Claude agent — writes that agent's native file shape
-/path/to/AppBootstrapAI/install.sh . --agents copilot   # → .github/instructions/*.instructions.md
-/path/to/AppBootstrapAI/install.sh . --agents cursor    # → .cursor/rules/*.mdc
-/path/to/AppBootstrapAI/install.sh . --agents gemini    # → GEMINI.md
-/path/to/AppBootstrapAI/install.sh . --agents codex     # → AGENTS.md
-/path/to/AppBootstrapAI/install.sh . --agents kiro      # → .kiro/steering/*.md
-
-# Mixed team — install for several agents in one run
-/path/to/AppBootstrapAI/install.sh . --agents claude,copilot,cursor
-
-# Everything (claude + copilot + cursor + gemini + codex)
-/path/to/AppBootstrapAI/install.sh . --agents all
-
-# Existing install? Diff and apply updates without losing local edits
-/path/to/AppBootstrapAI/install.sh . --upgrade           # plan-only preview
-/path/to/AppBootstrapAI/install.sh . --upgrade --apply   # execute the plan
-
-# Full help — documents --features categories, --with-mcps recipes, --agents tokens
-/path/to/AppBootstrapAI/install.sh --help
+/path/to/AppBootstrapAI/install.sh audit /path/to/repo --no-install-check
 ```
 
-Every real install writes a manifest at `.claude/.appbootstrap-manifest.json` listing every file that was installed plus the flags used. The manifest is what powers `--upgrade`'s 3-way diff against future bundle versions.
-
-**The default `--features recommended` set** covers what most apps need on day one: `core` (project docs) + `concurrency` + `ui` + `testing` + `docs` (code documentation) + `error-handling` + `packaging` + `logging` + `localization` + `linting` (SwiftLint+formatter / ktlint+detekt+Android Lint) + `compliance` (region-specific App Store / Play rules) + `memory-storage` (leaks, footprint, file locations, backup, app size) + `performance` (Instruments / `xctrace` profiling and hang triage). Specialized opt-ins not in `recommended`: `persistence` (Core Data / SwiftData), `ai` (Apple Foundation Models + Android Gemini Nano / Firebase AI Logic), `migration` (XML → Compose), `shrinking` (R8/ProGuard), `spatial` (visionOS scene types, immersion styles, spatial gestures, RealityKit conventions), `deployment` (TestFlight + Play beta tracks — versioning, signing, CI patterns, common gotchas), `architecture` (Android MVVM / unidirectional data flow + the repository pattern for both platforms), `intents` (App Intents, App Shortcuts, Siri tools), `security` (Xcode security settings, Enhanced Security, C bounds safety).
-
-**The default `--agents claude` set** writes the native Claude Code layout. Pass `--agents copilot|cursor|gemini|codex|kiro|all` (additive CSV) and the installer also drops the matching file shape for those agents (per-rule files for Copilot `.instructions.md`, Cursor `.mdc`, and Kiro `.kiro/steering/*.md`; a short rule index for Gemini and Codex). See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent table.
-
-The installer:
-
-- Copies skills matching the platform/language/features intersection (Apple skills when `--agents claude` and Apple/Swift in scope; Android skills similarly). Skills are Claude-only — non-Claude agents get rules only.
-- Copies platform-matching `.claude/rules/` filtered by `--features` (when `--agents claude` is selected).
-- Generates per-agent files for each agent in `--agents` (e.g., `.github/instructions/*.instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`).
-- Copies `.claude/settings.json` (only if `--agents claude` and one doesn't already exist).
-- Renders the **platform-appropriate** `CLAUDE.template.*.md` into `CLAUDE.md` (only if `--agents claude` and missing): `apple` → `CLAUDE.template.apple.md`, `android` → `CLAUDE.template.android.md`, `both` → `CLAUDE.template.md`.
-- Appends platform-specific entries to `.gitignore`, deduped by marker. Adds `.cursor/state*` / `.cursor/.cache/` entries when `--agents cursor` is selected.
-- Writes `.claude/.appbootstrap-manifest.json` recording every installed file (with per-file SHA-256) plus the full selection (`--platform`, `--apple-language`, `--features`, `--agents`).
-
-It never overwrites an existing `CLAUDE.md`, `settings.json`, or any agent file (`copilot-instructions.md`, `GEMINI.md`, etc.) — it prints what it skipped so you can merge.
-
-`--dry-run` skips every write but still prints what would happen, so you can preview before committing to an upgrade.
-
-After install, edit the new `CLAUDE.md` (or your agent's equivalent) and fill in the `<PLACEHOLDER>` sections. Keep the bundled rules and skills as-is unless you need to extend them.
-
-> **Using a different agent?** `install.sh --agents copilot|cursor|gemini|codex|kiro|all` writes the right files natively. See [Using with non-Claude AI agents](#using-with-non-claude-ai-agents) for the per-agent file layout. For agents not in that built-in set, point a sync tool like [`ruler`](https://github.com/intellectronica/ruler) at `.claude/`.
-
-## How it fires
-
-**Rules** (`.claude/rules/`) load automatically based on each file's `paths:` frontmatter (with a matching `globs:` for Cursor) — Apple rules fire on `*.swift` / `*.{h,m,mm}`, Android rules fire on `*.{kt,kts}` (plus `*.xml` for the localization rule). No invocation needed; they steer Claude as soon as a matching file enters context. Each rule is a short checklist (CI fails any rule over 12 KB); where a topic needs more, the full text lives in the matching skill's `references/` and loads only when that skill runs.
-
-**Skills** (`.claude/skills/`) are deeper review agents that fire on demand. Trigger by description match or invoke explicitly:
-
-- "Use `swift-concurrency-pro` to review `NetworkClient.swift`."
-- "Use `swiftui-pro` to check `SettingsView.swift` for modern API and a11y."
-- "Use `swift-testing-pro` to write tests for `UserSession`."
-- "Use `coredata-swift6-pro` to review `PersistenceController.swift`."
-- "Use `swift-docc-pro` to review the public API in `MyPackage`."
-- "Use `swift-error-handling-pro` to review my typed throws migration."
-- "Use `swift-logging-pro` to audit `Logger` usage across the project."
-- "Use `swift-memory-storage-pro` to find why the photo grid gets killed on older iPhones."
-- "Use `android-memory-storage-pro` to audit what the app writes to disk and backs up."
-- "Use `app-intents-pro` to review our App Intents and make the shopping-list actions work with Siri."
-- "Use `xcode-security-pro` to audit our build settings and plan turning on Enhanced Security."
-- "Use `instruments-profiling-pro` to find out why the feed hangs on first launch."
-- "Use `motion-design-pro` to define our motion tokens and write the motion spec with our designer."
-- "Use `motion-design-pro` to review the onboarding animations for timing, consistency, and Reduce Motion."
-- "Use `swift-package-pro` to review `Package.swift` and the public API surface."
-- "Use `android-gradle-architecture-pro` to review my multi-module Gradle setup."
-- "Use `xml-to-compose-migration-pro` to plan migrating `SettingsFragment` to Compose."
-- "Use `r8-shrink-pro` to audit my `proguard-rules.pro` for the next release."
-
-Each produces a file-by-file findings report with before/after fixes and a prioritized summary.
-
-## Using AI to install
-
-`install.sh` is a shell command — every coding agent can run it. Agents operating this package should read [`AGENTS.md`](AGENTS.md) — a terse, machine-first guide to the create / adopt / update workflow. If you'd rather *ask* the agent to bootstrap your repo than run the script by hand, four things make that work well:
-
-1. **Let the package do the analysis: `./install.sh recommend <dir>`.** This is the fastest path for an agent. Point it at any directory and it introspects the repo — managed-state, platform, Apple-language, and framework usage (`import FoundationModels` → `ai`, Core Data / SwiftData → `persistence`, Room → `persistence`, R8/ProGuard → `shrinking`, fastlane/CI → `deployment`, `*Repository` types → `architecture`, …) — then prints the **exact** create / adopt / upgrade command to run, with the reasoning behind each choice. Add `--json` for a machine-readable object (with a ready-to-exec `command` array) instead of prose. One call replaces the agent grepping the tree by hand.
-
-   ```bash
-   # Human-readable
-   /path/to/AppBootstrapAI/install.sh recommend ~/Projects/MyApp
-   # Machine-readable (the agent parses `command` / `preview_command`)
-   /path/to/AppBootstrapAI/install.sh recommend ~/Projects/MyApp --json
-   ```
-
-   The recommended flow for an agent is **`recommend` → run the suggested `--dry-run` preview → run the real command**.
-2. **Hand the agent this repo's URL and your project description.** Most agents need just enough context to pick the right flags. A prompt like *"Bootstrap this iOS+macOS app with AppBootstrapAI — Swift only, include the AI/Foundation Models category"* tells Claude / Cursor / Gemini / Kiro / Copilot what they need to know.
-3. **The agent can introspect the catalog before installing.** `./install.sh --list --features all` prints every rule and skill with its category and one-line description. Agents that read the output can recommend the right `--features` list for your project.
-4. **For agents that speak MCP** (Claude Code, Cursor, others with MCP client support), this repo ships an [MCP server](mcp-server/README.md) that exposes the installer as ten structured tools: **`recommend_setup`** (call first — analyze a dir → suggested command), `audit_project`, `list_categories`, `list_rules`, `list_skills`, `preview_install`, `install`, `preview_upgrade`, `preview_uninstall`, and `uninstall`. Wire it into your agent's MCP config and the agent runs the installer through a typed API rather than parsing shell output. It also ships `audit` and `sync_and_audit` prompts. See [`mcp-server/`](mcp-server/) for setup.
-5. **To audit a repo without installing**, ask any agent to *"use github.com/kelvinkosbab/AppBootstrapAI to audit this repo"*. It follows [`playbooks/audit.md`](playbooks/audit.md) and runs `install.sh audit <dir> --no-install-check`, which also knows the difference between a library (Swift package, Android library: store-only checks skipped, `swift-package-pro` / `android-gradle-architecture-pro` suggested) and an app. Nothing is written to the repo unless you ask.
-6. **To update and audit an existing project with any agent** (Claude, Gemini, Codex, …), type **`/appbootstrap-sync`** in the repo. The install writes that command for Claude Code (`.claude/commands/`), Cursor (`.cursor/commands/`), Copilot (`.github/prompts/`), and Gemini CLI (`.gemini/commands/`); it finds the bundle through `bundle` in the manifest and runs [`playbooks/sync-and-audit.md`](playbooks/sync-and-audit.md): sync the bundle, run `install.sh audit`, triage each finding against its rule, run the listed skills, and write a report. For one area, **`/appbootstrap-audit <topic>`** (for example `concurrency` or `accessibility`) runs a read-only audit that loads only that topic's rules and skills. `install.sh audit . --fail-on high` gates CI on the same checks; on an existing codebase, run `install.sh audit . --write-baseline --baseline-reason "…"` once so CI fails only on new findings.
-
-**Recommended prompts** (copy-paste-friendly for the agent of your choice):
-
-| Goal | Prompt |
-|------|--------|
-| Audit a repo without installing | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this package. Don't change any files."* |
-| Review and improve your AI rules | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit our CLAUDE.md, AGENTS.md, and Cursor rules and suggest improvements."* (`install.sh audit . --steering-only`) |
-| Audit one area only, reading just its rules and skills | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit only the concurrency safety of this repo."* (`/appbootstrap-audit concurrency` after an install, or `install.sh audit . --topic concurrency`; topics: concurrency, architecture, accessibility, ui, localization, testing, compliance, logging, docs, deployment, linting, memory, storage, intents, security, performance, motion) |
-| Bootstrap a new Apple SwiftUI app with the recommended set | *"Run `/path/to/AppBootstrapAI/install.sh . --platform apple` in this directory, then walk me through what landed."* |
-| Bootstrap an Android Compose app with everything | *"Run `/path/to/AppBootstrapAI/install.sh . --platform android --features all` and summarize the new files."* |
-| Pick categories interactively | *"Show me `./install.sh --list --features all`, then ask me which categories to install."* |
-| Cross-platform monorepo with specific features | *"Bootstrap this repo for both Apple (Swift) and Android. Include `core`, `testing`, `docs`, `concurrency`, `ui`, and `localization`."* |
-| Mixed-language Apple project (Swift + ObjC) | *"Run `./install.sh . --platform apple --apple-language both --features all`."* |
-
-Agents that run in a terminal context (Claude Code, Cursor's agent mode, Gemini CLI, Kiro, Codex CLI) execute the shell command directly. Agents without shell access (Copilot Chat, web Claude.ai) can produce the command for you to run.
-
-## Building with AI agents (after install)
-
-Installing the bundle is step one; the payoff is how your agent behaves while you build. A few habits get the most out of it:
-
-1. **Rules steer the agent's output — but most are review-time conventions, not compiler-enforced.** The agent writes to the rules automatically, yet several say so outright (*"enforced by review, not the compiler"*). Review what lands, and when the agent slips, *name the rule*: *"this violates `apple-swiftui-mvvm.md` — fix the ownership."* Citing the file points the agent at the exact text and it self-corrects.
-2. **Invoke the deep-review skills explicitly — don't wait for auto-fire.** Skills (`.claude/skills/`) are on-demand review agents that load only when asked. After the agent writes a feature, request the matching review: *"Use `swiftui-pro` to review `SettingsView.swift`"*, *"Use `android-compose-pro` to check `FeedScreen.kt` for recomposition bugs"*, *"Use `swift-accessibility-pro` to audit the onboarding screens before we claim VoiceOver support on the App Store."* Each produces a file-by-file findings report with before/after fixes.
-3. **Skills are Claude-only; other agents get the rules as steering.** Cursor, Copilot, Gemini, Codex, and Kiro receive the rules in their native format (see [Using with non-Claude AI agents](#using-with-non-claude-ai-agents)) but not the deep-review skills. With those agents, ask for a manual pass instead: *"Review this against `.claude/rules/android-coroutines-best-practices.md`."*
-4. **Keep sessions scoped — it's correctness *and* token economy.** Rules are glob-scoped, so only the ones matching the files you're touching load into context. A focused session (one subsystem, its relevant rules) gives sharper steering and a smaller bill than a sprawling one. More in [Saving AI tokens](#saving-ai-tokens).
-5. **Put project-specifics in `CLAUDE.md`.** The agent reads it first. The module graph, build commands, and gotchas you record there compound with the bundle's rules — and a pattern you catch yourself correcting twice belongs in a new `.claude/rules/<name>.md`.
-6. **Stay current.** New platform APIs land in the rules each Xcode / AGP cycle. Run `upgrade` periodically so the steering reflects them — see [Upgrading an existing install](#upgrading-an-existing-install).
-
-## Upgrading an existing install
-
-Once a repo has run `install.sh`, the bundle keeps evolving — new rules ship, existing rules get tightened, skills gain references. The `--upgrade` flow lets you see what would change and apply it surgically, without ever touching files you've customized.
-
-```bash
-# 1. Plan — read-only preview. Inherits --platform / --apple-language / --features from the manifest.
-/path/to/AppBootstrapAI/install.sh /your/repo --upgrade
-
-# 2. Apply — execute the safe rows. Conflicts default to SKIP; orphans stay.
-/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --apply
-
-# 3. Apply + opt into a new feature category (e.g., adopt Foundation Models support post-iOS-26).
-/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --features recommended,ai --apply
-
-# 4. Preview apply without writing — combines --apply with --dry-run.
-/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --apply --dry-run
-
-# 5. Aggressive: overwrite locally-edited files where the bundle also changed (loses local edits).
-/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --apply --force-conflicts
-
-# 6. Aggressive: delete files retired upstream or no longer in --features.
-/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --apply --prune
-```
-
-The plan classifies every tracked file:
-
-- **Up to date** — installed hash matches the bundle. No action.
-- **Safe to update** — bundle has new content; you haven't touched the file locally. `--apply` overwrites.
-- **Locally edited** — you modified the file after install; bundle unchanged. The upgrade always leaves these alone.
-- **Conflict** — both local edits and upstream changes since install. Default is skip-with-warning; `--force-conflicts` overwrites.
-- **Out of scope** — file was installed under one `--features` set but isn't part of the current selection. Manifest tracks it; `--prune` removes it.
-- **Retired upstream** — bundle no longer ships this file. Listed but not auto-deleted; `--prune` removes it.
-- **Would add** — new files in the bundle that fit your current `--features` and aren't in the manifest yet. `--apply` writes them.
-
-The diff is **3-way per file**: installed hash (what we wrote at install), current disk hash (what's there now), and bundle hash (what the bundle ships today). That's how the plan can tell *"you've edited this"* apart from *"someone re-ran an installer."*
-
-### Migrating from older manifests
-
-Installs from before manifest schema v2 don't have content hashes recorded, so the diff has no baseline. The migration is a single command — no files are touched, only the manifest is rewritten:
-
-```bash
-/path/to/AppBootstrapAI/install.sh /your/repo --upgrade --apply --migrate-manifest
-```
-
-After migration, future `--upgrade` runs can do real 3-way diffs. Note: v1 `mcps_requested` is not carried over; re-add MCPs via `--with-mcps` if needed.
-
-### MCP entries get the same 3-way diff
-
-MCP recipes installed via `--with-mcps` are tracked in the manifest with their `config_sha256`. `--upgrade` runs the same per-entry classification on `.claude/settings.local.json`:
-
-- **Up to date** — recipe config matches what's in `settings.local.json` and the manifest.
-- **Safe to update** — recipe shipped a new config; you haven't touched the entry. `--apply` overwrites `mcpServers.<name>`.
-- **Locally edited** — you customized the entry (changed args, added env vars). Always left alone.
-- **Conflict** — both you AND the recipe diverged from the original. Default skip; `--force-conflicts` overwrites.
-- **Orphan** — recipe no longer ships in the bundle, OR the entry vanished from `settings.local.json`. `--prune` drops the manifest record (and removes the `mcpServers.<name>` entry if it still exists).
-
-The hash is computed over the recipe's `config` object with stable sort + compact separators, so reformatting `mcp-recipes/<name>.json` doesn't drift the hash.
-
-### Renames
-
-When the bundle renames a rule or skill upstream, the rename is tracked in [`RENAMES.md`](RENAMES.md) at the bundle root. The upgrade plan folds the migration into a single rename row instead of "deleted X, added Y." Two forms:
-
-- **Rule renames** (file-level): `apple-old.md → apple-new.md`. Resolves to `.claude/rules/<old>.md` → `.claude/rules/<new>.md`.
-- **Skill renames** (directory-level): `swift-old-pro → swift-new-pro`. Resolves to a path-prefix rewrite of every file under the old skill dir.
-
-Renames classify as **safe** (current matches installed or bundle — moving the file loses nothing) or **conflict** (you have uncommitted edits at the old path, OR the new path already exists from a user-authored file). Default skip on conflict; `--force-conflicts` applies anyway.
-
-### Where the bundle changed: the GitHub compare URL
-
-When the upgrade plan detects that the bundle's current `git rev-parse HEAD` differs from what the manifest recorded at install time, and the bundle's `origin` remote is a GitHub URL, the header prints a compare link:
-
-```
-  installed bundle commit: 6a1afb1461fb
-  current bundle commit:   30ee587195be
-  changes between them:    https://github.com/kelvinkosbab/AppBootstrapAI/compare/6a1afb14...30ee5871
-```
-
-Click through to see exactly what shipped between your install and now. Falls back gracefully when the bundle isn't a git checkout, has no GitHub remote, or both commits resolve to "unknown".
-
-### Things the upgrade flow won't do
-
-- **`CLAUDE.md`** is never auto-touched. The plan surfaces "template advanced upstream" when relevant; the diff is for you to apply by hand. `CLAUDE.md` fills with project-specific content fast, so auto-merge is dangerous.
-- **`.claude/settings.json`** gets the same treatment for the same reason — you probably added permissions, tweaked allowlists. The plan informs; you merge.
-- **Non-`mcpServers` keys in `settings.local.json`** are preserved across upgrade-apply. Only `mcpServers.<name>` entries listed in the manifest's `mcps_installed` get touched.
-- **MCP additions** — `--upgrade` doesn't auto-add new MCP recipes. Adding an MCP is always explicit via `--with-mcps <name>`.
-
-## Removing the install
-
-```bash
-# Default — delete every tracked file that hasn't been edited; keep CLAUDE.md / settings.json.
-/path/to/AppBootstrapAI/install.sh /your/repo --uninstall
-
-# Preview without writing
-/path/to/AppBootstrapAI/install.sh /your/repo --uninstall --dry-run
-
-# Aggressive: also delete locally-edited tracked files
-/path/to/AppBootstrapAI/install.sh /your/repo --uninstall --force-conflicts
-
-# Aggressive: also delete CLAUDE.md + settings.json
-/path/to/AppBootstrapAI/install.sh /your/repo --uninstall --purge
-
-# Leave settings.local.json MCP entries alone (don't touch your local MCP config)
-/path/to/AppBootstrapAI/install.sh /your/repo --uninstall --keep-mcps
-```
-
-Classifications:
-
-- **Will delete (unchanged since install)** — current hash matches what we wrote → safe to remove.
-- **Locally edited — keep unless `--force-conflicts`** — current hash differs from installed hash. Skipping protects work you did.
-- **User-protected — keep unless `--purge`** — `CLAUDE.md` and `.claude/settings.json` are always skipped by default (you almost certainly customized them).
-- **MCP entries** — same 3-way safety: removed if `settings.local.json` matches the install-time hash, skipped otherwise unless `--force-conflicts`. Pass `--keep-mcps` to leave them all.
-
-What `--uninstall` always does (regardless of flags):
-
-- Removes the `# --- AppBootstrapAI (...) ---` block from `.gitignore`.
-- Deletes the manifest at `.claude/.appbootstrap-manifest.json`.
-- Cleans up empty parent directories under `.claude/` only — never touches your project root.
-- Preserves every non-`mcpServers` key in `.claude/settings.local.json` (your permissions, custom fields, etc.).
-
-## Saving AI tokens
-
-AI agents pay for every token of context they load. This bundle has a few levers to keep your context bill small without losing functionality. The savings are mostly small individually but compound across long sessions.
-
-### At install time
-
-- **Let auto-detect pick `--platform` for you.** Run `./install.sh .` with no `--platform` flag from inside your project and the installer sniffs the directory: `Package.swift` / `*.xcodeproj` → apple; `build.gradle*` / `gradlew` → android; both present → both; neither → falls back to `both`. The chosen platform + matched signals print in the install header so you can verify. A Swift-only iOS repo lands with just Apple rules in `.claude/rules/`, no Android cruft.
-- **Override `--platform` only when detection is wrong.** Auto-detect picks based on what's in the target dir today; an explicit `--platform apple|android|both` always wins. Use this when bootstrapping a fresh empty repo (otherwise the fallback is `both`, which is too broad if you know it's iOS-only).
-- **Stick to `--features recommended` (default).** Specialized categories — `persistence` (Core Data), `ai` (Foundation Models), `migration` (XML→Compose), `shrinking` (R8) — only load when you opt in. If your app doesn't use Core Data, the `coredata-swift6-pro` skill is wasted catalog space.
-- **Pure-Swift project? Keep `--apple-language swift` (the default).** That skips the two `apple-objc-*` rules. Only switch to `both` if you have genuine `.h`/`.m`/`.mm` files; switch to `objc` for legacy ObjC-only codebases.
-- **Not a visionOS app? The default already excludes it.** `--apple-platforms` defaults to `ios,macos,tvos,watchos` — so the visionOS rule stays out unless you name `visionos` (or pass `--features …,spatial`). Building for visionOS? `--apple-platforms ios,visionos` pulls it in. **iOS-only?** `--apple-platforms ios` also drops the touch-on-Mac rule (`apple-mac-touch.md`). Every other Apple rule is universal across iOS/macOS/tvOS/watchOS.
-- **`--with-mcps` only what you'll use this week.** Each MCP entry adds tool metadata to the agent's catalog. If you're not actively using Firebase MCP, don't install it.
-
-When you over-broaden any of these, `install.sh` prints a "Token-saving tips" block at the end suggesting the tighter flag. That's the install-time feedback loop.
-
-### During development
-
-- **Be specific in prompts.** *"Review `Sources/Networking/Client.swift`"* loads one file. *"Review the codebase"* invites the agent to search the whole tree. The first prompt is usually 10–100x cheaper.
-- **Invoke skills by name.** *"Use `swift-concurrency-pro` to review X.swift"* loads that one skill's references. Asking general questions can trigger speculative skill loads — sometimes several at once.
-- **Truncate build-log paste-ins.** When a build fails, paste the failing 20–50 lines plus the function signature, not 500 lines of unrelated warnings. (Documented in detail in `apple-objc-best-practices.md` for the mixed-language case; same principle for any language.)
-- **Audit one area at a time.** `/appbootstrap-audit <topic>` (or `install.sh audit . --topic <topic>`) loads only that topic's rules and skills instead of the whole bundle.
-- **One skill at a time.** Running multiple deep-review skills back-to-back in the same turn forces the agent to hold all of their reference docs in context simultaneously. Sequence them across turns.
-
-### Long-running
-
-- **Keep your project's `CLAUDE.md` focused.** It loads on every session. Stale sections and aspirational content are pure context tax — prune ruthlessly.
-- **Periodically run `./install.sh --list`** to see what's installed vs. what's available. If you've stopped using a category (e.g., you've fully migrated off XML→Compose), re-run install without it to drop the `migration` rules and `xml-to-compose-migration-pro` skill.
-- **Use the MCP server for agent-driven installs.** If you're asking an agent to bootstrap a new repo, the [MCP server](mcp-server/README.md) returns structured JSON (`list_categories`, `list_rules`, `list_skills`) — cheaper for the LLM to consume than parsing the catalog's plain-text format.
-
-### What this won't save
-
-To set expectations honestly: scoping the install down won't dramatically cut your bill if your prompts are already loose. Rules with `paths:` only attach to context when matching files are in the conversation — Android rules in an iOS-only repo are effectively dormant whether or not they're installed. The bigger wins come from prompt discipline and explicit skill invocation, not from install-flag micro-optimization.
-
-## Using with non-Claude AI agents
-
-`install.sh` has a `--agents` flag for picking which agent(s) you want — additive, default `claude`. The bundle generates the right file shape for each agent from the same source `.claude/rules/`.
-
-```bash
-# Default — Claude Code only (today's behavior)
-/path/to/AppBootstrapAI/install.sh .
-
-# GitHub Copilot — writes .github/instructions/<name>.instructions.md per rule (applyTo-scoped)
-/path/to/AppBootstrapAI/install.sh . --agents copilot
-
-# Cursor — writes per-rule .cursor/rules/<name>.mdc files
-/path/to/AppBootstrapAI/install.sh . --agents cursor
-
-# Kiro — writes per-rule .kiro/steering/<name>.md files
-/path/to/AppBootstrapAI/install.sh . --agents kiro
-
-# Mixed team — install for Claude + Copilot + Cursor in one go
-/path/to/AppBootstrapAI/install.sh . --agents claude,copilot,cursor
-
-# Everything — claude + copilot + cursor + gemini + codex + kiro
-/path/to/AppBootstrapAI/install.sh . --agents all
-```
-
-Per-agent file shape:
-
-| Agent  | Token     | File(s) written                       | Format                       |
-|--------|-----------|---------------------------------------|------------------------------|
-| Claude Code  | `claude`  | `.claude/rules/`, `.claude/skills/`, `.claude/settings.json`, `CLAUDE.md` | Native — per-rule files + skill directories |
-| GitHub Copilot | `copilot` | `.github/instructions/<name>.instructions.md`, `.github/copilot-instructions.md` | Per-rule [path-specific instructions](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions); each rule's `globs` becomes `applyTo` (brace lists expanded), and `copilot-instructions.md` is a short pointer |
-| Cursor | `cursor`  | `.cursor/rules/<name>.mdc`             | Per-rule files (1:1 with `.claude/rules/*.md`, just renamed) |
-| Gemini CLI | `gemini`  | `GEMINI.md`, `.claude/rules/`        | A short index (about 13 KB for an Apple install): each rule's paths and its 2 to 5 always-on musts (`must:` in the rule's frontmatter), plus which `.claude/rules/` file to read in full before editing a matching file |
-| Codex CLI / `AGENTS.md`-aware tools | `codex`   | `AGENTS.md`, `.claude/rules/`         | Same index as Gemini |
-| Kiro | `kiro`    | `.kiro/steering/<name>.md`           | Per-rule [steering files](https://kiro.dev/docs/steering/); each rule's `globs` becomes `inclusion: fileMatch` + `fileMatchPattern`, so a rule loads only when a matching file is open |
-
-**How it works:**
-
-- **Same source, multiple targets.** Every agent gets content derived from the same `.claude/rules/*.md` source-of-truth (gated by `--platform` / `--apple-language` / `--features`). Output is deterministic — the Gemini/Codex indexes and the per-rule files (Copilot with `applyTo`, Cursor `.mdc`, Kiro steering with its rewritten `inclusion`/`fileMatchPattern` frontmatter) all produce the same bytes given the same inputs — so `--upgrade` can diff cleanly.
-- **Only matching rules load.** An always-loaded file is paid for on every request, so no agent gets the full rule set up front. Gemini and Codex have no path scoping, so their index always carries each rule's musts and relies on the agent reading the full rule for the rest; it's about 13 KB instead of the 180 KB the full rule text used to be.
-- **Skills are Claude-only.** Skills are procedural sub-agents that only run inside Claude Code. Non-Claude agents get rules only. If you want a skill's checklist in another agent's context, copy it into the relevant rule manually.
-- **Existing files are never overwritten on install.** If you already have `.github/copilot-instructions.md` or `GEMINI.md`, install skips and prints a notice. `--upgrade` does the 3-way diff like any other tracked file.
-- **`--upgrade --apply` opts in / out of agents.** Pass `--agents` on the command line to opt into a new agent (its files show up as additions). Pass `--agents <fewer>` + `--prune` to drop an agent (its files appear as orphans and get deleted).
-- **The manifest tracks per-agent.** `selection.agents_input` / `selection.agents_resolved` and per-file `type: agent-file-<name>` entries so the upgrade flow knows which files came from which agent.
-
-### Alternative: external sync tools
-
-If you'd rather keep a single source-of-truth and let another tool fan out to a wider set of agents (Cline, Goose, Roo, Windsurf, Amp, Antigravity, Factory Droid, etc.), point one of these at `.claude/`:
-
-| Tool | Approach |
-|------|----------|
-| **[`ruler`](https://github.com/intellectronica/ruler)** | Reads from a unified source (you can point it at `.claude/rules/`) and applies the same rules to every supported agent's expected path on `ruler apply`. Maintains the per-tool path matrix for you. |
-| **[`block/ai-rules`](https://github.com/block/ai-rules)** | Manages rules, commands, and skills across Claude, Cline, Codex, Copilot, Cursor, Firebender, Gemini, Goose, Kilocode, Roo. Installs via `curl` to `~/.local/bin/ai-rules`. |
-| **[`lbb00/ai-rules-sync`](https://github.com/lbb00/ai-rules-sync)** | npm-installable CLI; similar fan-out model. |
-
-Use a sync tool when you need agents that `install.sh --agents` doesn't cover, or when you want a single watch-and-rebuild loop instead of explicit `--upgrade --apply` runs.
-
-## Repo layout
-
-```
-.
-├── .claude/
-│   ├── rules/
-│   │   ├── android-accessibility-best-practices.md    # Android a11y
-│   │   ├── android-ai-best-practices.md               # Gemini Nano / Firebase AI Logic (ai)
-│   │   ├── android-compose-best-practices.md          # Jetpack Compose patterns
-│   │   ├── android-coroutines-best-practices.md       # Structured concurrency
-│   │   ├── android-design-system.md                   # M3 AppTheme, tokens, core components (ui)
-│   │   ├── android-documentation-strategy.md          # KDoc strategy + Dokka
-│   │   ├── android-gradle-conventions.md              # Gradle DSL, version catalogs, modules
-│   │   ├── android-iconography.md                     # Material Symbols, adaptive/themed launcher icons (ui)
-│   │   ├── android-large-screen-best-practices.md     # Tablets / foldables / desktop windows (ui, tablet-gated)
-│   │   ├── android-linting-strategy.md                # ktlint + detekt + Android Lint (linting)
-│   │   ├── android-localization-best-practices.md     # strings.xml, plurals, RTL
-│   │   ├── android-logging-strategy.md                # Timber, level discipline, release-stripping (logging)
-│   │   ├── android-modular-architecture.md            # Thin :app over feature/core modules (packaging)
-│   │   ├── android-memory-management.md               # Leaks, bitmaps, caches, onTrimMemory (memory-storage)
-│   │   ├── android-motion-design.md                   # Motion tokens, MotionScheme, reduced motion, Lottie (ui)
-│   │   ├── android-mvvm-architecture.md               # MVVM / UDF, UiState, Route vs Screen (architecture)
-│   │   ├── android-play-beta-deployment.md            # Play beta tracks, signing, CI (deployment)
-│   │   ├── android-project-rules.md                   # Kotlin/Compose/MVVM/Hilt
-│   │   ├── android-regional-compliance.md             # Per-country Play / China store rules (compliance)
-│   │   ├── android-repository-pattern.md              # Data layer, offline-first repositories (architecture)
-│   │   ├── android-storage-management.md              # Scoped storage, DataStore, backup rules (memory-storage)
-│   │   ├── android-testing-strategy.md                # Android test strategy + JaCoCo
-│   │   ├── apple-accessibility-best-practices.md      # SwiftUI a11y
-│   │   ├── apple-adaptive-layout.md                   # Resizable apps / iPhone Duo (ui)
-│   │   ├── apple-app-intents.md                       # App Intents, App Shortcuts, Siri tools (intents)
-│   │   ├── apple-build-security.md                    # Security warnings, Enhanced Security, bounds safety (security)
-│   │   ├── apple-design-system.md                     # Tokens, component styles, Liquid Glass (ui)
-│   │   ├── apple-documentation-strategy.md            # DocC strategy + deprecation
-│   │   ├── apple-foundation-models.md                 # On-device LLM patterns
-│   │   ├── apple-iconography.md                       # SF Symbols facade, Icon Composer app icons (ui)
-│   │   ├── apple-infoplist-localization.md            # Info.plist strings (localization)
-│   │   ├── apple-linting-strategy.md                  # SwiftLint + formatter (linting)
-│   │   ├── apple-localization-best-practices.md       # String Catalogs, plurals, RTL
-│   │   ├── apple-logging-strategy.md                  # os.Logger, privacy markers, levels (logging)
-│   │   ├── apple-mac-touch.md                         # Touchscreen Mac / Sidecar touch (ui, macos-gated)
-│   │   ├── apple-memory-management.md                 # Retain cycles, image decode size, jetsam (memory-storage)
-│   │   ├── apple-motion-design.md                     # Motion tokens, springs, Reduce Motion, Lottie (ui)
-│   │   ├── apple-modular-architecture.md              # Thin app shell + fat local SPM package
-│   │   ├── apple-objc-accessibility-best-practices.md # UIKit a11y in ObjC
-│   │   ├── apple-objc-best-practices.md               # Modern Objective-C
-│   │   ├── apple-repository-pattern.md                # Data layer, protocol repositories (architecture)
-│   │   ├── apple-spm-package-conventions.md           # Package.swift authoring
-│   │   ├── apple-regional-compliance.md               # Per-storefront App Store rules (compliance)
-│   │   ├── apple-storage-management.md                # Directories, backup, Keychain, free space (memory-storage)
-│   │   ├── apple-swift6-strict-concurrency.md         # Swift 6.4 strict concurrency (Xcode 27)
-│   │   ├── apple-swiftui-mvvm.md                      # SwiftUI MVVM conventions
-│   │   ├── apple-testflight-deployment.md             # TestFlight, ASC API, signing, CI (deployment)
-│   │   ├── apple-testing-strategy.md                  # Apple test strategy + coverage
-│   │   ├── apple-visionos-best-practices.md           # visionOS / RealityKit / spatial UX (spatial)
-│   │   ├── ai-steering-files.md                       # CLAUDE.md / AGENTS.md / agent rules: scope, size, truth (core)
-│   │   ├── concise-comments-and-commits.md            # terse comments + commit messages (core)
-│   │   ├── cross-platform-development.md              # Apple + Android together with AI (core, --platform both)
-│   │   └── project-documentation.md                   # README/CHANGELOG/ADR/inline comments
-│   ├── skills/                        # On-demand skills
-│   │   ├── android-accessibility-pro/          # TalkBack / keyboard / contrast audit (ui)
-│   │   ├── android-adaptive-layout-pro/        # Large-screen / foldable readiness audit (ui, tablet-gated)
-│   │   ├── android-compose-pro/                # Compose stability / effects / lazy perf (ui)
-│   │   ├── android-coroutines-pro/             # Coroutines & Flow correctness (concurrency)
-│   │   ├── android-design-system-pro/          # Icons + theme + components bootstrap/audit (ui)
-│   │   ├── android-gradle-architecture-pro/    # NiA-style conventions + version catalogs
-│   │   ├── android-memory-storage-pro/         # Leak, footprint, and storage audit (memory-storage)
-│   │   ├── android-modularization-pro/         # Plan/migrate/audit a multi-module app (packaging)
-│   │   ├── app-intents-pro/                    # App Intents + Siri tools write/review (intents)
-│   │   ├── coredata-swift6-pro/
-│   │   ├── instruments-profiling-pro/          # xctrace profiling + hang triage (performance)
-│   │   ├── cross-platform-parity-pro/          # Port features, audit drift, set up a two-platform repo (both)
-│   │   ├── motion-design-pro/                  # Motion system, spec, patterns, review (ui; either platform)
-│   │   ├── r8-shrink-pro/                      # ProGuard/R8 rules
-│   │   ├── store-compliance-pro/               # Regional store-rejection audit + response (compliance)
-│   │   ├── swift-concurrency-pro/
-│   │   ├── swift-design-system-pro/            # Icons + tokens + components bootstrap/audit (ui)
-│   │   ├── swift-docc-pro/
-│   │   ├── swift-error-handling-pro/
-│   │   ├── swift-logging-pro/
-│   │   ├── swift-memory-storage-pro/           # Leak, footprint, and storage audit (memory-storage)
-│   │   ├── swift-modularization-pro/           # Plan/migrate/audit a local SPM package (packaging)
-│   │   ├── swift-package-pro/
-│   │   ├── swift-testing-pro/
-│   │   ├── swift-accessibility-pro/            # VoiceOver / keyboard / contrast audit (ui)
-│   │   ├── swift-adaptive-layout-pro/          # Resizable / iPhone Duo readiness audit (ui)
-│   │   ├── swiftdata-pro/                      # SwiftData review (persistence)
-│   │   ├── xcode-security-pro/                 # Build-setting + Enhanced Security audit (security)
-│   │   ├── swiftui-pro/
-│   │   └── xml-to-compose-migration-pro/       # XML/Fragment → Compose migration
-│   └── settings.json                  # Baseline permissions
-├── templates/
-│   ├── CLAUDE.template.apple.md       # Starter for Apple-only projects
-│   ├── CLAUDE.template.android.md     # Starter for Android-only projects
-│   ├── CLAUDE.template.md             # Starter for cross-platform projects
-│   └── Package.template.swift         # Starter Package.swift with makeTargets() helper
-├── scripts/                           # Standalone repo tools (run from the bundle, not installed)
-│   └── scaffold-spm-package.sh        # Generate a KozBon-style local SPM package skeleton
-├── mcp-recipes/                       # Recipes for --with-mcps (one JSON per supported MCP)
-│   ├── xcodebuildmcp.json             # Apple
-│   ├── xcode-native.json              # Apple (Xcode 26.3+ first-party)
-│   ├── android-mcp-server.json        # Android
-│   ├── firebase.json                  # Cross-platform (official Google MCP)
-│   └── sentry.json                    # Cross-platform (official hosted Sentry MCP)
-├── mcp-server/                        # MCP server wrapping install.sh as typed tools
-│   ├── src/server.ts                  # 10 tools: recommend_setup, list_*, preview_install, install, preview_upgrade, audit_project, preview/uninstall
-│   ├── package.json
-│   └── README.md                      # MCP setup instructions for Claude Code / Cursor / others
-├── install.sh                         # CLI dispatcher (~450 lines): args, validation, mode dispatch
-├── lib/                               # install.sh's sourced modules (keeps the entry point small)
-│   ├── help.txt                       # Full --help text (cat'd by the -h/--help handler)
-│   ├── predicates.sh                  # file_category, should_install_*, sha256, agent-file generators
-│   ├── detect_platform.sh             # --platform auto-detection from target-dir signals
-│   ├── list_modes.sh                  # --list and --list-mcps handlers
-│   ├── install_mode.sh                # the install path (skills, rules, agents, gitignore, manifest)
-│   ├── install_mcps.sh                # --with-mcps merge wrapper (calls mcp_merge.py)
-│   ├── upgrade_mode.sh                # --upgrade bash wrapper (calls upgrade.py)
-│   ├── upgrade.py                     # Python: upgrade plan/apply executor (3-way diff)
-│   ├── uninstall.py                   # Python: --uninstall executor
-│   ├── mcp_merge.py                   # Python: MCP merge into settings.local.json
-│   ├── inherit_selection.py           # Python: read selection fields from a manifest
-│   └── recommend.py                   # Python: `recommend` — analyze a dir → suggested command
-├── AGENTS.md                          # How an AI agent should operate this package (recommend → preview → run)
-├── RENAMES.md                         # Rule/skill rename map honored by --upgrade
-├── CHANGELOG.md                       # Keep-a-Changelog notable changes
-├── CLAUDE.md                          # This repo's own AI onboarding
-├── LICENSE                            # MIT
-└── README.md
-```
-
-## Extending for your project
-
-See [CLAUDE.md](CLAUDE.md) for:
-
-- Writing new rules (`.claude/rules/<name>.md` with frontmatter `description`, `paths` + `globs`, and a 2–5 item `must:` list that Gemini and Codex always load). Keep each rule under 12 KB; move long material into a skill's `references/`.
-- Writing new skills (`.claude/skills/<name>/SKILL.md` + `references/` for deep context).
-- Recommended project-specific additions (swiftlint config, CI, localization).
+It reports rule hotspots (each mapped to the rule and skill that cover it) and
+reviews the repo's own AI steering files. Or ask any agent: *"Use
+github.com/kelvinkosbab/AppBootstrapAI to audit this repo."* It follows
+[`playbooks/audit.md`](playbooks/audit.md). After an install,
+`/appbootstrap-sync` updates and audits in one step, and
+`/appbootstrap-audit <topic>` audits one area. `install.sh audit . --fail-on high`
+gates CI on the same checks.
+
+## Documentation
+
+| Page | What's in it |
+|---|---|
+| [docs/catalog.md](docs/catalog.md) | Every rule and skill, by platform and category |
+| [docs/install-reference.md](docs/install-reference.md) | Every `install.sh` command and flag, with examples |
+| [docs/using-the-bundle.md](docs/using-the-bundle.md) | How rules and skills fire, installing with an AI agent, working with agents after install, saving tokens |
+| [docs/upgrading.md](docs/upgrading.md) | `upgrade` (3-way diff, renames, MCP entries) and `uninstall` |
+| [docs/agents.md](docs/agents.md) | Copilot, Cursor, Gemini, Codex, and Kiro file layouts |
+| [docs/mcp-tooling.md](docs/mcp-tooling.md) | Companion MCP servers for Apple, Android, and both |
+| [mcp-server/](mcp-server/README.md) | This repo's MCP server: the installer as typed tools |
+| [AGENTS.md](AGENTS.md) | The create / adopt / update workflow, for agents |
+| [CLAUDE.md](CLAUDE.md) | Repo layout and how to write new rules and skills |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes ([Keep a Changelog](https://keepachangelog.com)) |
 
 ## Roadmap
-
-**Shipped:** 53 rules (27 Apple, 22 Android, 4 cross-platform) and 30 skills (17 Apple, 10 Android, 3 cross-platform), all loaded equally by `paths` — there is no "primary" platform in the bundle's design.
 
 **Next — closing the day-one gaps for new app developers:**
 
@@ -791,10 +132,6 @@ See [CLAUDE.md](CLAUDE.md) for:
 - `android-testing-pro` (JUnit/MockK/Turbine/Compose-test review) to match `swift-testing-pro`.
 - Networking and release-readiness review skills; a day-one walkthrough from empty directory to first build.
 - Git task-switching + merged-branch cleanup shortcuts (rule + `scripts/` installer).
-
-## Changelog
-
-Notable changes are tracked in [`CHANGELOG.md`](CHANGELOG.md), following the [Keep a Changelog](https://keepachangelog.com) format the bundle's own `project-documentation.md` rule recommends.
 
 ## Credits
 

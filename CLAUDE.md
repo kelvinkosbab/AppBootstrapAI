@@ -721,6 +721,8 @@ Keep rules **prescriptive, not descriptive**. "Use `@MainActor` at the type leve
 
 Keep each rule under 12 KB (`validate-frontmatter.py` enforces it): a rule loads every time a matching file is open. When a topic needs more, keep the rule as a checklist and move the full text into the matching skill's `references/`, as `apple-adaptive-layout.md` does.
 
+After adding, renaming, or re-describing a rule or skill, run `python3 .github/scripts/generate-catalog.py` to refresh `docs/catalog.md` (the README links it for the full list and counts). CI fails when the catalog is stale.
+
 ## Writing your own skills
 
 Skills live in `.claude/skills/<skill-name>/` and must contain a `SKILL.md` with YAML frontmatter:
