@@ -22,17 +22,18 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 |------|---------------|
 | **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · motion design · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · memory + storage · App Intents + Siri (opt-in) · Xcode build security (opt-in) · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
 | **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · motion design · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · memory + storage · Gemini Nano / Firebase AI · Play beta · regional store compliance |
-| **Skills (Claude)** | 17 Apple + 10 Android + 3 cross-platform on-demand deep-review agents |
+| **Skills (Claude)** | 19 Apple + 10 Android + 6 cross-platform on-demand deep-review agents |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
 <details>
-<summary><strong>Apple — 27 rules + 17 skills</strong> (click to expand)</summary>
+<summary><strong>Apple — 27 rules + 19 skills</strong> (click to expand)</summary>
 
 - **`apple-swift6-strict-concurrency.md`** — Swift 6.4 strict concurrency (Xcode 27 toolchain; language mode `.v6`), enforced on every `.swift` file.
 - **`apple-accessibility-best-practices.md`** — VoiceOver, Dynamic Type, Reduce Motion for SwiftUI (including streaming AI text), plus Bluetooth assistive tech: Full Keyboard Access (`.focusable()`, focus rings), Switch Control scan order, braille-display label discipline, focus management (`@AccessibilityFocusState`), modern announcements (`AccessibilityNotification`), audio/hearing (no sound-only cues, captions), WCAG AA color/contrast (both themes, Increase Contrast, Smart Invert), and App Store Accessibility Nutrition Label honesty.
 - **`apple-foundation-models.md`** — Apple Foundation Models patterns: session ownership, two-level availability gating, streaming placeholder-then-mutate, `Task.isCancelled` discipline, protocol + mock + simulator testability.
+- **`foundation-models-pro` skill** *(ai)* — writes and reviews Foundation Models code against the full guidance behind the rule: session ownership, availability per unavailable reason, on-device / Private Cloud Compute / external model choice, streaming and cancellation, errors, protocol mocks, and VoiceOver for streamed output.
 - **`apple-swiftui-mvvm.md`** — SwiftUI MVVM conventions: when to extract a view model, `@State` vs `@Bindable` ownership, dependency plumbing, what stays on the View vs the view model, splitting large VMs across extension files.
 - **`apple-objc-best-practices.md`** — Modern Objective-C for legacy / mixed-language codebases: ARC discipline, nullability, lightweight generics, `instancetype`, designated initializers, modern literals/blocks, Swift bridging-header conventions.
 - **`apple-objc-accessibility-best-practices.md`** — UIKit accessibility in Objective-C: `accessibilityLabel` / `accessibilityHint` / `accessibilityTraits` discipline, `accessibilityIdentifier` vs `accessibilityLabel`, Dynamic Type via `preferredFontForTextStyle:`, `UIAccessibilityIsReduceMotionEnabled()`, VoiceOver announcements (`UIAccessibilityPostNotification`), modal-focus management (`accessibilityViewIsModal`), custom-action support, Full Keyboard Access + Switch Control via the focus system (`canBecomeFocused`, `accessibilityRespondsToUserInteraction`), braille-friendly labels, announcement priority (`UIAccessibilitySpeechAttributeAnnouncementPriority`), and WCAG AA color/contrast (semantic colors, Darker System Colors, `shouldDifferentiateWithoutColor`, Smart Invert).
@@ -51,6 +52,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`apple-logging-strategy.md`** *(logging)* — `Logger` / `OSLog` over `print` / `NSLog`, subsystem/category conventions (one `Logger` per category), privacy markers (`.public` / `.private` / `.private(mask: .hash)` — the part people get wrong), log levels (debug/info/notice/error/fault) and their persistence behavior, lazy `@autoclosure` interpolation, signposts for perf, what never to log (secrets/PII/bodies), retrieving logs via Console / `log` CLI / `OSLogStore`. Complements the `swift-logging-pro` skill.
 - **`apple-regional-compliance.md`** *(compliance)* — region-specific App Store rules: storefront availability as a deliberate decision, China mainland (ICP filing, generative-AI filing, no third-party AI brand names like ChatGPT in the UI or metadata, NPPA game licenses, CallKit, maps), EU DSA trader status and other regional requirements, third-party trademarks and 5.1.2(i) AI consent everywhere, one `RegionPolicy` gated on `Storefront.countryCode` (alpha-3, never `Locale`), neutral metadata per storefront, answering a regional rejection, and a `docs/compliance/regions.md` register. Written after KozBon's China rejection over ChatGPT mentions.
 - **`apple-visionos-best-practices.md`** *(spatial)* — visionOS: scene types (Window / Volume / ImmersiveSpace), immersion styles, spatial gestures + hover affordances, head-mounted-display accessibility (Reduce Motion as vestibular safety), RealityKit / ECS conventions, 90fps performance budgets, USDZ pipeline.
+- **`visionos-pro` skill** *(spatial)* — builds and reviews visionOS apps against the full guidance behind the visionOS rule: scene choice, immersive lifecycle and exits, entity input and hover, comfort and Reduce Motion, VoiceOver in 3D, RealityKit patterns, and 90 fps budgets.
 - **`apple-testflight-deployment.md`** *(deployment)* — shipping to TestFlight: `CFBundleVersion` monotonicity, App Store Connect API key (.p8) auth, `xcodebuild archive` → `-exportArchive` → `altool` flow, ExportOptions.plist gotchas, manual signing for CI, internal vs external tester groups, dSYM upload, ranked gotchas.
 - **`swift-concurrency-pro` skill** — reviews async/await, actors, structured concurrency.
 - **`swift-testing-pro` skill** — writes and migrates tests to Swift Testing.
@@ -116,7 +118,7 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 </details>
 
 <details>
-<summary><strong>Cross-platform — 4 rules + 3 skills</strong> (click to expand)</summary>
+<summary><strong>Cross-platform — 4 rules + 6 skills</strong> (click to expand)</summary>
 
 - **`concise-comments-and-commits.md`** *(core)* — fires on all Swift/Kotlin/ObjC source: in-code comments default to *none* (write only what code can't express — why, traps, ticket refs; never narration, diff commentary, or commented-out code), and commit messages stay short (imperative ≤72-char subject; body only when the why isn't in the diff — never file-by-file inventories or process reports). Aimed squarely at AI-assistant verbosity.
 - **`ai-steering-files.md`** *(core)* — fires on `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Copilot / Cursor / Kiro rules, and `.claude/` rules, skills, and settings: what earns a place (working commands, the module map, project-specific decisions, gotchas) and what doesn't (generic advice, restated lint or bundle rules, secrets), the ~300-line budget for always-loaded files, per-agent path scoping, one source across agents, keeping paths and commands true, minimal committed permissions, and the order to improve an existing set in. `install.sh audit` checks a repo's steering files against it.
@@ -124,6 +126,9 @@ The 30-second view. Expand any section below for the full rule-by-rule detail, o
 - **`cross-platform-parity-pro` skill** *(core; `--platform both`)* — ports a feature from one platform to the other (spec → reference behavior → idiomatic target code → verify both), audits drift with scripts that diff string keys, icon vocabularies, analytics events, flags, and deep links, and sets up the repo: root + per-platform `CLAUDE.md`, `apple-engineer` / `android-engineer` subagents, shared-contract generation, PR template, CI. Includes a Swift ↔ Kotlin / SwiftUI ↔ Compose concept map and a Kotlin Multiplatform guide (share logic, never UI; a Swift adapter at the boundary).
 - **`store-compliance-pro` skill** *(compliance; Apple and/or Android)* — audits an app and its store listings for regional rejection risks: third-party AI brand mentions in strings and metadata, storefront gating (locale misuse, fail-open defaults, ungated shortcuts), consent-before-collection for Chinese Android stores, licensed categories, and a console checklist. Respond mode classifies a regional rejection, picks exclude / gate / license, sweeps the app and listing, and drafts the Resolution Center reply and review notes.
 - **`motion-design-pro` skill** *(ui; Apple and/or Android)* — designs, specs, builds, and reviews UI motion for designers and developers alike: a motion personality and token set for both platforms, the three pillars (intent, narrative, craft), timing and easing tables with SwiftUI and Compose spring mappings, entrance / feedback / loading / success / error / choreography recipes, a `docs/design/motion.md` spec template, Lottie / dotLottie handoff rules, and a review checklist with smells and fixes. Adapted from the LottieFiles motion design skill.
+- **`linting-pro` skill** *(linting; Apple and/or Android)* — sets up, adopts, and reviews SwiftLint with one Swift formatter, and ktlint + detekt + Android Lint: config files, high-value opt-in and analyzer rules, baselines, scoped suppressions, the fix → tune → suppress → disable triage order, and blocking CI gates. Holds the detail behind the two linting rules.
+- **`localization-pro` skill** *(localization; Apple and/or Android)* — audits hardcoded and concatenated strings, plurals, format arguments, locale-aware formatting, right-to-left layout, and translator comments, with the full String Catalog / typed facade and `strings.xml` guidance behind the two localization rules.
+- **`beta-deployment-pro` skill** *(deployment; Apple and/or Android)* — sets up and reviews TestFlight and Play testing-track pipelines: CI build numbers, API keys and service accounts, signing, export and AAB upload, dSYM and `mapping.txt` upload, privacy manifests, age assurance, Data safety, and ranked upload-error fixes, with a sample workflow per platform.
 - **`project-documentation.md`** — README structure, [Keep a Changelog](https://keepachangelog.com) format, `CONTRIBUTING.md` essentials, ADR conventions (`docs/adr/####-title.md`, immutable once accepted), inline-comment philosophy (*why* not *what*), and link-rot defenses (pinned versions, permalinked source). Scoped to `README.md` / `CHANGELOG.md` / `CONTRIBUTING.md` / `docs/**/*.md`.
 
 </details>
@@ -711,8 +716,12 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── android-memory-storage-pro/         # Leak, footprint, and storage audit (memory-storage)
 │   │   ├── android-modularization-pro/         # Plan/migrate/audit a multi-module app (packaging)
 │   │   ├── app-intents-pro/                    # App Intents + Siri tools write/review (intents)
+│   │   ├── beta-deployment-pro/                # TestFlight / Play beta pipelines + upload triage (deployment; either platform)
 │   │   ├── coredata-swift6-pro/
+│   │   ├── foundation-models-pro/              # Foundation Models write/review (ai)
 │   │   ├── instruments-profiling-pro/          # xctrace profiling + hang triage (performance)
+│   │   ├── linting-pro/                        # Linter + formatter setup and triage (linting; either platform)
+│   │   ├── localization-pro/                   # Strings, plurals, formatters, RTL audit (localization; either platform)
 │   │   ├── cross-platform-parity-pro/          # Port features, audit drift, set up a two-platform repo (both)
 │   │   ├── motion-design-pro/                  # Motion system, spec, patterns, review (ui; either platform)
 │   │   ├── r8-shrink-pro/                      # ProGuard/R8 rules
@@ -729,6 +738,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   │   ├── swift-accessibility-pro/            # VoiceOver / keyboard / contrast audit (ui)
 │   │   ├── swift-adaptive-layout-pro/          # Resizable / iPhone Duo readiness audit (ui)
 │   │   ├── swiftdata-pro/                      # SwiftData review (persistence)
+│   │   ├── visionos-pro/                       # visionOS scenes, comfort, RealityKit, performance (spatial)
 │   │   ├── xcode-security-pro/                 # Build-setting + Enhanced Security audit (security)
 │   │   ├── swiftui-pro/
 │   │   └── xml-to-compose-migration-pro/       # XML/Fragment → Compose migration
@@ -782,7 +792,7 @@ See [CLAUDE.md](CLAUDE.md) for:
 
 ## Roadmap
 
-**Shipped:** 53 rules (27 Apple, 22 Android, 4 cross-platform) and 30 skills (17 Apple, 10 Android, 3 cross-platform), all loaded equally by `paths` — there is no "primary" platform in the bundle's design.
+**Shipped:** 53 rules (27 Apple, 22 Android, 4 cross-platform) and 35 skills (19 Apple, 10 Android, 6 cross-platform), all loaded equally by `paths` — there is no "primary" platform in the bundle's design.
 
 **Next — closing the day-one gaps for new app developers:**
 

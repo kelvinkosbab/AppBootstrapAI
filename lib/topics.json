@@ -50,7 +50,9 @@
       "apple": ["apple-localization-best-practices.md", "apple-infoplist-localization.md"],
       "android": ["android-localization-best-practices.md"]
     },
-    "skills": {}
+    "skills": {
+      "shared": ["localization-pro"]
+    }
   },
   "testing": {
     "description": "Test strategy, determinism, and coverage: Swift Testing and XCUITest, JUnit, Turbine, Compose UI tests.",
@@ -100,7 +102,8 @@
       "android": ["android-play-beta-deployment.md"]
     },
     "skills": {
-      "android": ["r8-shrink-pro"]
+      "android": ["r8-shrink-pro"],
+      "shared": ["beta-deployment-pro"]
     }
   },
   "linting": {
@@ -109,7 +112,9 @@
       "apple": ["apple-linting-strategy.md"],
       "android": ["android-linting-strategy.md"]
     },
-    "skills": {}
+    "skills": {
+      "shared": ["linting-pro"]
+    }
   },
   "memory": {
     "description": "Leaks and footprint: retain cycles, Context and View leaks, image decode size, bounded caches, memory warnings and onTrimMemory, jetsam and low-memory kills.",

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 17 Apple, 10 Android, 3 cross-platform — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 19 Apple, 10 Android, 6 cross-platform — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -74,9 +74,13 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-memory-storage-pro/         # Android: leak, footprint, and storage audit
 │   ├── android-modularization-pro/         # Android: plan/migrate/audit a multi-module app
 │   ├── app-intents-pro/                    # Apple: App Intents + Siri tools write/review
+│   ├── beta-deployment-pro/                # Both: TestFlight / Play beta pipelines + upload triage
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── cross-platform-parity-pro/          # Both: port features, audit drift, set up a two-platform repo
+│   ├── foundation-models-pro/              # Apple: Foundation Models write/review
 │   ├── instruments-profiling-pro/          # Apple: xctrace profiling + hang triage
+│   ├── linting-pro/                        # Both: SwiftLint / ktlint / detekt / Android Lint setup + triage
+│   ├── localization-pro/                   # Both: strings, plurals, formatters, RTL audit
 │   ├── motion-design-pro/                  # Both: motion system, designer spec, patterns, review
 │   ├── r8-shrink-pro/                      # Android: ProGuard/R8 rules
 │   ├── store-compliance-pro/               # Both: regional store-rejection audit + response
@@ -93,6 +97,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── swift-testing-pro/                  # Apple: Swift Testing code
 │   ├── swiftdata-pro/                      # Apple: SwiftData review
 │   ├── swiftui-pro/                        # Apple: SwiftUI review
+│   ├── visionos-pro/                       # Apple: visionOS scenes, comfort, RealityKit, performance
 │   ├── xcode-security-pro/                 # Apple: build-setting + Enhanced Security audit
 │   └── xml-to-compose-migration-pro/       # Android: XML/Fragment → Compose
 └── settings.json                  # Baseline Claude Code permissions (git, xcodebuild, gradlew, etc.)
