@@ -117,3 +117,6 @@ lint/reports/
 
 # Kotlin
 .kotlin/
+
+# Python bytecode
+__pycache__/
