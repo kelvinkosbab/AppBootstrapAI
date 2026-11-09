@@ -437,6 +437,17 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Changed
 
+- **`apple-swiftui-mvvm.md` and `apple-testing-strategy.md` are checklists
+  now.** Both load for every `.swift` file; their examples and reasoning moved
+  to `swiftui-pro/references/mvvm-conventions.md` and
+  `swift-testing-pro/references/test-strategy.md` (about 13 KB less context
+  per Swift session).
+- **`apple-testflight-deployment.md` no longer loads for `Info.plist`,
+  `project.pbxproj`, `.xcconfig`, or `.entitlements` edits**, only for
+  fastlane files, export options, and CI configs. Its sample workflow uses
+  `macos-26` and an exact Xcode 27 pin (it used `macos-14` with Xcode 15.4,
+  which can't build for the current SDK), and the build-number error code is
+  corrected.
 - **The shipped `.claude/settings.json` is narrower.** It no longer
   pre-approves `git commit`, `git push`, or every `gh` command; `gh` is limited
   to read verbs, and `swift` to `build`/`test`/`package` reads. A new `deny`
