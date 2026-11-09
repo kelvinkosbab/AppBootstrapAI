@@ -118,6 +118,7 @@ gates CI on the same checks.
 | [docs/upgrading.md](docs/upgrading.md) | `upgrade` (3-way diff, renames, MCP entries) and `uninstall` |
 | [docs/agents.md](docs/agents.md) | Copilot, Cursor, Gemini, Codex, and Kiro file layouts |
 | [docs/mcp-tooling.md](docs/mcp-tooling.md) | Companion MCP servers for Apple, Android, and both |
+| [docs/verify-on-sdk.md](docs/verify-on-sdk.md) | Beta SDK symbols the rules cite, to re-check at each Xcode release |
 | [mcp-server/](mcp-server/README.md) | This repo's MCP server: the installer as typed tools |
 | [AGENTS.md](AGENTS.md) | The create / adopt / update workflow, for agents |
 | [CLAUDE.md](CLAUDE.md) | Repo layout and how to write new rules and skills |
