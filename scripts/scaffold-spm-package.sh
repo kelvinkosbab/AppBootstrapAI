@@ -4,13 +4,15 @@
 #
 # Generates  <target>/<Name>/  with:
 #   - Package.swift          a makeTargets()-based manifest (one block per module)
-#   - <Module>/Sources/      a compiling placeholder per module
+#   - <Module>/Sources/      a compiling placeholder per module (AppCore also gets
+#                            a SwiftUI AppRootView for the app's @main to show)
 #   - <Module>/Tests/        a passing Swift Testing placeholder per module
 #   - .gitignore             .build/ .swiftpm/ .DS_Store
 #
 # A module named exactly "AppCore" becomes the umbrella: it depends on every
-# other module in the list, and the app target links its product. This mirrors
-# KozBon's KozBonPackages layout.
+# other module in the list and is the only product, so the app target links
+# AppCore and nothing else. Without AppCore, every module is a product. This
+# mirrors KozBon's KozBonPackages layout.
 #
 # NON-DESTRUCTIVE: never overwrites an existing file. Refuses to scaffold into an
 # existing package directory unless --force (and even then only fills in the
@@ -23,7 +25,11 @@
 #   <target-dir>            Repo to scaffold into (default: current directory).
 #   --name <PackageName>    Package dir + name (default: <repo-basename>Packages).
 #   --modules <csv>         Modules to create (default: Core,AppCore).
-#   --tools-version <x.y>   swift-tools-version (default: 6.0).
+#   --tools-version <x.y>   swift-tools-version (default: 6.0; 6.2 with --main-actor).
+#   --main-actor <csv|all>  Modules that default to @MainActor isolation
+#                           (.defaultIsolation(MainActor.self), Swift 6.2+). "all"
+#                           means every module except Core. Use it for UI and
+#                           feature modules in an app; keep Core nonisolated.
 #   --dry-run               Print the plan; write nothing.
 #   --force                 Fill missing files in an existing package dir.
 #   -h, --help              This help.
@@ -32,6 +38,7 @@
 #   scaffold-spm-package.sh .                       # ./<repo>Packages with Core + AppCore
 #   scaffold-spm-package.sh ~/Projects/MyApp --modules Core,Models,Storage,Feature,UI,AppCore
 #   scaffold-spm-package.sh . --name MyAppKit --dry-run
+#   scaffold-spm-package.sh . --modules Core,Feature,UI,AppCore --main-actor all
 
 set -euo pipefail
 
@@ -39,7 +46,8 @@ set -euo pipefail
 TARGET="."
 PKG_NAME=""
 MODULES_CSV="Core,AppCore"
-TOOLS_VERSION="6.0"
+TOOLS_VERSION=""
+MAIN_ACTOR_CSV=""
 DRY_RUN=0
 FORCE=0
 
@@ -61,6 +69,7 @@ while [[ $# -gt 0 ]]; do
         --name)          need_value "$@"; PKG_NAME="$2"; shift 2 ;;
         --modules)       need_value "$@"; MODULES_CSV="$2"; shift 2 ;;
         --tools-version) need_value "$@"; TOOLS_VERSION="$2"; shift 2 ;;
+        --main-actor)    need_value "$@"; MAIN_ACTOR_CSV="$2"; shift 2 ;;
         --dry-run)       DRY_RUN=1; shift ;;
         --force)         FORCE=1; shift ;;
         -h|--help)       usage 0 ;;
@@ -87,7 +96,6 @@ fi
 
 # --- Parse + validate modules ------------------------------------------------
 IFS=',' read -r -a MODULES <<< "$MODULES_CSV"
-[[ "${#MODULES[@]}" -ge 1 ]] || die "need at least one module (--modules)"
 
 declare -a CLEAN_MODULES=()
 for m in "${MODULES[@]}"; do
@@ -95,9 +103,51 @@ for m in "${MODULES[@]}"; do
     [[ -n "$m" ]] || continue
     [[ "$m" =~ ^[A-Za-z][A-Za-z0-9_]*$ ]] \
         || die "invalid module name '$m' (must be a Swift identifier)"
+    case "$m" in
+        Swift|Foundation|SwiftUI|UIKit|AppKit|Combine|Observation|Testing|XCTest|Dispatch|os|OSLog|Darwin|Glibc|PackageDescription)
+            die "module name '$m' clashes with a system module" ;;
+    esac
+    [[ "$m" == *Tests ]] && die "module name '$m' ends in 'Tests', which clashes with the generated test targets"
+    for seen in "${CLEAN_MODULES[@]+"${CLEAN_MODULES[@]}"}"; do
+        [[ "$seen" == "$m" ]] && die "module '$m' is listed twice"
+    done
     CLEAN_MODULES+=("$m")
 done
+[[ "${#CLEAN_MODULES[@]}" -ge 1 ]] || die "need at least one module (--modules)"
 MODULES=("${CLEAN_MODULES[@]}")
+
+# Which modules default to MainActor isolation?
+declare -a MAIN_ACTOR_MODULES=()
+if [[ -n "$MAIN_ACTOR_CSV" ]]; then
+    if [[ "$MAIN_ACTOR_CSV" == "all" ]]; then
+        for m in "${MODULES[@]}"; do
+            [[ "$m" != "Core" ]] && MAIN_ACTOR_MODULES+=("$m")
+        done
+    else
+        IFS=',' read -r -a requested <<< "$MAIN_ACTOR_CSV"
+        for r in "${requested[@]}"; do
+            r="${r// /}"
+            [[ -n "$r" ]] || continue
+            [[ " ${MODULES[*]} " == *" $r "* ]] || die "--main-actor names '$r', which isn't in --modules"
+            MAIN_ACTOR_MODULES+=("$r")
+        done
+    fi
+fi
+is_main_actor() {
+    local m
+    for m in "${MAIN_ACTOR_MODULES[@]+"${MAIN_ACTOR_MODULES[@]}"}"; do
+        [[ "$m" == "$1" ]] && return 0
+    done
+    return 1
+}
+
+# .defaultIsolation needs tools 6.2; otherwise stay on the lowest useful version.
+if [[ -z "$TOOLS_VERSION" ]]; then
+    if [[ "${#MAIN_ACTOR_MODULES[@]}" -gt 0 ]]; then TOOLS_VERSION="6.2"; else TOOLS_VERSION="6.0"; fi
+elif [[ "${#MAIN_ACTOR_MODULES[@]}" -gt 0 ]]; then
+    awk -v v="$TOOLS_VERSION" 'BEGIN { split(v, a, "."); exit !((a[1] > 6) || (a[1] == 6 && a[2] >= 2)) }' \
+        || die "--main-actor needs --tools-version 6.2 or later (got $TOOLS_VERSION)"
+fi
 
 # Does the list contain an AppCore umbrella?
 HAS_UMBRELLA=0
@@ -119,6 +169,9 @@ printf '  path:     %s\n' "$PKG_DIR"
 printf '  modules:  %s\n' "${MODULES[*]}"
 printf '  umbrella: %s\n' "$([[ "$HAS_UMBRELLA" -eq 1 ]] && echo "AppCore (links every other module; the app links this)" || echo "none (modules are independent — add an 'AppCore' module for an umbrella)")"
 printf '  tools:    swift-tools-version %s\n' "$TOOLS_VERSION"
+if [[ "${#MAIN_ACTOR_MODULES[@]}" -gt 0 ]]; then
+    printf '  @MainActor by default: %s\n' "${MAIN_ACTOR_MODULES[*]}"
+fi
 [[ "$DRY_RUN" -eq 1 ]] && printf '  mode:     DRY RUN (no files written)\n'
 echo ""
 
@@ -152,8 +205,9 @@ emit_package_swift() {
 // swift-tools-version: ${TOOLS_VERSION}
 //
 // Generated by AppBootstrapAI scaffold-spm-package.sh. Edit freely — this file
-// is yours now. The makeTargets() helper collapses each module to one block;
-// adding a module is a two-line change (one product, one + makeTargets(...)).
+// is yours now. makeTargets() matches templates/Package.template.swift; adding a
+// module is one + makeTargets(...) block, plus a product only if something
+// outside this package imports it directly.
 // See apple-spm-package-conventions.md and apple-modular-architecture.md.
 
 import PackageDescription
@@ -163,23 +217,25 @@ import PackageDescription
 /// Applied to every target — source and test — so modules can't drift onto
 /// different language modes. Keep it short and uniform.
 let sharedSwiftSettings: [SwiftSetting] = [
-    .swiftLanguageMode(.v6),
-    .enableUpcomingFeature("InternalImportsByDefault")
-]
+$(emit_shared_settings)
+]$(emit_main_actor_settings)
 
 // MARK: - Target Helper
 
-/// Creates a paired source + test target for a module at \`{name}/Sources\`
-/// and \`{name}/Tests\`. Set \`hasResources: true\` to ship
-/// \`Sources/Resources/\` via \`.process\`. Set \`hasTests: false\` only for
-/// resource-only modules. The test target auto-depends on the module;
-/// \`testDependencies\` is for fixtures it needs beyond that.
+/// Creates a source target at \`{name}/Sources\` and a test target at
+/// \`{name}/Tests\`. \`hasResources: true\` ships \`Sources/Resources/\` via
+/// \`.process\`; \`hasTests: false\` is only for resource-only modules. The test
+/// target always depends on the module; \`testDependencies\` adds fixtures.
+/// \`swiftSettings\` are appended to \`sharedSwiftSettings\` on both targets.
 func makeTargets(
     name: String,
     dependencies: [Target.Dependency] = [],
-    hasResources: Bool = false,
     hasTests: Bool = true,
-    testDependencies: [Target.Dependency] = []
+    hasResources: Bool = false,
+    testDependencies: [Target.Dependency] = [],
+    testResources: [Resource]? = nil,
+    swiftSettings: [SwiftSetting] = [],
+    plugins: [Target.PluginUsage]? = nil
 ) -> [Target] {
     var targets: [Target] = [
         .target(
@@ -187,7 +243,8 @@ func makeTargets(
             dependencies: dependencies,
             path: "\\(name)/Sources",
             resources: hasResources ? [.process("Resources")] : nil,
-            swiftSettings: sharedSwiftSettings
+            swiftSettings: sharedSwiftSettings + swiftSettings,
+            plugins: plugins
         )
     ]
     if hasTests {
@@ -196,7 +253,8 @@ func makeTargets(
                 name: "\\(name)Tests",
                 dependencies: [.byName(name: name)] + testDependencies,
                 path: "\\(name)/Tests",
-                swiftSettings: sharedSwiftSettings
+                resources: testResources,
+                swiftSettings: sharedSwiftSettings + swiftSettings
             )
         )
     }
@@ -224,22 +282,64 @@ $(emit_targets)
 EOF
 }
 
+emit_shared_settings() {
+    if [[ "${#MAIN_ACTOR_MODULES[@]}" -gt 0 ]]; then
+        cat <<'EOF'
+    .swiftLanguageMode(.v6),
+    .enableUpcomingFeature("InternalImportsByDefault"),
+    // Swift 6.2 approachable concurrency: nonisolated async functions run on
+    // the caller's actor, and conformances infer the conforming type's isolation.
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+    .enableUpcomingFeature("InferIsolatedConformances")
+EOF
+    else
+        cat <<'EOF'
+    .swiftLanguageMode(.v6),
+    .enableUpcomingFeature("InternalImportsByDefault")
+EOF
+    fi
+}
+
+emit_main_actor_settings() {
+    [[ "${#MAIN_ACTOR_MODULES[@]}" -gt 0 ]] || return 0
+    printf '\n\n'
+    cat <<'EOF'
+/// UI and feature modules default to @MainActor (SE-0466), so views and view
+/// models need no per-type annotation. Core stays nonisolated; mark background
+/// work `nonisolated` or `@concurrent` explicitly.
+let mainActorByDefault: [SwiftSetting] = [
+    .defaultIsolation(MainActor.self)
+]
+EOF
+}
+
+# With an AppCore umbrella the app links only AppCore, so the other modules stay
+# out of products (apple-spm-package-conventions.md). Without one, every module
+# is a product.
 emit_products() {
     local i name line
-    for i in "${!MODULES[@]}"; do
-        name="${MODULES[$i]}"
+    local -a products=()
+    if [[ "$HAS_UMBRELLA" -eq 1 ]]; then
+        products=("AppCore")
+    else
+        products=("${MODULES[@]}")
+    fi
+    for i in "${!products[@]}"; do
+        name="${products[$i]}"
         line="        .library(name: \"$name\", targets: [\"$name\"])"
-        [[ "$i" -lt $(( ${#MODULES[@]} - 1 )) ]] && line="${line},"
+        [[ "$i" -lt $(( ${#products[@]} - 1 )) ]] && line="${line},"
         printf '%s\n' "$line"
     done
 }
 
 emit_targets() {
-    local i name prefix
+    local i name prefix settings
     for i in "${!MODULES[@]}"; do
         name="${MODULES[$i]}"
         prefix="        "
         [[ "$i" -gt 0 ]] && prefix="        + "
+        settings=""
+        if is_main_actor "$name"; then settings="mainActorByDefault"; fi
         if [[ "$name" == "AppCore" && "$HAS_UMBRELLA" -eq 1 && "${#MODULES[@]}" -gt 1 ]]; then
             # Umbrella: depends on every other module, in declared order.
             printf '%smakeTargets(\n' "$prefix"
@@ -252,8 +352,15 @@ emit_targets() {
                 if [[ "$first" -eq 1 ]]; then first=0; else printf ',\n'; fi
                 printf '                "%s"' "$other"
             done
-            printf '\n            ]\n'
+            if [[ -n "$settings" ]]; then
+                printf '\n            ],\n'
+                printf '            swiftSettings: %s\n' "$settings"
+            else
+                printf '\n            ]\n'
+            fi
             printf '        )\n'
+        elif [[ -n "$settings" ]]; then
+            printf '%smakeTargets(name: "%s", swiftSettings: %s)\n' "$prefix" "$name" "$settings"
         else
             printf '%smakeTargets(name: "%s")\n' "$prefix" "$name"
         fi
@@ -262,14 +369,60 @@ emit_targets() {
 
 # --- Generate per-module sources + tests -------------------------------------
 emit_source() {  # $1 = module
+    if [[ "$1" == "AppCore" && "$HAS_UMBRELLA" -eq 1 ]]; then
+        emit_appcore_source
+        return
+    fi
+    # The placeholder's name differs from the module's on purpose: a type named
+    # like its module makes `Core.Foo` resolve to the type, which breaks
+    # module-qualified lookups and .swiftinterface generation.
     cat <<EOF
 // ${1} — replace this placeholder with the module's real public API.
 
-/// Placeholder so the module compiles before real code lands. Remove once
+/// Placeholder so the module compiles before real code lands. Delete it once
 /// ${1} exposes real public API.
-public enum ${1} {
-    public static let placeholder = "${1}"
+public enum ${1}Placeholder {
+    public static let moduleName = "${1}"
 }
+EOF
+}
+
+emit_appcore_source() {
+    cat <<'EOF'
+// AppCore — the umbrella module the app target links. The app's @main shows
+// AppRootView and does nothing else; routing and app-level wiring live here.
+
+#if canImport(SwiftUI)
+public import SwiftUI
+#endif
+
+/// Placeholder so the module compiles before real code lands.
+public enum AppCorePlaceholder {
+    public static let moduleName = "AppCore"
+}
+
+#if canImport(SwiftUI)
+/// The app's root view. In the app target:
+///
+/// ```swift
+/// import AppCore
+/// import SwiftUI
+///
+/// @main
+/// struct MyApp: App {
+///     var body: some Scene {
+///         WindowGroup { AppRootView() }
+///     }
+/// }
+/// ```
+public struct AppRootView: View {
+    public init() {}
+
+    public var body: some View {
+        Text(verbatim: AppCorePlaceholder.moduleName)
+    }
+}
+#endif
 EOF
 }
 
@@ -281,7 +434,7 @@ import Testing
 @Suite("${1}")
 struct ${1}Tests {
     @Test func placeholderIsWired() {
-        #expect(${1}.placeholder == "${1}")
+        #expect(${1}Placeholder.moduleName == "${1}")
     }
 }
 EOF

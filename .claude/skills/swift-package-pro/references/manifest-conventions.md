@@ -46,7 +46,7 @@ products: [
 ```
 
 - **One product per logically separable feature** — bundling all internal modules into a single mega-product forces consumers to import everything.
-- **Default to `.library(name:targets:)`** without specifying `type:` (the default is dynamic on Apple platforms with linker-driven dead-code stripping; consumers can request `.static` if they need it).
+- **Default to `.library(name:targets:)`** without specifying `type:`. That makes it an *automatic* library: the consumer's build decides how to link it (Xcode and SwiftPM normally link it statically). Force `.dynamic` only when several binaries in one app must share a single copy.
 - **Don't expose internal-only modules as products.** Products are the package's public API surface; internal modules support targets but stay implicit.
 
 ## Per-Module Folder Layout
@@ -147,13 +147,11 @@ Under `.v6`, strict concurrency is on, full stop. Under `.v5`, you can dial it i
 // Swift 5 mode, opt into strict concurrency progressively:
 swiftSettings: [
     .swiftLanguageMode(.v5),
-    .enableExperimentalFeature("StrictConcurrency"),
-    // OR with the compiler flag form for older toolchains that lack the feature flag:
-    // .unsafeFlags(["-strict-concurrency=complete"])
+    .enableUpcomingFeature("StrictConcurrency"),
 ]
 ```
 
-- **`StrictConcurrency` was experimental in Swift 5.6–5.10**, graduated to the default behavior in `.v6`. If your toolchain is recent and you're staying on `.v5`, prefer the feature flag over `-strict-concurrency=complete` — feature flags are designed to graduate without consumer changes.
+- **`StrictConcurrency` is an upcoming feature** (SE-0337) that is on by default in `.v6`. Use `enableUpcomingFeature`, not `enableExperimentalFeature` or `.unsafeFlags(["-strict-concurrency=complete"])`: a manifest that uses `.swiftLanguageMode` already needs tools 6.0, so there is no older toolchain to support, and `.unsafeFlags` blocks the package from being a dependency.
 - **Levels for the compiler flag** (Swift 5 mode only): `minimal` (just `Sendable` checks across actor boundaries), `targeted` (data-race-safety for marked declarations), `complete` (full enforcement, same as `.v6`'s default). Pick `complete` to make migration to `.v6` a no-op.
 - **Don't mix experimental and graduated forms** — e.g., `enableExperimentalFeature("RegionBasedIsolation")` inside `.v6` mode does nothing (it's already on) and looks like cargo-culting in code review.
 
@@ -175,6 +173,32 @@ swiftSettings: [
 - **`ExistentialAny`** is high-value but disruptive on existing codebases — it surfaces every place you've written `let value: Codable` (which now requires `any Codable`). Worth doing as a focused migration PR.
 - **Don't blanket-enable every upcoming feature** — read the proposal first. Some have real ergonomic costs you may not want.
 - **Use `enableUpcomingFeature` for proposals that have been accepted** and are slated for a future Swift major. Use `enableExperimentalFeature` for pre-acceptance experiments. They graduate from experimental → upcoming → default; track which bucket each feature is in.
+
+### Swift 6.2 settings: default isolation, approachable concurrency, warnings
+
+`// swift-tools-version: 6.2` adds settings the concurrency rule assumes:
+
+```swift
+// Every target:
+let sharedSwiftSettings: [SwiftSetting] = [
+    .swiftLanguageMode(.v6),
+    .enableUpcomingFeature("InternalImportsByDefault"),
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),  // SE-0461
+    .enableUpcomingFeature("InferIsolatedConformances"),       // SE-0470
+    .treatAllWarnings(as: .error),                             // SE-0480, optional
+]
+
+// UI and feature modules only:
+let mainActorByDefault: [SwiftSetting] = [.defaultIsolation(MainActor.self)]  // SE-0466
+
+makeTargets(name: "Core")                                         // nonisolated
++ makeTargets(name: "FeatureSettings", swiftSettings: mainActorByDefault)
+```
+
+- **`.defaultIsolation(MainActor.self)` is per module, and it's an app decision.** Turn it on for UI and feature modules, where nearly everything touches the main actor anyway; it removes the `@MainActor` boilerplate and the `Sendable` noise around views and view models. Keep it off for `Core`, networking, persistence, and libraries you publish — there, main-actor-by-default hides work that should run elsewhere and surprises consumers. Mark background work in a main-actor module with `nonisolated` or `@concurrent`.
+- **`NonisolatedNonsendingByDefault`** makes a `nonisolated async` function run on its caller's actor instead of hopping to the global executor; **`InferIsolatedConformances`** lets a `@MainActor` type conform to a protocol without `nonisolated` workarounds. Both are safe for new code; on an existing module, enable them in their own PR and re-run the tests.
+- **`.treatAllWarnings(as: .error)`** (or `.treatWarning("DeprecatedDeclaration", as: .warning)` to carve out a group) replaces `.unsafeFlags(["-warnings-as-errors"])`, which disqualifies a package from being a dependency.
+- **Raise the tools version only when you use one of these.** A library with no 6.2-only setting should stay on 6.0 so consumers on older Xcodes can still resolve it. `scaffold-spm-package.sh --main-actor all` writes the app-package form above.
 
 ### Per-platform and per-configuration conditionals
 

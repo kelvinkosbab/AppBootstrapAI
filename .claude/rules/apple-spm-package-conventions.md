@@ -27,7 +27,8 @@ The must-follow rules for a manifest. Examples, rationale, and edge cases live i
 
 - **Pin `.swiftLanguageMode(.v6)`** in one `sharedSwiftSettings` used by every source and test target. `.v5` only with a dated migration plan, as a commented per-target override.
 - **Opt into upcoming features deliberately**: `InternalImportsByDefault` (then `public import` only for types in your public API), `ExistentialAny` as its own migration. Don't mix `enableExperimentalFeature` and `enableUpcomingFeature` for one feature.
-- **No `.unsafeFlags` in a published library**, and no `-ld_classic` anywhere (removed in Xcode 27).
+- **No `.unsafeFlags` in a published library** (use `.treatAllWarnings(as: .error)` at tools 6.2 instead of `-warnings-as-errors`), and no `-ld_classic` anywhere (removed in Xcode 27).
+- **App packages at tools 6.2: UI and feature modules get `.defaultIsolation(MainActor.self)`**; Core, data, and published libraries stay nonisolated (`scaffold-spm-package.sh --main-actor all`).
 - Use `.when(platforms:)` / `.when(configuration:)` only for settings that genuinely vary.
 
 ## Resources

@@ -26,7 +26,42 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   Android rules into iOS-only repos. Every `target_dir` must now be absolute,
   and tools pass an explicit verb (`install`, `upgrade`, `uninstall`).
 
+- **Scaffolded packages follow the bundle's own rules.** Placeholders are
+  named `<Module>Placeholder` (a type named like its module breaks
+  module-qualified lookups), only `AppCore` is a product when there's an
+  umbrella, and `AppCore` gets an `AppRootView` for the app's `@main`. The
+  scaffold rejects duplicate module names, system-module names, and names
+  ending in `Tests`, and its `makeTargets()` now matches the template's.
+- **`install.sh audit` detects SwiftUI `App` and `UIApplicationDelegate`
+  types again**, so `apple-no-scene-lifecycle` can fire. The check was looking
+  for them only in Gradle files.
+- **Package manifests with an example app are audited as packages.** A root
+  `Package.swift` whose only Xcode projects sit in `Example/`, `Demo/`, or
+  `Samples/` no longer gets app-store findings.
+- **`manifest-conventions.md`:** a library with no `type:` is automatic (the
+  client decides, usually static), not dynamic; Swift 5 mode uses
+  `enableUpcomingFeature("StrictConcurrency")`.
+
 ### Added
+
+- **Swift 6.2 app-package settings.** `scaffold-spm-package.sh --main-actor
+  <csv|all>` writes a tools-6.2 manifest with `.defaultIsolation(MainActor.self)`
+  on UI and feature modules plus `NonisolatedNonsendingByDefault` and
+  `InferIsolatedConformances`; Core stays nonisolated. The template gains the
+  same variant, a `swiftSettings:` parameter on `makeTargets()`, and
+  `.treatAllWarnings(as: .error)` in place of the `-warnings-as-errors`
+  `unsafeFlags` example. `manifest-conventions.md` and the SPM and
+  concurrency rules say when to use it.
+- **`Package.swift` audit checks:** `spm-unsafe-flags` and
+  `spm-unpinned-dependency` (libraries), `spm-lint-plugin-inherited`,
+  `spm-no-language-mode`, `spm-no-platforms`, `build-ld-classic`,
+  `spm-implementation-only`, `spm-library-resolved-tracked`, and
+  `spm-app-resolved-ignored`.
+- **Unit tests for the audit checks** (`tests/test_audit.py`, plain
+  `unittest`): every line check needs a matching and a non-matching sample.
+- **`swift` CI workflow** that scaffolds packages (default and
+  `--main-actor`), runs `swift build` and `swift test` on them, and builds
+  the template, in a `swift:6.2` container.
 
 - **Motion design**, adapted from the LottieFiles
   [motion design skill](https://github.com/lottiefiles/motion-design-skill)

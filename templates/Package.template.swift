@@ -11,7 +11,8 @@
 //
 // Prefer to generate this rather than hand-copy it? Run the bundle's
 // `scripts/scaffold-spm-package.sh <repo> --modules Core,...,AppCore` — it emits
-// this manifest plus compiling module skeletons. See apple-modular-architecture.md
+// this manifest (same makeTargets() helper) plus compiling module skeletons;
+// add `--main-actor all` for the Swift 6.2 app-package variant below. See apple-modular-architecture.md
 // for the thin-app-shell + local-package architecture this assumes.
 //
 // Conventions assumed:
@@ -34,8 +35,8 @@ import PackageDescription
 /// diverging in ways that will hurt you later.
 ///
 /// The default below assumes Swift 6 strict concurrency. If you're not ready
-/// for `.v6` yet, see the commented `swift5Settings` variant below — pick
-/// one or the other, don't mix.
+/// for `.v6` yet, see the commented Swift 5 variant below — pick one or the
+/// other, don't mix.
 let sharedSwiftSettings: [SwiftSetting] = [
     .swiftLanguageMode(.v6),
     .enableUpcomingFeature("InternalImportsByDefault")
@@ -51,24 +52,30 @@ let sharedSwiftSettings: [SwiftSetting] = [
 /// removal date so this doesn't become permanent.
 //let sharedSwiftSettings: [SwiftSetting] = [
 //    .swiftLanguageMode(.v5),
-//    .enableExperimentalFeature("StrictConcurrency"),
+//    .enableUpcomingFeature("StrictConcurrency"),
 //]
 
-/// SWIFT 5 with the equivalent compiler flag (for older toolchains that
-/// lack `StrictConcurrency` as a feature flag). Same semantics as the
-/// version above; pick whichever your toolchain supports.
-//let sharedSwiftSettings: [SwiftSetting] = [
-//    .swiftLanguageMode(.v5),
-//    .unsafeFlags(["-strict-concurrency=complete"]),
-//]
-
-/// SWIFT 6 with per-configuration warning-as-error.
-/// Treats warnings as errors only in debug builds, so CI catches them
-/// without making release archives needlessly fragile.
+/// SWIFT 6.2 APP PACKAGE — UI and feature modules default to @MainActor.
+/// Needs `// swift-tools-version: 6.2`. Keep `sharedSwiftSettings` for every
+/// target and pass `swiftSettings: mainActorByDefault` to the UI / feature
+/// modules' `makeTargets(...)`; leave Core (and anything doing background work)
+/// nonisolated. Libraries usually stay on the default above.
 //let sharedSwiftSettings: [SwiftSetting] = [
 //    .swiftLanguageMode(.v6),
 //    .enableUpcomingFeature("InternalImportsByDefault"),
-//    .unsafeFlags(["-warnings-as-errors"], .when(configuration: .debug)),
+//    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),  // SE-0461
+//    .enableUpcomingFeature("InferIsolatedConformances"),       // SE-0470
+//]
+//let mainActorByDefault: [SwiftSetting] = [
+//    .defaultIsolation(MainActor.self),                          // SE-0466
+//]
+
+/// SWIFT 6.2 warnings as errors, without `.unsafeFlags` (which blocks the
+/// package from being used as a dependency). Needs tools 6.2 (SE-0480).
+//let sharedSwiftSettings: [SwiftSetting] = [
+//    .swiftLanguageMode(.v6),
+//    .enableUpcomingFeature("InternalImportsByDefault"),
+//    .treatAllWarnings(as: .error),
 //]
 
 /// SWIFT 6 with a platform-conditional `#if` define for network-capable platforms.
@@ -107,6 +114,8 @@ let sharedSwiftSettings: [SwiftSetting] = [
 ///     The module-under-test is always included automatically.
 ///   - testResources: Resources for the test target (test fixtures, sample
 ///     payloads). Less common than source resources.
+///   - swiftSettings: Extra settings appended to `sharedSwiftSettings` on both
+///     targets, e.g. `mainActorByDefault` for a UI module.
 ///   - plugins: Build-tool plugins attached to the source target (e.g.,
 ///     `SwiftLintBuildToolPlugin`). Test targets don't inherit these by
 ///     default — pass them explicitly here only if you want lint on source.
@@ -117,6 +126,7 @@ func makeTargets(
     hasResources: Bool = false,
     testDependencies: [Target.Dependency] = [],
     testResources: [Resource]? = nil,
+    swiftSettings: [SwiftSetting] = [],
     plugins: [Target.PluginUsage]? = nil
 ) -> [Target] {
     var targets: [Target] = [
@@ -125,7 +135,7 @@ func makeTargets(
             dependencies: dependencies,
             path: "\(name)/Sources",
             resources: hasResources ? [.process("Resources")] : nil,
-            swiftSettings: sharedSwiftSettings,
+            swiftSettings: sharedSwiftSettings + swiftSettings,
             plugins: plugins
         )
     ]
@@ -136,7 +146,7 @@ func makeTargets(
                 dependencies: [.byName(name: name)] + testDependencies,
                 path: "\(name)/Tests",
                 resources: testResources,
-                swiftSettings: sharedSwiftSettings
+                swiftSettings: sharedSwiftSettings + swiftSettings
             )
         )
     }
@@ -158,7 +168,8 @@ let package = Package(
     ],
     products: [
         // One product per logically separable feature. Consumers `import` these.
-        // Internal-only modules can stay out of `products:`.
+        // Internal-only modules stay out of `products:`; in an app package the
+        // app links one umbrella product (AppCore) and nothing else.
         .library(name: "Core", targets: ["Core"])
         // .library(name: "CoreUI", targets: ["CoreUI"]),
         // .library(name: "CoreStorage", targets: ["CoreStorage"]),

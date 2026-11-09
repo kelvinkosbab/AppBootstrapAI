@@ -4,7 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'lib/**.py'
+      - 'lib/**'
+      - 'tests/**'
       - '.github/scripts/**.py'
       - '.github/workflows/python.yml'
   # Pull requests run this through ci.yml, which skips it when no matching
@@ -27,7 +28,7 @@ jobs:
       - name: ruff check (pyflakes rules)
         uses: astral-sh/ruff-action@v3
         with:
-          args: "check --select F lib .github/scripts"
+          args: "check --select F lib tests .github/scripts"
 
       - name: Set up Python (for py_compile baseline)
         uses: actions/setup-python@v5
@@ -36,3 +37,6 @@ jobs:
 
       - name: py_compile (syntax floor, zero-dependency)
         run: python3 -m py_compile lib/*.py .github/scripts/*.py
+
+      - name: Unit tests (audit checks)
+        run: python3 -m unittest discover -s tests -v
