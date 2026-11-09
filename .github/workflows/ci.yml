@@ -7,6 +7,11 @@ name: CI
 on:
   pull_request:
   merge_group:
+  # Weekly full run on main, so upstream breakage (runner images, ruff,
+  # macOS bash, the Swift container) shows up before the next PR does.
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -34,12 +39,17 @@ jobs:
           # Same patterns the workflows used as pull_request path filters.
           declare -A groups=(
             [frontmatter]='^(\.claude/(rules|skills)/|\.github/scripts/validate-frontmatter\.py$|\.github/workflows/frontmatter\.yml$)'
-            [smoke]='^(install\.sh$|lib/|templates/|\.claude/|mcp-recipes/|RENAMES\.md$|\.github/scripts/install-smoke-test\.sh$|\.github/workflows/install-smoke-test\.yml$)'
+            [smoke]='^(install\.sh$|lib/|templates/|\.claude/|mcp-recipes/|RENAMES\.md$|scripts/|\.github/scripts/install-smoke-test\.sh$|\.github/scripts/smoke/|\.github/workflows/install-smoke-test\.yml$)'
             [mcp]='^(mcp-server/|install\.sh$|lib/|\.github/workflows/mcp-server\.yml$)'
             [python]='^(lib/|tests/|\.github/scripts/.*\.py$|\.github/workflows/python\.yml$)'
             [swift]='^(scripts/scaffold-spm-package\.sh$|templates/Package\.template\.swift$|\.github/workflows/swift\.yml$)'
             [shell]='^(install\.sh$|lib/.*\.sh$|scripts/.*\.sh$|\.github/scripts/.*\.sh$|\.github/workflows/shellcheck\.yml$)'
           )
+          # Scheduled and manual runs check everything.
+          if [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_dispatch ]; then
+            for g in "${!groups[@]}"; do echo "$g=true" >> "$GITHUB_OUTPUT"; done
+            exit 0
+          fi
           changed="$(git diff --name-only "$BASE"...HEAD)"
           echo "Changed files:"; echo "$changed"
           for g in "${!groups[@]}"; do
