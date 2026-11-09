@@ -1,0 +1,45 @@
+name: swift
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/scaffold-spm-package.sh'
+      - 'templates/Package.template.swift'
+      - '.github/workflows/swift.yml'
+  # Pull requests run this through ci.yml, which skips it when no matching
+  # path changed and gates merging on one required check.
+  workflow_call:
+
+# Compiles what the bundle generates: a scaffolded package (default and
+# --main-actor) must build and pass its placeholder tests, and the
+# Package.swift template must parse once its placeholder is filled in.
+# Linux is enough: the placeholders don't use Apple-only frameworks, and
+# AppCore's SwiftUI view is behind #if canImport(SwiftUI).
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scaffold (default) — build and test
+        run: |
+          mkdir -p /tmp/MyApp
+          bash scripts/scaffold-spm-package.sh /tmp/MyApp --modules Core,Models,Feature,AppCore
+          cd /tmp/MyApp/MyAppPackages && swift build && swift test
+
+      - name: Scaffold (--main-actor all) — build and test
+        run: |
+          mkdir -p /tmp/Actor
+          bash scripts/scaffold-spm-package.sh /tmp/Actor --modules Core,Feature,UI,AppCore --main-actor all
+          cd /tmp/Actor/ActorPackages && swift build && swift test
+
+      - name: Template parses
+        run: |
+          mkdir -p /tmp/Template/Core/Sources /tmp/Template/Core/Tests
+          sed 's/<PACKAGE_NAME>/TemplateCheck/' templates/Package.template.swift > /tmp/Template/Package.swift
+          echo 'public enum CorePlaceholder {}' > /tmp/Template/Core/Sources/Core.swift
+          printf 'import Testing\n@testable import Core\n@Test func wired() {}\n' > /tmp/Template/Core/Tests/CoreTests.swift
+          cd /tmp/Template && swift package dump-package > /dev/null && swift build

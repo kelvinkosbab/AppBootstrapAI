@@ -2355,6 +2355,13 @@ done
 grep -q 'makeTargets(' "$pkg/Package.swift" || scaffold_ok=n
 grep -q '.library(name: "AppCore", targets: \["AppCore"\])' "$pkg/Package.swift" || scaffold_ok=n
 grep -q '"Models"' "$pkg/Package.swift" || scaffold_ok=n
+# Only the umbrella is a product; placeholders aren't named like their module.
+grep -q '.library(name: "Core"' "$pkg/Package.swift" && scaffold_ok=n
+grep -q 'public enum CorePlaceholder' "$pkg/Core/Sources/Core.swift" || scaffold_ok=n
+grep -q 'public enum Core ' "$pkg/Core/Sources/Core.swift" && scaffold_ok=n
+grep -q 'public struct AppRootView: View' "$pkg/AppCore/Sources/AppCore.swift" || scaffold_ok=n
+grep -q 'swift-tools-version: 6.0' "$pkg/Package.swift" || scaffold_ok=n
+grep -q 'defaultIsolation' "$pkg/Package.swift" && scaffold_ok=n
 if [[ "$scaffold_ok" == "y" ]]; then
     PASS=$((PASS + 1))
 else
@@ -2368,6 +2375,25 @@ if "$REPO_ROOT/scripts/scaffold-spm-package.sh" "$t/MyApp" --modules Core,Models
 else
     PASS=$((PASS + 1))
 fi
+rm -rf "$t"
+
+bold "==> scaffold --main-actor writes a tools-6.2 manifest with per-module default isolation"
+t="$(mktemp -d)"; mkdir -p "$t/MyApp"
+"$REPO_ROOT/scripts/scaffold-spm-package.sh" "$t/MyApp" --modules Core,Feature,AppCore --main-actor all > /dev/null
+pkg="$t/MyApp/MyAppPackages"
+actor_ok=y
+grep -q 'swift-tools-version: 6.2' "$pkg/Package.swift" || actor_ok=n
+grep -q '.defaultIsolation(MainActor.self)' "$pkg/Package.swift" || actor_ok=n
+grep -q 'makeTargets(name: "Feature", swiftSettings: mainActorByDefault)' "$pkg/Package.swift" || actor_ok=n
+grep -q 'makeTargets(name: "Core")$' "$pkg/Package.swift" || actor_ok=n
+if [[ "$actor_ok" == "y" ]]; then PASS=$((PASS + 1)); else red "FAIL: scaffold --main-actor output is wrong"; FAIL=$((FAIL + 1)); fi
+for bad in "Core,Core" "Testing" "CoreTests"; do
+    if "$REPO_ROOT/scripts/scaffold-spm-package.sh" "$t/MyApp" --name Other --modules "$bad" --dry-run >/dev/null 2>&1; then
+        red "FAIL: scaffold should reject module list '$bad'"; FAIL=$((FAIL + 1))
+    else
+        PASS=$((PASS + 1))
+    fi
+done
 rm -rf "$t"
 
 bold "==> ui: adaptive-layout rule + skill land per-platform (apple vs android, no cross-leak)"

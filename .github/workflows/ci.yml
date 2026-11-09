@@ -21,6 +21,7 @@ jobs:
       mcp: ${{ steps.filter.outputs.mcp }}
       python: ${{ steps.filter.outputs.python }}
       shell: ${{ steps.filter.outputs.shell }}
+      swift: ${{ steps.filter.outputs.swift }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,7 +36,8 @@ jobs:
             [frontmatter]='^(\.claude/(rules|skills)/|\.github/scripts/validate-frontmatter\.py$|\.github/workflows/frontmatter\.yml$)'
             [smoke]='^(install\.sh$|lib/|templates/|\.claude/|mcp-recipes/|RENAMES\.md$|\.github/scripts/install-smoke-test\.sh$|\.github/workflows/install-smoke-test\.yml$)'
             [mcp]='^(mcp-server/|install\.sh$|lib/|\.github/workflows/mcp-server\.yml$)'
-            [python]='^(lib/.*\.py$|\.github/scripts/.*\.py$|\.github/workflows/python\.yml$)'
+            [python]='^(lib/|tests/|\.github/scripts/.*\.py$|\.github/workflows/python\.yml$)'
+            [swift]='^(scripts/scaffold-spm-package\.sh$|templates/Package\.template\.swift$|\.github/workflows/swift\.yml$)'
             [shell]='^(install\.sh$|lib/.*\.sh$|scripts/.*\.sh$|\.github/scripts/.*\.sh$|\.github/workflows/shellcheck\.yml$)'
           )
           changed="$(git diff --name-only "$BASE"...HEAD)"
@@ -74,9 +76,14 @@ jobs:
     if: needs.changes.outputs.shell == 'true'
     uses: ./.github/workflows/shellcheck.yml
 
+  swift:
+    needs: changes
+    if: needs.changes.outputs.swift == 'true'
+    uses: ./.github/workflows/swift.yml
+
   ci-ok:
     if: always()
-    needs: [changes, frontmatter, smoke-test, mcp-server, python, shellcheck]
+    needs: [changes, frontmatter, smoke-test, mcp-server, python, shellcheck, swift]
     runs-on: ubuntu-latest
     steps:
       - name: Fail if any check failed or was cancelled

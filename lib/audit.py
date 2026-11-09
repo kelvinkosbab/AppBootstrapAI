@@ -405,7 +405,8 @@ def scan_sources(target: str, platforms: set, findings: dict) -> dict:
              "disk_space_api": None, "file_timestamp_api": None,
              "build_scripts": 0, "leakcanary": False,
              "scene_manifest": False, "swiftui_app": False, "uikit_delegate": False,
-             "android_manifests": [], "launcher_icons": []}
+             "android_manifests": [], "launcher_icons": [],
+             "implementation_only": None, "ld_classic": None}
     active = [c for c in CHECKS if c.platform == "any" or c.platform in platforms]
 
     for root, dirs, files in os.walk(target):
@@ -494,14 +495,21 @@ def _collect_facts(fn, rel, ext, text, facts) -> None:
                 line = facts[key] is None and _first_line(text, pattern)
                 if line:
                     facts[key] = f"{rel}:{line}"
-    if ext in (".kts", ".gradle", ".toml"):
-        facts["build_scripts"] += 1
-        if "leakcanary" in text:
-            facts["leakcanary"] = True
+    if ext == ".swift":
         if re.search(r":\s*App\s*\{", text):
             facts["swiftui_app"] = True
         if "@UIApplicationMain" in text or re.search(r"\bUIApplicationDelegate\b", text):
             facts["uikit_delegate"] = True
+        if "@_implementationOnly" in text and not facts["implementation_only"]:
+            line = _first_line(text, re.compile(r"@_implementationOnly"))
+            facts["implementation_only"] = f"{rel}:{line}"
+    if ext in (".kts", ".gradle", ".toml"):
+        facts["build_scripts"] += 1
+        if "leakcanary" in text:
+            facts["leakcanary"] = True
+    if ext == ".xcconfig" or fn == "Package.swift":
+        if "-ld_classic" in text and not facts["ld_classic"]:
+            facts["ld_classic"] = f"{rel}:{_first_line(text, re.compile(r'-ld_classic'))}"
     if ext == ".plist" and "UIApplicationSceneManifest" in text:
         facts["scene_manifest"] = True
     if fn == "AndroidManifest.xml":
@@ -631,6 +639,14 @@ def _structural(target, platforms, facts, findings, kind) -> None:
                 "high", "apple-adaptive-layout.md", "swift-adaptive-layout-pro",
                 "Adopt UIScene: add a scene manifest and a UIWindowSceneDelegate.", "(app delegate)")
 
+    if "apple" in platforms:
+        if facts.get("ld_classic") is None and has_xcodeproj:
+            for p in glob.glob(os.path.join(target, "**", "*.xcodeproj", "project.pbxproj"), recursive=True):
+                if "-ld_classic" in _read(p):
+                    facts["ld_classic"] = os.path.relpath(p, target).replace(os.sep, "/")
+                    break
+        _spm_checks(target, facts, add, kind)
+
     if "apple" in platforms and facts["source_files"] and not _any_file(target, ".swiftlint.yml"):
         add("apple-no-swiftlint", "No SwiftLint configuration", "low",
             "apple-linting-strategy.md", None,
@@ -671,6 +687,91 @@ def _structural(target, platforms, facts, findings, kind) -> None:
             "store-compliance-pro",
             "Record per-region availability and requirements in docs/compliance/regions.md.",
             "docs/compliance/regions.md")
+
+
+# --- Package.swift checks (apple-spm-package-conventions.md) -----------------
+
+_SPM_RULE = "apple-spm-package-conventions.md"
+_SPM_SKILL = "swift-package-pro"
+_TOOLS_VERSION = re.compile(r"^//\s*swift-tools-version:\s*(\d+)\.(\d+)", re.M)
+_UNPINNED_DEP = re.compile(r"\.package\(\s*path:|\.package\([^)]*\b(branch|revision):")
+
+
+def _manifests(target):
+    out = []
+    for p in glob.glob(os.path.join(target, "**", "Package.swift"), recursive=True):
+        rel = os.path.relpath(p, target).replace(os.sep, "/")
+        if set(rel.split("/")[:-1]) & SKIP_DIRS:
+            continue
+        out.append((rel, _read(p)))
+    return sorted(out)
+
+
+def _git_tracks(target, rel):
+    import subprocess
+    try:
+        r = subprocess.run(["git", "-C", target, "ls-files", "--error-unmatch", rel],
+                           capture_output=True, timeout=10)
+        return r.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def _gitignore_lines(target):
+    return {line.strip() for line in _read(os.path.join(target, ".gitignore")).splitlines()}
+
+
+def _spm_checks(target, facts, add, kind) -> None:
+    manifests = _manifests(target)
+    for rel, text in manifests:
+        code = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("//"))
+        tools = _TOOLS_VERSION.search(text)
+        if not re.search(r"swiftLanguageMode|swiftLanguageVersions|swiftLanguageModes", code) \
+                and not (tools and int(tools.group(1)) >= 6):
+            add("spm-no-language-mode", "Package.swift doesn't pin a Swift language mode", "medium",
+                _SPM_RULE, _SPM_SKILL,
+                "Use tools 6.0+ and put `.swiftLanguageMode(.v6)` in shared settings for every target.", rel)
+        if not re.search(r"\bplatforms\s*:", code):
+            add("spm-no-platforms", "Package.swift doesn't declare `platforms:`", "medium",
+                _SPM_RULE, _SPM_SKILL,
+                "Declare the minimum OS versions you support, e.g. `.iOS(.v17), .macOS(.v14)`.", rel)
+        if kind == "package":
+            if ".unsafeFlags(" in code:
+                add("spm-unsafe-flags", "`.unsafeFlags` in a library manifest (consumers can't depend on it)",
+                    "high", _SPM_RULE, _SPM_SKILL,
+                    "Replace with a SwiftSetting (`.treatAllWarnings(as: .error)`, `.define`, "
+                    "`.enableUpcomingFeature`), or move the flag to the app.", rel)
+            if _UNPINNED_DEP.search(code):
+                add("spm-unpinned-dependency", "Library depends on a `path:`, `branch:`, or `revision:` package",
+                    "medium", _SPM_RULE, _SPM_SKILL,
+                    "Depend on tagged versions (`from:` or `exact:`) before releasing.", rel)
+            if "SwiftLintBuildToolPlugin" in code and not re.search(r"ProcessInfo\.processInfo\.environment", code):
+                add("spm-lint-plugin-inherited", "SwiftLint build plugin runs in every consumer's build",
+                    "medium", _SPM_RULE, _SPM_SKILL,
+                    "Gate the plugin behind an environment variable in the manifest, or lint in a CI step "
+                    "(`swiftlint lint --strict`) instead.", rel)
+    if facts.get("ld_classic"):
+        add("build-ld-classic", "`-ld_classic` is no longer accepted (removed in Xcode 27)", "high",
+            _SPM_RULE, None, "Remove `-ld_classic` from linker flags; the modern linker is the only one.",
+            facts["ld_classic"])
+    if facts.get("implementation_only") and any(
+            "InternalImportsByDefault" in text for _, text in manifests):
+        add("spm-implementation-only", "`@_implementationOnly import` alongside InternalImportsByDefault",
+            "low", _SPM_RULE, _SPM_SKILL,
+            "Use a plain (internal) `import`; InternalImportsByDefault replaces `@_implementationOnly`.",
+            facts["implementation_only"])
+    if not manifests:
+        return
+    root_resolved = os.path.isfile(os.path.join(target, "Package.resolved"))
+    if kind == "package" and root_resolved and _git_tracks(target, "Package.resolved"):
+        add("spm-library-resolved-tracked", "Library commits Package.resolved", "low",
+            _SPM_RULE, _SPM_SKILL,
+            "git rm --cached Package.resolved and ignore it; consumers resolve their own versions.",
+            "Package.resolved")
+    if kind == "app" and "Package.resolved" in _gitignore_lines(target):
+        add("spm-app-resolved-ignored", "App ignores Package.resolved (builds aren't reproducible)", "low",
+            _SPM_RULE, _SPM_SKILL,
+            "Remove `Package.resolved` from .gitignore and commit it.", ".gitignore")
 
 
 def _read(path: str) -> str:
@@ -735,13 +836,28 @@ PACKAGE_SKILLS = {
 }
 
 
+_EXAMPLE_DIR = re.compile(r"^(examples?|demos?|samples?|sample ?apps?|playgrounds?)$", re.I)
+
+
 def project_kind(target: str) -> str:
     """'package' for a library (Swift package or Android library), else 'app'."""
-    def found(pattern):
-        return any(not (set(p.split(os.sep)) & recommend.SKIP_DIRS)
-                   for p in glob.glob(os.path.join(target, "**", pattern), recursive=True))
+    def app_projects():
+        hits = []
+        for pattern in ("*.xcodeproj", "*.xcworkspace"):
+            for p in glob.glob(os.path.join(target, "**", pattern), recursive=True):
+                rel = os.path.relpath(p, target)
+                parts = rel.split(os.sep)
+                if set(parts) & recommend.SKIP_DIRS or parts[-1] == "project.xcworkspace":
+                    continue
+                hits.append(parts)
+        return hits
 
-    if found("*.xcodeproj") or found("*.xcworkspace"):
+    projects = app_projects()
+    if os.path.isfile(os.path.join(target, "Package.swift")) and projects and all(
+            len(parts) > 1 and _EXAMPLE_DIR.match(parts[0]) for parts in projects):
+        # A library whose only Xcode projects live in Example/, Demo/, … folders.
+        return "package"
+    if projects:
         return "app"
     scripts = " ".join(_read(p) for pat in ("build.gradle", "build.gradle.kts")
                        for p in glob.glob(os.path.join(target, "**", pat), recursive=True)
