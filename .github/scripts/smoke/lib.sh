@@ -5,6 +5,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+# shellcheck disable=SC2034  # used by the parts that source this file
 INSTALL="$REPO_ROOT/install.sh"
 PART="$(basename "${BASH_SOURCE[1]:-smoke}" .sh)"
 PASS=0
