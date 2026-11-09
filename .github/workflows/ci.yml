@@ -39,7 +39,7 @@ jobs:
           # Same patterns the workflows used as pull_request path filters.
           declare -A groups=(
             [frontmatter]='^(\.claude/(rules|skills)/|\.github/scripts/validate-frontmatter\.py$|\.github/workflows/frontmatter\.yml$)'
-            [smoke]='^(install\.sh$|lib/|templates/|\.claude/|mcp-recipes/|RENAMES\.md$|\.github/scripts/install-smoke-test\.sh$|\.github/workflows/install-smoke-test\.yml$)'
+            [smoke]='^(install\.sh$|lib/|templates/|\.claude/|mcp-recipes/|RENAMES\.md$|scripts/|\.github/scripts/install-smoke-test\.sh$|\.github/scripts/smoke/|\.github/workflows/install-smoke-test\.yml$)'
             [mcp]='^(mcp-server/|install\.sh$|lib/|\.github/workflows/mcp-server\.yml$)'
             [python]='^(lib/|tests/|\.github/scripts/.*\.py$|\.github/workflows/python\.yml$)'
             [swift]='^(scripts/scaffold-spm-package\.sh$|templates/Package\.template\.swift$|\.github/workflows/swift\.yml$)'

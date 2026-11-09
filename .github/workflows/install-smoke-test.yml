@@ -10,7 +10,9 @@ on:
       - '.claude/**'
       - 'mcp-recipes/**'
       - 'RENAMES.md'
+      - 'scripts/**'
       - '.github/scripts/install-smoke-test.sh'
+      - '.github/scripts/smoke/**'
       - '.github/workflows/install-smoke-test.yml'
   # Pull requests run this through ci.yml, which skips it when no matching
   # path changed and gates merging on one required check.
@@ -20,14 +22,18 @@ jobs:
   smoke-test:
     # Run on Ubuntu and macOS — the installer ships to both kinds of dev
     # machines and bash arithmetic / tempdir layout differ between them.
+    # One job per part (.github/scripts/smoke/), so a failure names the area
+    # that broke and the parts run in parallel.
+    name: smoke (${{ matrix.part }}, ${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
+        part: [install, agents, categories, upgrade, uninstall, audit, scaffold]
 
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run install smoke test
-        run: bash .github/scripts/install-smoke-test.sh
+      - name: Run smoke test part
+        run: bash .github/scripts/smoke/${{ matrix.part }}.sh
