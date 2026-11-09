@@ -28,7 +28,7 @@ If you'd rather just run `install.sh` by hand or via shell tool — that still w
 | `audit` | The [audit playbook](../playbooks/audit.md) as a prompt (optional `target_dir` arg): audit the target against the rules and skills without installing anything, and report in chat. |
 | `sync_and_audit` | The [sync-and-audit playbook](../playbooks/sync-and-audit.md) as a prompt (optional `target_dir` arg): sync the target to the latest bundle, audit it, triage findings, run the listed skills, and write a report. Most MCP clients surface it as a slash command. |
 
-Each tool's input schema is fully typed (see `src/index.ts`), so agents get autocomplete-grade hints when calling. The intended loop is **`recommend_setup` → preview → act**.
+Each tool's input schema is a zod schema (see `src/server.ts`), so agents get autocomplete-grade hints when calling. The intended loop is **`recommend_setup` → preview → act**.
 
 ## Setup
 
@@ -129,8 +129,14 @@ The shell path is fine for most cases. The MCP server is for teams that want the
 ```bash
 # After editing src/
 npm run build       # rebuild dist/
+npm test            # build, then one MCP round trip per tool and prompt
 npm start           # launch the server (mostly useful for debugging)
 ```
+
+`src/server.ts` builds the server (`createServer()`); `src/index.ts` serves it
+over stdio. The tests in `test/` connect a client in memory and run
+`install`, `preview_upgrade`, `audit_project`, and `uninstall` against a temp
+directory.
 
 The server logs to stderr (`appbootstrap-mcp server connected via stdio`); stdout is reserved for the MCP transport protocol.
 
@@ -138,7 +144,6 @@ The server logs to stderr (`appbootstrap-mcp server connected via stdio`); stdou
 
 - Consider a `describe_skill(name)` tool that returns the full SKILL.md body + reference contents for skills the agent wants to deep-read.
 - Consider a `read_rule(name)` tool for the same on the rules side.
-- Track `install.sh`'s feature-category list automatically rather than maintaining the parallel TypeScript list in `src/index.ts`.
 
 ## License
 

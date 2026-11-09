@@ -43,13 +43,7 @@ RULE_MAX_BYTES = 12 * 1024
 # (rounded up to the next KB) so it can shrink but not grow.
 # Remove an entry once the rule fits under RULE_MAX_BYTES.
 OVERSIZED_RULES = {
-    "android-linting-strategy.md": 13 * 1024,
-    "android-play-beta-deployment.md": 19 * 1024,
-    "apple-foundation-models.md": 13 * 1024,
     "apple-objc-accessibility-best-practices.md": 17 * 1024,
-    "apple-regional-compliance.md": 13 * 1024,
-    "apple-testflight-deployment.md": 24 * 1024,
-    "apple-visionos-best-practices.md": 15 * 1024,
 }
 
 

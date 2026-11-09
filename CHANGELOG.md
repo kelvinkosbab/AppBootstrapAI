@@ -32,6 +32,13 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   point-release symbols the rules and skills cite (symbol, files, last
   verified seed), to re-check at each Xcode release.
 
+- **Five skills that hold that detail:** `linting-pro`, `localization-pro`,
+  and `beta-deployment-pro` (either platform), plus `foundation-models-pro`
+  and `visionos-pro` (Apple). Each installs with its rules' feature category,
+  and the `linting`, `localization`, and `deployment` audit topics include
+  them. `store-compliance-pro` gains `apple-storefronts.md` and
+  `android-countries.md`.
+
 ### Changed
 
 - `android-mcp-server` recipe notes that Gemini in Android Studio can't load
@@ -39,6 +46,22 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 - `ai-steering-files.md` lists Android Studio's steering paths and `.aiexclude`.
 - The MCP server's version now follows the bundle (`1.1.0`) and is read from
   `package.json` instead of being hard-coded.
+- **MCP server on `McpServer` with zod schemas.** The server moves from the
+  low-level `Server` and hand-written argument checks to `registerTool` /
+  `registerPrompt` with zod input schemas (SDK `^1.29`). Tools now report
+  failures as `isError` results, as the MCP spec asks, and carry read-only /
+  destructive annotations. `npm test` runs one round trip per tool and prompt,
+  including install, upgrade, audit, and uninstall against a temp directory,
+  and CI runs it.
+
+- **Ten more rules slimmed to must-lists.** The Apple linting, localization,
+  Foundation Models, visionOS, TestFlight, and regional-compliance rules and
+  the Android linting, localization, Play beta, and regional-compliance rules
+  now hold only their checklists (about 3 KB each, down from 11–24 KB). The
+  full text moved, unchanged, into skill references. `OVERSIZED_RULES` now
+  lists only `apple-objc-accessibility-best-practices.md`.
+- Audit findings for SwiftLint, ktlint, RTL, `Text` literals, and privacy
+  manifests now point at the matching new skill.
 
 ## [1.1.0] - 2026-11-09
 
