@@ -363,7 +363,7 @@ fi
 # Defined here (before upgrade-inherit) because upgrade-inherit needs to call
 # resolve_agents() on the manifest-recorded agents_input. The SELECTED_AGENTS
 # value and validation happen later in the script alongside --features.
-ALL_AGENTS="claude copilot cursor gemini codex kiro"
+ALL_AGENTS="claude copilot cursor gemini codex kiro android-studio"
 
 resolve_agents() {
     local input="$1"
@@ -654,7 +654,8 @@ fi
 
 # --- --agents resolution ------------------------------------------------------
 #
-# AGENTS_INPUT is CSV of: claude (default), copilot, cursor, gemini, codex, all.
+# AGENTS_INPUT is CSV of: claude (default), copilot, cursor, gemini, codex, kiro,
+# android-studio, all.
 # Resolve into SELECTED_AGENTS as a space-separated set, validate, de-dupe.
 # (Function defined earlier near arg-parse so upgrade-inherit can call it.)
 

@@ -211,9 +211,9 @@ if agents_has claude; then
     fi
 fi
 
-# Rules → .claude/rules/. Claude reads them directly; the Gemini and Codex
-# index files point at them, so those agents need them on disk too.
-if agents_has claude || agents_has gemini || agents_has codex; then
+# Rules → .claude/rules/. Claude reads them directly; the Gemini, Codex, and
+# Android Studio index files point at them, so those agents need them on disk too.
+if agents_has claude || agents_has gemini || agents_has codex || agents_has android-studio; then
     act "create $TARGET/.claude/rules" mkdir -p "$TARGET/.claude/rules"
     echo "--> Copying rules (.claude/rules/)"
     shopt -s nullglob
@@ -278,9 +278,28 @@ if agents_has gemini; then
     install_agent_generated "gemini" "GEMINI.md" "-" index_in_scope_rules "Gemini CLI"
 fi
 
-if agents_has codex; then
-    echo "--> Installing for Codex / generic agents (AGENTS.md index of .claude/rules/)"
-    install_agent_generated "codex" "AGENTS.md" "-" index_in_scope_rules "Codex CLI and other AGENTS.md-aware tools"
+if agents_has codex || agents_has android-studio; then
+    echo "--> Installing AGENTS.md index of .claude/rules/ ($(agents_md_label))"
+    agents_md_agent="$(agents_md_tag)"; agents_md_agent="${agents_md_agent#agent-file-}"
+    install_agent_generated "$agents_md_agent" "AGENTS.md" "-" index_in_scope_rules "$(agents_md_label)"
+fi
+
+if agents_has android-studio; then
+    # Gemini in Android Studio reads AGENTS.md (above; GEMINI.md wins when both
+    # sit in one directory), skills from .agents/skills/, and .aiexclude.
+    echo "--> Installing for Android Studio (.agents/skills/, .aiexclude)"
+    shopt -s nullglob
+    for d in "$SCRIPT_DIR/.claude/skills/"*/; do
+        name="$(basename "$d")"
+        should_install_studio_skill "$name" || continue
+        cat="$(file_category "$name")"; [[ -z "$cat" ]] && cat="-"
+        [[ "$DRY_RUN" == "true" ]] && echo "[dry-run] copy skill $name → .agents/skills/"
+        while IFS= read -r -d '' src_file; do
+            rel_path=".agents/skills/${src_file#"$SCRIPT_DIR/.claude/skills/"}"
+            install_bundle_file "$src_file" "$rel_path" "agent-skill-android-studio" "$cat" "$name"
+        done < <(find "$d" -type f -print0)
+    done
+    install_agent_generated "android-studio" ".aiexclude" "-" aiexclude_file
 fi
 
 if agents_has cursor; then

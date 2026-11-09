@@ -11,6 +11,7 @@
     "Requires `uvx` (from astral.sh/uv) — install via `brew install uv` on macOS or per the uv docs.",
     "Requires `adb` on PATH — install Android SDK platform-tools (`brew install android-platform-tools` on macOS).",
     "Connect a device via USB with developer mode enabled, or start an emulator before invoking MCP tools.",
+    "Claude Code, Cursor, and Gemini CLI run this stdio server. Gemini in Android Studio does not: it supports only HTTP and SSE MCP servers, configured globally in Settings > Tools > AI > MCP Servers (https://developer.android.com/studio/gemini/add-mcp-server). There, use the Android CLI (`android emulator`, `android run`) instead.",
     "Verify the exact install command against the homepage README — the project may have moved to a published PyPI package or alternate install method."
   ],
   "homepage": "https://github.com/minhalvp/android-mcp-server"

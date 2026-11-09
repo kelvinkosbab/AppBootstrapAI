@@ -65,7 +65,7 @@ if [[ "$ACTION" == "upgrade" ]]; then
         hash="$(sha256_file "$f")"
         rel_path=".claude/rules/$name"
         echo "$rel_path|rule|$cat|$hash|" >> "$bundle_all_tmp"
-        if { agents_has claude || agents_has gemini || agents_has codex; } && should_install_rule "$name"; then
+        if { agents_has claude || agents_has gemini || agents_has codex || agents_has android-studio; } && should_install_rule "$name"; then
             echo "$rel_path" >> "$bundle_in_scope_tmp"
         fi
     done
@@ -177,8 +177,27 @@ if [[ "$ACTION" == "upgrade" ]]; then
     if agents_has gemini; then
         _materialize_generated "GEMINI.md" "agent-file-gemini" index_in_scope_rules "Gemini CLI"
     fi
-    if agents_has codex; then
-        _materialize_generated "AGENTS.md" "agent-file-codex" index_in_scope_rules "Codex CLI and other AGENTS.md-aware tools"
+    if agents_has codex || agents_has android-studio; then
+        _materialize_generated "AGENTS.md" "$(agents_md_tag)" index_in_scope_rules "$(agents_md_label)"
+    fi
+    if agents_has android-studio; then
+        _materialize_generated ".aiexclude" "agent-file-android-studio" aiexclude_file
+        # Skills mirrored to .agents/skills/ (sourced from the overlay, since the
+        # path doesn't exist in the bundle).
+        for d in "$SCRIPT_DIR/.claude/skills/"*/; do
+            skill_name="$(basename "$d")"
+            cat="$(file_category "$skill_name")"; [[ -z "$cat" ]] && cat="-"
+            while IFS= read -r -d '' src_file; do
+                rel_path=".agents/skills/${src_file#"$SCRIPT_DIR/.claude/skills/"}"
+                mkdir -p "$bundle_overlay_dir/$(dirname "$rel_path")"
+                cp "$src_file" "$bundle_overlay_dir/$rel_path"
+                hash="$(sha256_file "$src_file")"
+                echo "$rel_path|agent-skill-android-studio|$cat|$hash|$skill_name" >> "$bundle_all_tmp"
+                if should_install_studio_skill "$skill_name"; then
+                    echo "$rel_path" >> "$bundle_in_scope_tmp"
+                fi
+            done < <(find "$d" -type f -print0)
+        done
     fi
 
     # /appbootstrap-sync and /appbootstrap-audit command files, one per selected agent.

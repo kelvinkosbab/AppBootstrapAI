@@ -21,6 +21,8 @@ Review process:
 
 If doing a partial review, load only the relevant reference files.
 
+**Official companion:** when Google's Android skills ([android/skills](https://github.com/android/skills), Apache-2.0) are installed, see `r8-analyzer`, which inspects the merged R8 configuration of a real build. Use it for evidence; use this skill for keep-rule discipline and crash triage.
+
 ## Core Instructions
 
 - **R8 is default in AGP 3.4+.** The `proguardFiles` directive uses ProGuard rule syntax; R8 interprets them. There's no separate "use R8" flag — `minifyEnabled = true` turns it on.

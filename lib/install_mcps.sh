@@ -113,8 +113,18 @@ else
         echo "    $step. Review $TARGET/GEMINI.md (generated; commit alongside your rules)."
         step=$((step + 1))
     fi
-    if agents_has codex && [[ -f "$TARGET/AGENTS.md" ]]; then
+    if { agents_has codex || agents_has android-studio; } && [[ -f "$TARGET/AGENTS.md" ]]; then
         echo "    $step. Review $TARGET/AGENTS.md (generated; commit alongside your rules)."
+        step=$((step + 1))
+    fi
+    if agents_has android-studio && [[ -f "$TARGET/.aiexclude" ]]; then
+        echo "    $step. Review $TARGET/.aiexclude and add any other files Gemini in Android Studio must not read."
+        step=$((step + 1))
+    fi
+    if [[ "$PLATFORM" != "apple" ]]; then
+        echo "    $step. Optional: add Google's official Android skills (Apache-2.0, https://github.com/android/skills)."
+        echo "       With the Android CLI: android skills add --all --project=\"$TARGET\""
+        echo "       Or in Claude Code:   /plugin marketplace add android/skills"
         step=$((step + 1))
     fi
     echo "    $step. Review $TARGET/.gitignore for merge conflicts."

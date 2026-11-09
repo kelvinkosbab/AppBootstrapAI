@@ -20,6 +20,8 @@ Review process:
 
 If doing a partial review, load only the relevant reference files.
 
+**Official companion:** when Google's Android skills ([android/skills](https://github.com/android/skills), Apache-2.0) are installed, see `jetpack-compose-performance`, which measures recomposition and dropped frames. Use it to confirm a performance fix; use this skill for state, stability, and effect review.
+
 ## Core Instructions
 
 - Target Kotlin 2.x with the Compose Compiler Gradle plugin; assume Material 3.
