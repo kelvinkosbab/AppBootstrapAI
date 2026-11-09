@@ -1,6 +1,6 @@
 {
   "name": "@kelvinkosbab/appbootstrap-mcp",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "description": "MCP server wrapping AppBootstrapAI's install.sh so AI agents (Claude Code, Cursor, Gemini CLI, Kiro) can invoke it through structured tools instead of parsing shell output.",
   "type": "module",
   "bin": {

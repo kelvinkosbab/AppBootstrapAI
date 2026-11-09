@@ -46,7 +46,7 @@ import {
     type CallToolRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, isAbsolute, join, resolve } from "node:path";
@@ -446,10 +446,15 @@ async function toolUninstall(args: {
 
 // --- MCP wiring ---------------------------------------------------------------
 
+// The release workflow sets package.json's version from the tag, so the server
+// reports the bundle version it ships with.
+const PACKAGE_VERSION: string =
+    JSON.parse(readFileSync(resolve(__dirname, "..", "package.json"), "utf8")).version ?? "0.0.0";
+
 const server = new Server(
     {
         name: "appbootstrap",
-        version: "0.1.0",
+        version: PACKAGE_VERSION,
     },
     {
         capabilities: { tools: {}, prompts: {} },
