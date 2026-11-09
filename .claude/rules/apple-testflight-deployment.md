@@ -1,8 +1,8 @@
 ---
 description: Patterns for shipping iOS / macOS / tvOS / watchOS / visionOS apps to TestFlight — versioning, App Store Connect API auth, archive + export, code signing, tester groups, beta review, dSYM upload, CI integration
-globs: "**/{Fastfile,Appfile,Matchfile,Deliverfile,Snapfile,Scanfile,Gymfile,exportOptions.plist,ExportOptions.plist,*.entitlements,project.pbxproj,Info.plist,*.xcconfig},.github/workflows/*.{yml,yaml},.gitlab-ci.yml,bitrise.yml,.circleci/config.yml"
+globs: "**/{Fastfile,Appfile,Matchfile,Deliverfile,Snapfile,Scanfile,Gymfile,exportOptions.plist,ExportOptions.plist},.github/workflows/*.{yml,yaml},.gitlab-ci.yml,bitrise.yml,.circleci/config.yml"
 paths:
-  - "**/{Fastfile,Appfile,Matchfile,Deliverfile,Snapfile,Scanfile,Gymfile,exportOptions.plist,ExportOptions.plist,*.entitlements,project.pbxproj,Info.plist,*.xcconfig}"
+  - "**/{Fastfile,Appfile,Matchfile,Deliverfile,Snapfile,Scanfile,Gymfile,exportOptions.plist,ExportOptions.plist}"
   - ".github/workflows/*.{yml,yaml}"
   - ".gitlab-ci.yml"
   - "bitrise.yml"
@@ -198,7 +198,7 @@ Treat all of this as a release-checklist item next to `CFBundleVersion` and the 
 For TestFlight builds you'll have to debug later, make the build reproducible:
 
 - **Lock dependency versions.** `Package.resolved` committed for app targets (un-ignore it). For CocoaPods, `Podfile.lock`. For Carthage, `Cartfile.resolved`.
-- **Pin the Xcode version in CI.** GitHub Actions: `xcode-version: 15.4` or use the `actions/setup-xcode` action. Don't rely on "the latest Xcode" — Apple ships breaking changes between minors.
+- **Pin the Xcode version in CI.** GitHub Actions: `maxim-lobanov/setup-xcode` with an exact `xcode-version` (for example `'27.0'`) on a pinned runner image. Don't rely on "the latest Xcode" — Apple ships breaking changes between minors.
 - **Pin Ruby / Bundler / fastlane.** A `Gemfile.lock` + `Bundler` in CI keeps fastlane stable across runs.
 - **Stamp the commit SHA into the build.** Easy: a `Bundle short version` or `Info.plist` custom key set from `${GITHUB_SHA}`. Lets you correlate TestFlight builds to source.
 
@@ -206,7 +206,7 @@ For TestFlight builds you'll have to debug later, make the build reproducible:
 
 Xcode 27 (Swift 6.4) changes the CI baseline — plan for these when you bump the pinned Xcode:
 
-- **Xcode 27 is Apple-silicon-only** and requires **macOS Tahoe 26.4+** — and the floor rises across 27.x point releases (27.1, which carries iPhone Duo support, wants 26.6+). Check the release notes for the exact version you pin, not just the major. CI runners must be Apple silicon (e.g. GitHub's `macos-15`/`macos-26` ARM images) — an Intel runner can't install it. Pin the runner image, not just the Xcode version.
+- **Xcode 27 is Apple-silicon-only** and requires **macOS Tahoe 26.4+** — and the floor rises across 27.x point releases (27.1, which carries iPhone Duo support, wants 26.6+). Check the release notes for the exact version you pin, not just the major. CI runners must be Apple silicon on macOS 26 (e.g. GitHub's `macos-26` image); `macos-15` runs Sequoia and can't install it, and an Intel runner can't either. Pin the runner image, not just the Xcode version.
 - **Universal builds drop `x86_64` by default at deployment target ≥ 27.** `ARCHS_STANDARD` no longer includes `x86_64` when `MACOSX_DEPLOYMENT_TARGET` (or `DRIVERKIT_DEPLOYMENT_TARGET`) is `27.0`+. Apple-silicon-only apps get a smaller binary for free; if you still ship Intel, add `x86_64` to `ARCHS` explicitly.
 - **`ld64` (the classic linker) is removed; `-ld_classic` is no longer accepted.** Strip any `-ld_classic` from `OTHER_LDFLAGS` / SPM `unsafeFlags` before moving to Xcode 27 — a leftover flag fails the link. The modern linker is the only option.
 - **Device Hub replaces the separate Simulator and Devices & Simulators windows**, unifying simulated and physical devices — and it can **resize a running app by dragging its edges** (Xcode Previews gained the same mode). CI scripts that drove the old windows, or docs that tell developers to "open Devices & Simulators," need updating.
@@ -235,7 +235,7 @@ Tool-specific shapes:
 
 ## Common Gotchas (Ranked by Frequency)
 
-1. **Reusing a `CFBundleVersion`** — Apple's upload API rejects with `ITMS-90161` ("Invalid Provisioning Profile") or `ITMS-90189` ("Bundle Version Mismatch"). Compute build number from a monotonic source.
+1. **Reusing a `CFBundleVersion`** — the upload is rejected with "The bundle version must be higher than the previously uploaded version" (`ITMS-90189` / redundant binary upload). Compute the build number from a monotonic source. (`ITMS-90161` is a different error: an invalid provisioning profile.)
 2. **Mismatched bundle ID between project and provisioning profile** — archive succeeds, export fails with a confusing signing error. Always verify the bundle ID match.
 3. **Expired distribution cert** — local archive works, CI upload fails. Apple notifies via email 30 days before expiration; nobody reads it. Calendar reminder yourself.
 4. **`signingStyle: automatic` in a CI ExportOptions.plist** — fails on the first CI run with "no signing certificate found." Always `manual` for CI.
@@ -260,13 +260,13 @@ on:
 
 jobs:
   testflight:
-    runs-on: macos-14
+    runs-on: macos-26           # Apple silicon + macOS Tahoe; Xcode 27 needs both
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
-        with: { xcode-version: '15.4' }
+        with: { xcode-version: '27.0' }   # pin an exact version
 
       - name: Install ASC API key
         env:

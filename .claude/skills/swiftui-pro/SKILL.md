@@ -16,6 +16,7 @@ Review process:
 1. Check for deprecated API using `references/api.md`.
 1. Check that views, modifiers, and animations have been written optimally using `references/views.md`.
 1. Validate that data flow is configured correctly using `references/data.md`.
+1. When a view has (or needs) a view model, check ownership and structure against `references/mvvm-conventions.md`.
 1. Ensure navigation is updated and performant using `references/navigation.md`.
 1. Ensure the code uses designs that are accessible and compliant with Apple's Human Interface Guidelines using `references/design.md`.
 1. Review layout behavior as windows resize, including iPad multitasking and folding iPhone Duo, using `references/resizability.md`.
@@ -123,3 +124,4 @@ End of example.
 - `references/swift.md` - tips on writing modern Swift code, including using Swift Concurrency effectively.
 - `references/views.md` - view structure, composition, animation, reordering, and swipe actions.
 - `references/mac-touch-conventions.md` - the full `apple-mac-touch` rule (the installed rule is its checklist): AppKit recognizer migration, Mac Catalyst, games, Info.plist keys. Load it after `references/mac-touch.md` when a Mac target needs that depth.
+- `references/mvvm-conventions.md` - when a view needs a view model, `@State` vs `@Bindable` ownership, dependency plumbing, splitting large view models, and form view models.
