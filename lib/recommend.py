@@ -205,6 +205,10 @@ def detect_agents(target: str):
         found.append("codex")
     if os.path.isdir(os.path.join(target, ".kiro", "steering")):
         found.append("kiro")
+    if os.path.isfile(os.path.join(target, ".aiexclude")) or os.path.isdir(
+        os.path.join(target, ".android-studio")
+    ):
+        found.append("android-studio")
     return found
 
 

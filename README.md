@@ -4,7 +4,7 @@ A drop-in bundle of **AI agent steering** — rules, skills (Claude), and MCP re
 
 One `install.sh` bootstraps modern review, testing, style, accessibility, localization, and regional store-compliance guidance into any new or existing app repo — and keeps it up to date with `--upgrade`. Day-one consistency without writing the rules yourself; day-N reproducibility without drifting from upstream.
 
-**Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex,kiro` (or `all`) and `install.sh` drops the right file shape per agent: `.github/instructions/*.instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`. Every agent gets rules scoped to the files they cover; Gemini and Codex, which can't scope by path, get a short index that names the rule to read for each file type. Skills stay Claude-only. For Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [docs/agents.md](docs/agents.md).
+**Claude Code is the default target, but the installer can write for other agents too.** Pass `--agents copilot,cursor,gemini,codex,kiro,android-studio` (or `all`) and `install.sh` drops the right file shape per agent: `.github/instructions/*.instructions.md`, `.cursor/rules/*.mdc`, `GEMINI.md`, `AGENTS.md`, `.kiro/steering/*.md`, and for Android Studio `.agents/skills/` plus `.aiexclude`. Every agent gets rules scoped to the files they cover; Gemini, Codex, and Android Studio, which can't scope by path, get a short index that names the rule to read for each file type. Skills go to Claude Code and Android Studio. For Cline / Goose / Roo / Windsurf etc., layer a sync tool — see [docs/agents.md](docs/agents.md).
 
 **Audit without installing:** see [Audit a repo](#audit-a-repo). Agents: start at [`AGENTS.md`](AGENTS.md).
 
@@ -21,7 +21,7 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, locali
 | **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · motion design · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · memory + storage · App Intents + Siri (opt-in) · Xcode build security (opt-in) · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
 | **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · motion design · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · memory + storage · Gemini Nano / Firebase AI · Play beta · regional store compliance |
 | **Skills (Claude)** | On-demand deep-review agents for both platforms |
-| **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro |
+| **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro, Android Studio |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
 | **Lifecycle** | guided `setup` · `install` · `upgrade` (3-way diff — never clobbers your edits) · `uninstall` |
 
@@ -116,7 +116,7 @@ gates CI on the same checks.
 | [docs/install-reference.md](docs/install-reference.md) | Every `install.sh` command and flag, with examples |
 | [docs/using-the-bundle.md](docs/using-the-bundle.md) | How rules and skills fire, installing with an AI agent, working with agents after install, saving tokens |
 | [docs/upgrading.md](docs/upgrading.md) | `upgrade` (3-way diff, renames, MCP entries) and `uninstall` |
-| [docs/agents.md](docs/agents.md) | Copilot, Cursor, Gemini, Codex, and Kiro file layouts |
+| [docs/agents.md](docs/agents.md) | Copilot, Cursor, Gemini, Codex, Kiro, and Android Studio file layouts |
 | [docs/mcp-tooling.md](docs/mcp-tooling.md) | Companion MCP servers for Apple, Android, and both |
 | [docs/verify-on-sdk.md](docs/verify-on-sdk.md) | Beta SDK symbols the rules cite, to re-check at each Xcode release |
 | [mcp-server/](mcp-server/README.md) | This repo's MCP server: the installer as typed tools |

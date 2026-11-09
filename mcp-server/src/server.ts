@@ -289,7 +289,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ serve
     });
 
     server.registerTool("install", {
-        description: "Run AppBootstrapAI's installer against a target directory. Copies skills, rules, settings.json, CLAUDE.md template, and .gitignore entries matching the selection. With --agents, also writes per-agent files (.github/copilot-instructions.md, .cursor/rules/*.mdc, GEMINI.md, AGENTS.md, .kiro/steering/*.md). Never overwrites existing CLAUDE.md/settings.json/agent files (prints what was skipped). Returns install.sh's stdout/stderr + exit code.",
+        description: "Run AppBootstrapAI's installer against a target directory. Copies skills, rules, settings.json, CLAUDE.md template, and .gitignore entries matching the selection. With --agents, also writes per-agent files (.github/copilot-instructions.md, .cursor/rules/*.mdc, GEMINI.md, AGENTS.md, .kiro/steering/*.md, .agents/skills/ + .aiexclude for Android Studio). Never overwrites existing CLAUDE.md/settings.json/agent files (prints what was skipped). Returns install.sh's stdout/stderr + exit code.",
         inputSchema: {
             target_dir: targetDir("Absolute path to the directory where AppBootstrapAI should be installed. Required."),
             platform: platform.optional().describe("Default: auto-detected from target_dir"),
@@ -297,7 +297,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ serve
             apple_platforms: applePlatforms.optional(),
             android_platforms: androidPlatforms.optional(),
             features: features.default("recommended"),
-            agents: z.string().optional().describe("Comma-separated AI agents to install for: claude (default), copilot, cursor, gemini, codex, kiro, or 'all'. Additive."),
+            agents: z.string().optional().describe("Comma-separated AI agents to install for: claude (default), copilot, cursor, gemini, codex, kiro, android-studio, or 'all'. Additive."),
             with_mcps: z.string().optional().describe("Comma-separated MCP recipe names to add to .claude/settings.local.json (e.g. 'xcodebuildmcp,sentry'). See list-mcps in the bundle for available recipes."),
         },
         annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: false },

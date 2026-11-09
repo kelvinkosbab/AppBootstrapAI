@@ -18,7 +18,10 @@
 # Mixed team — install for Claude + Copilot + Cursor in one go
 /path/to/AppBootstrapAI/install.sh . --agents claude,copilot,cursor
 
-# Everything — claude + copilot + cursor + gemini + codex + kiro
+# Gemini in Android Studio — AGENTS.md index, Android skills in .agents/skills/, .aiexclude
+/path/to/AppBootstrapAI/install.sh . --agents android-studio
+
+# Everything — claude + copilot + cursor + gemini + codex + kiro + android-studio
 /path/to/AppBootstrapAI/install.sh . --agents all
 ```
 
@@ -32,12 +35,13 @@ Per-agent file shape:
 | Gemini CLI | `gemini`  | `GEMINI.md`, `.claude/rules/`        | A short index (about 13 KB for an Apple install): each rule's paths and its 2 to 5 always-on musts (`must:` in the rule's frontmatter), plus which `.claude/rules/` file to read in full before editing a matching file |
 | Codex CLI / `AGENTS.md`-aware tools | `codex`   | `AGENTS.md`, `.claude/rules/`         | Same index as Gemini |
 | Kiro | `kiro`    | `.kiro/steering/<name>.md`           | Per-rule [steering files](https://kiro.dev/docs/steering/); each rule's `globs` becomes `inclusion: fileMatch` + `fileMatchPattern`, so a rule loads only when a matching file is open |
+| Gemini in Android Studio | `android-studio` | `AGENTS.md`, `.claude/rules/`, `.agents/skills/<name>/`, `.aiexclude` | Same index as Codex ([AGENTS.md](https://developer.android.com/studio/gemini/agent-files); a `GEMINI.md` in the same directory wins). The Android and cross-platform skills are mirrored to `.agents/skills/` ([Studio skills](https://developer.android.com/studio/gemini/skills)), and [`.aiexclude`](https://developer.android.com/studio/gemini/aiexclude) hides keystores, `local.properties`, service-account JSON, and build output |
 
 **How it works:**
 
 - **Same source, multiple targets.** Every agent gets content derived from the same `.claude/rules/*.md` source-of-truth (gated by `--platform` / `--apple-language` / `--features`). Output is deterministic — the Gemini/Codex indexes and the per-rule files (Copilot with `applyTo`, Cursor `.mdc`, Kiro steering with its rewritten `inclusion`/`fileMatchPattern` frontmatter) all produce the same bytes given the same inputs — so `--upgrade` can diff cleanly.
 - **Only matching rules load.** An always-loaded file is paid for on every request, so no agent gets the full rule set up front. Gemini and Codex have no path scoping, so their index always carries each rule's musts and relies on the agent reading the full rule for the rest; it's about 13 KB instead of the 180 KB the full rule text used to be.
-- **Skills are Claude-only.** Skills are procedural sub-agents that only run inside Claude Code. Non-Claude agents get rules only. If you want a skill's checklist in another agent's context, copy it into the relevant rule manually.
+- **Skills go to Claude Code and Android Studio.** Android Studio reads the same `SKILL.md` format from `.agents/skills/`, so `android-studio` mirrors the Android and cross-platform skills there. Other agents get rules only.
 - **Existing files are never overwritten on install.** If you already have `.github/copilot-instructions.md` or `GEMINI.md`, install skips and prints a notice. `--upgrade` does the 3-way diff like any other tracked file.
 - **`--upgrade --apply` opts in / out of agents.** Pass `--agents` on the command line to opt into a new agent (its files show up as additions). Pass `--agents <fewer>` + `--prune` to drop an agent (its files appear as orphans and get deleted).
 - **The manifest tracks per-agent.** `selection.agents_input` / `selection.agents_resolved` and per-file `type: agent-file-<name>` entries so the upgrade flow knows which files came from which agent.

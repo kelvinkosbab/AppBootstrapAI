@@ -21,6 +21,8 @@ Review process:
 
 For a partial review (only leaks, only storage), load only the matching reference.
 
+**Official companion:** when Google's Android skills ([android/skills](https://github.com/android/skills), Apache-2.0) are installed, see `android-profiler` (Android Studio profilers and PerfettoSQL). Use it to gather evidence in step 4; this skill decides what the evidence means and what to fix.
+
 ## Core Instructions
 
 - **A leak finding names the chain**: `AnalyticsTracker` (singleton) → `listener` → `ProfileFragment` → its view tree. "Might leak" without a chain isn't a finding.
