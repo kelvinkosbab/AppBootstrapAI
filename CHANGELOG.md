@@ -46,13 +46,6 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 - `ai-steering-files.md` lists Android Studio's steering paths and `.aiexclude`.
 - The MCP server's version now follows the bundle (`1.1.0`) and is read from
   `package.json` instead of being hard-coded.
-- **MCP server on `McpServer` with zod schemas.** The server moves from the
-  low-level `Server` and hand-written argument checks to `registerTool` /
-  `registerPrompt` with zod input schemas (SDK `^1.29`). Tools now report
-  failures as `isError` results, as the MCP spec asks, and carry read-only /
-  destructive annotations. `npm test` runs one round trip per tool and prompt,
-  including install, upgrade, audit, and uninstall against a temp directory,
-  and CI runs it.
 
 - **Ten more rules slimmed to must-lists.** The Apple linting, localization,
   Foundation Models, visionOS, TestFlight, and regional-compliance rules and
