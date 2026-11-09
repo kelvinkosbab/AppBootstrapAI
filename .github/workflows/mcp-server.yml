@@ -38,6 +38,9 @@ jobs:
       - name: Type-check + build (tsc)
         run: npm run build
 
+      - name: Tool round trips (node --test)
+        run: node --test test/*.test.mjs
+
       - name: Smoke — server starts and loads the category set from install.sh
         run: |
           # The server reads stdin as the MCP transport; feed it nothing and

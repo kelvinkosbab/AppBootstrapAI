@@ -747,7 +747,7 @@ Use a sync tool when you need agents that `install.sh --agents` doesn't cover, o
 │   ├── firebase.json                  # Cross-platform (official Google MCP)
 │   └── sentry.json                    # Cross-platform (official hosted Sentry MCP)
 ├── mcp-server/                        # MCP server wrapping install.sh as typed tools
-│   ├── src/index.ts                   # 9 tools: recommend_setup, list_*, preview_install, install, preview/uninstall
+│   ├── src/server.ts                  # 10 tools: recommend_setup, list_*, preview_install, install, preview_upgrade, audit_project, preview/uninstall
 │   ├── package.json
 │   └── README.md                      # MCP setup instructions for Claude Code / Cursor / others
 ├── install.sh                         # CLI dispatcher (~450 lines): args, validation, mode dispatch
