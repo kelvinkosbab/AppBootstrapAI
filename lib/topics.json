@@ -172,5 +172,16 @@
     "skills": {
       "shared": ["motion-design-pro"]
     }
+  },
+  "library": {
+    "description": "Libraries other apps consume: public API surface, source and binary compatibility, SemVer and deprecation, ABI and breaking-change checks, XCFrameworks, consumer R8 rules, and publishing.",
+    "rules": {
+      "apple": ["apple-library-authoring.md", "apple-spm-package-conventions.md"],
+      "android": ["android-library-authoring.md", "android-gradle-conventions.md"]
+    },
+    "skills": {
+      "apple": ["swift-library-pro", "swift-package-pro", "swift-docc-pro"],
+      "android": ["android-library-pro", "r8-shrink-pro"]
+    }
   }
 }

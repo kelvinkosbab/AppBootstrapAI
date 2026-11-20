@@ -17,6 +17,8 @@
 - "Use `android-memory-storage-pro` to audit what the app writes to disk and backs up."
 - "Use `app-intents-pro` to review our App Intents and make the shopping-list actions work with Siri."
 - "Use `xcode-security-pro` to audit our build settings and plan turning on Enhanced Security."
+- "Use `swift-library-pro` to tell me whether this change needs a major version and draft the CHANGELOG entry."
+- "Use `android-library-pro` to set up Maven Central publishing for our SDK modules."
 - "Use `instruments-profiling-pro` to find out why the feed hangs on first launch."
 - "Use `motion-design-pro` to define our motion tokens and write the motion spec with our designer."
 - "Use `motion-design-pro` to review the onboarding animations for timing, consistency, and Reduce Motion."
@@ -53,7 +55,7 @@ Each produces a file-by-file findings report with before/after fixes and a prior
 |------|--------|
 | Audit a repo without installing | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit this package. Don't change any files."* |
 | Review and improve your AI rules | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit our CLAUDE.md, AGENTS.md, and Cursor rules and suggest improvements."* (`install.sh audit . --steering-only`) |
-| Audit one area only, reading just its rules and skills | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit only the concurrency safety of this repo."* (`/appbootstrap-audit concurrency` after an install, or `install.sh audit . --topic concurrency`; topics: concurrency, architecture, accessibility, ui, localization, testing, compliance, logging, docs, deployment, linting, memory, storage, intents, security, performance, motion) |
+| Audit one area only, reading just its rules and skills | *"Use github.com/kelvinkosbab/AppBootstrapAI to audit only the concurrency safety of this repo."* (`/appbootstrap-audit concurrency` after an install, or `install.sh audit . --topic concurrency`; topics: concurrency, architecture, accessibility, ui, localization, testing, compliance, logging, docs, deployment, linting, memory, storage, intents, security, performance, motion, library) |
 | Bootstrap a new Apple SwiftUI app with the recommended set | *"Run `/path/to/AppBootstrapAI/install.sh . --platform apple` in this directory, then walk me through what landed."* |
 | Bootstrap an Android Compose app with everything | *"Run `/path/to/AppBootstrapAI/install.sh . --platform android --features all` and summarize the new files."* |
 | Pick categories interactively | *"Show me `./install.sh --list --features all`, then ask me which categories to install."* |

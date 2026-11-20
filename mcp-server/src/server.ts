@@ -88,6 +88,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     architecture:     "Android MVVM/UDF (StateFlow UiState, SavedStateHandle, Route/Screen) + repository pattern / data layer (Apple + Android).",
     intents:          "App Intents, App Shortcuts, and Siri tools (27.3): perform() isolation, stable entities, phrases, schemas, AppIntentsTesting, SiriEvaluations.",
     security:         "Xcode build security: security warnings and analyzer checks, Enhanced Security, hardened-process entitlements, phased rollout, C bounds safety.",
+    library:          "Authoring libraries that apps consume: Swift packages and Apple frameworks (API stability, SemVer, breaking-change checks, XCFrameworks) and Android/Kotlin library modules (explicit API, ABI dumps, consumer rules, Maven Central).",
 };
 
 export interface Category { name: string; recommended: boolean; description: string; }
