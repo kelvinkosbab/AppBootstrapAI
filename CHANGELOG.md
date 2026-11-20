@@ -10,6 +10,16 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
 
 ### Added
 
+- **`flaky-tests-pro`** (either platform, `testing` category). A workflow to
+  reproduce a flaky test (`xcodebuild -test-iterations` /
+  `-run-tests-until-failure`, `swift test --repeat-until`, Gradle and
+  instrumentation loops), classify its cause, fix it at the source, and verify
+  it. References cover Swift Testing, XCTest, XCUITest, coroutines, Robolectric,
+  Compose, Espresso, Test Orchestrator, and Gradle Managed Devices, plus a CI
+  policy for retries, quarantine, and tracking and a list of external tools
+  and agent skills (Tuist, Develocity, the Gradle test-retry plugin, Firebase
+  Test Lab, Marathon). The testing rules and the `testing` audit topic point
+  to it.
 - **npm publishing.** A release tag also publishes
   `@kelvinkosbab/appbootstrap-mcp` to npm with provenance, at the tag's
   version and with the bundle packed inside. It needs an `NPM_TOKEN`

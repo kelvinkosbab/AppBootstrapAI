@@ -143,6 +143,7 @@ fun `state emits Loading then Loaded`() = runTest {
 - **Dispatchers not reset** — `Dispatchers.setMain` without a corresponding `resetMain` leaks across tests. Use a `MainDispatcherRule`.
 - **Compose tests using visible text** — fragile across locales. Use `testTag` / `contentDescription`.
 - **`Thread.sleep()` anywhere** — replace with `waitForIdle` / `waitUntil` / virtual time.
+- **Retrying or `@Ignore`-ing a flaky test instead of fixing it.** Reproduce, classify, and fix with the `flaky-tests-pro` skill; quarantine only with an owner and an issue.
 - **Real network in unit tests** — even pointing at a "test" environment makes tests flaky and slow. Use `MockWebServer` or fake repositories.
 - **Mocking Android framework classes (`Context`, `Resources`)** when you could use Robolectric — Robolectric gives you real-ish behavior; mocked `Context` papers over bugs.
 - **Coverage threshold set, but the report ignored** — wire it into CI as a *failing* gate, or it's decorative.
