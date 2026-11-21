@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 20 Apple, 11 Android, 6 cross-platform — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 18 Apple, 11 Android, 9 cross-platform — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -80,6 +80,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── beta-deployment-pro/                # Both: TestFlight / Play beta pipelines + upload triage
 │   ├── coredata-swift6-pro/                # Apple: Core Data under Swift 6
 │   ├── cross-platform-parity-pro/          # Both: port features, audit drift, set up a two-platform repo
+│   ├── flaky-tests-pro/                    # Both: reproduce, classify, fix, and quarantine flaky tests
 │   ├── foundation-models-pro/              # Apple: Foundation Models write/review
 │   ├── instruments-profiling-pro/          # Apple: xctrace profiling + hang triage
 │   ├── linting-pro/                        # Both: SwiftLint / ktlint / detekt / Android Lint setup + triage
@@ -197,6 +198,7 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `swift-accessibility-pro` to audit the scan screens for VoiceOver and keyboard access."
 - "Use `swift-adaptive-layout-pro` to get this app ready for iPhone Duo."
 - "Use `swift-testing-pro` to write tests for `UserSession`."
+- "Use `flaky-tests-pro` to find out why `FeedViewModelTests` fails one run in twenty on CI."
 - "Use `coredata-swift6-pro` to review the persistence layer."
 - "Use `swift-docc-pro` to review documentation in this package."
 - "Use `swift-error-handling-pro` to review error types and throwing functions."

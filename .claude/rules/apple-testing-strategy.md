@@ -39,6 +39,7 @@ must:
 
 - **Swift Testing for new unit, integration, and (Xcode 27) UI tests**; XCTest only for `measure {}` performance tests. One framework per test target.
 - **Flakes**: reproduce with `swift test --repeat-until fail --maximum-repetitions <n>`, then fix the determinism bug. Never ship `--repeat-until pass`.
+- **Investigating or preventing flakes** (`xcodebuild -test-iterations`, retries, quarantine): use the `flaky-tests-pro` skill. Never fix a flake with a sleep, a longer timeout, or a silent retry.
 
 ## UI tests
 

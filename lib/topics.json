@@ -55,13 +55,14 @@
     }
   },
   "testing": {
-    "description": "Test strategy, determinism, and coverage: Swift Testing and XCUITest, JUnit, Turbine, Compose UI tests.",
+    "description": "Test strategy, determinism, flaky tests, and coverage: Swift Testing and XCUITest, JUnit, Turbine, Compose UI tests.",
     "rules": {
       "apple": ["apple-testing-strategy.md"],
       "android": ["android-testing-strategy.md"]
     },
     "skills": {
-      "apple": ["swift-testing-pro"]
+      "apple": ["swift-testing-pro"],
+      "shared": ["flaky-tests-pro"]
     }
   },
   "compliance": {

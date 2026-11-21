@@ -71,6 +71,7 @@ A test that passes intermittently is a determinism bug (see above) — find it b
 - **`swift test --repeat-until pass`** is the opposite escape hatch — *don't* ship it as a way to paper over a flaky test; use it only to confirm a fix actually stuck, then remove it.
 - `swift test` now prints a summary of which targets failed, so a multi-target run points you at the culprit without scrolling.
 - A reproduced flake almost always traces back to one of the determinism rules: a real clock/UUID/`Date()`, shared `UserDefaults.standard`, order-dependence exposed by parallel execution, or live network. Fix the source; repetition flags are the diagnostic, not the cure.
+- For the full workflow (`xcodebuild -test-iterations` / `-run-tests-until-failure`, `.xcresult` reading, XCUITest waits, retries and quarantine in CI), use the `flaky-tests-pro` skill.
 
 ## UI Testing (XCUITest)
 
