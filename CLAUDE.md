@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 17 Apple, 10 Android, 9 cross-platform — alongside the always-loaded steering rules.
+**AppBootstrapAI** is a drop-in bundle of Claude Code skills and AI steering rules for bootstrapping new app projects. Covers Apple platforms (iOS, macOS, tvOS, watchOS, visionOS — Swift 6.4 concurrency, SwiftUI, Swift Testing, Foundation Models, Objective-C) and Android (Kotlin, Jetpack Compose, MVVM, Hilt, coroutines) in one bundle. Skills (deep-dive review agents) ship for both sides — 18 Apple, 11 Android, 9 cross-platform — alongside the always-loaded steering rules.
 
 This repo is **not** a Swift package. It is a collection of `.claude/` assets intended to be copied (or referenced) into a target app repository so that Claude Code picks up consistent review, testing, and style guidance across projects.
 
@@ -20,6 +20,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-gradle-conventions.md              # Android: Gradle DSL / version catalogs / modules
 │   ├── android-iconography.md                     # Android: Material Symbols, adaptive/themed launcher icons
 │   ├── android-large-screen-best-practices.md     # Android: tablets / foldables / desktop windows (tablet-gated)
+│   ├── android-library-authoring.md               # Android: library modules, explicit API, ABI, publishing (opt-in)
 │   ├── android-linting-strategy.md                # Android: ktlint + detekt + Android Lint
 │   ├── android-localization-best-practices.md     # Android: strings.xml / plurals / RTL
 │   ├── android-logging-strategy.md                # Android: Timber, levels, release-stripping
@@ -42,6 +43,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── apple-foundation-models.md                 # Apple: On-device LLM (FoundationModels)
 │   ├── apple-iconography.md                       # Apple: SF Symbols facade, Icon Composer app icons
 │   ├── apple-infoplist-localization.md            # Apple: Info.plist / usage-description strings
+│   ├── apple-library-authoring.md                 # Apple: Swift packages / frameworks apps consume (opt-in)
 │   ├── apple-linting-strategy.md                  # Apple: SwiftLint + formatter discipline
 │   ├── apple-localization-best-practices.md       # Apple: String Catalogs / plurals / RTL
 │   ├── apple-logging-strategy.md                  # Apple: os.Logger, privacy markers, levels
@@ -71,6 +73,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── android-coroutines-pro/             # Android: coroutines/Flow deep review
 │   ├── android-design-system-pro/          # Android: icons + theme + components bootstrap/audit
 │   ├── android-gradle-architecture-pro/    # Android: NiA-style convention plugins
+│   ├── android-library-pro/                # Android: library modules, ABI, Maven Central publishing
 │   ├── android-memory-storage-pro/         # Android: leak, footprint, and storage audit
 │   ├── android-modularization-pro/         # Android: plan/migrate/audit a multi-module app
 │   ├── app-intents-pro/                    # Apple: App Intents + Siri tools write/review
@@ -91,6 +94,7 @@ This repo is **not** a Swift package. It is a collection of `.claude/` assets in
 │   ├── swift-design-system-pro/            # Apple: icons + tokens + components bootstrap/audit
 │   ├── swift-docc-pro/                     # Apple: DocC documentation
 │   ├── swift-error-handling-pro/           # Apple: typed throws, Result
+│   ├── swift-library-pro/                  # Apple: library API stability, XCFrameworks, releases
 │   ├── swift-logging-pro/                  # Apple: os.Logger review
 │   ├── swift-memory-storage-pro/           # Apple: leak, footprint, and storage audit
 │   ├── swift-modularization-pro/           # Apple: plan/migrate/audit a local SPM package
@@ -173,11 +177,11 @@ Use the installer from the target repo. It takes a **command verb** —
 # Preview catalog with category tags
 /path/to/AppBootstrapAI/install.sh --list --platform apple --features all
 
-# Full help — enumerates all 22 feature categories
+# Full help — enumerates all 23 feature categories
 /path/to/AppBootstrapAI/install.sh --help
 ```
 
-The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`, `compliance`, `memory-storage`, `performance`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`, `intents`, `security`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; `macos` gates the touch-on-Mac rule `apple-mac-touch.md`; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
+The `--features` flag layers a feature-category filter on top of platform/language scoping. Default is `recommended`: a curated subset (`core`, `concurrency`, `ui`, `testing`, `docs`, `error-handling`, `packaging`, `logging`, `localization`, `linting`, `compliance`, `memory-storage`, `performance`). `--features all` adds the specialized opt-ins (`persistence`, `ai`, `migration`, `shrinking`, `spatial`, `deployment`, `architecture`, `intents`, `security`, `library`). Custom CSV lists give fine-grained control. The categories span both platforms — `--features testing` brings in both Apple's `swift-testing-pro` and Android's testing-strategy rule. `spatial` is visionOS-only and not in `recommended` — opt in via `--features recommended,spatial`, or equivalently `--apple-platforms ios,visionos` (the `--apple-platforms` selector — `ios,macos,tvos,watchos,visionos|all`, default everything-but-visionOS — stays in sync with the `spatial` category; `macos` gates the touch-on-Mac rule `apple-mac-touch.md`; every other Apple rule is cross-sub-platform). On Android, `--android-platforms tablet` (in the default `phone,tablet`) gates the large-screen / foldable rule + `android-adaptive-layout-pro` skill — the first form-factor gate; other tokens are recorded for future rules. `deployment` covers TestFlight + Play beta shipping flows; opt in via `--features recommended,deployment` when CI / release pipelines matter. `architecture` adds Android MVVM/UDF and the Apple + Android repository-pattern rules for teams that want that structure; opt in via `--features recommended,architecture`.
 
 The installer copies skills (when Swift or Android is in scope) intersected with `--features`, platform-matching rules, settings, the platform-appropriate starter `CLAUDE.md`, and appends `.gitignore` entries. It never overwrites existing `CLAUDE.md` or `settings.json` — it prints what it skipped.
 
@@ -207,6 +211,9 @@ Skills auto-trigger when the description matches the task. You can also invoke t
 - "Use `motion-design-pro` to define our motion tokens and write the motion spec with our designer."
 - "Use `motion-design-pro` to review the onboarding animations for timing, consistency, and Reduce Motion."
 - "Use `swift-package-pro` to review `Package.swift` and the public API."
+- "Use `swift-library-pro` to check whether this PR needs a major version bump."
+- "Use `swift-library-pro` to ship our SDK as a signed XCFramework binary target."
+- "Use `android-library-pro` to set up explicit API, an ABI dump, and Maven Central publishing for `:widgets`."
 - "Use `swift-modularization-pro` to plan moving this app's code into a local Swift package."
 - "Use `swift-modularization-pro` to audit the module graph in `MyAppPackages`."
 - "Use `swiftdata-pro` to review the SwiftData models and queries."
@@ -429,6 +436,19 @@ Specialized opt-in (`--features ...,security`). Fires on `.xcconfig`, `.entitlem
 - **Never weaken a setting to fix a build.**
 
 The `xcode-security-pro` skill audits per target and plans the next phase. `install.sh audit` flags `ENABLE_POINTER_AUTHENTICATION = NO` and `ENABLE_ENHANCED_SECURITY = NO` in xcconfigs.
+
+### Library authoring (`apple-library-authoring.md`, `android-library-authoring.md`)
+
+Specialized opt-in (`--features ...,library`) for repos whose product is a library that apps consume. `recommend` and `audit` suggest it when the repo is a Swift package or Android library with no app target. Fires on Swift and `Package.swift` / `.spi.yml`, and on Kotlin, `consumer-rules.pro`, and `gradle.properties`.
+
+- **Small surface**: `internal` by default, `package` access for cross-module helpers (Swift), `explicitApi()` (Kotlin); no public globals, retroactive conformances, or public data classes.
+- **SemVer, enforced**: `swift package diagnose-api-breaking-changes <last-tag>` in CI; a committed ABI dump (binary-compatibility-validator or KGP `abiValidation`) on Android. Deprecate before removing.
+- **Binary compatibility**: library evolution only for XCFrameworks; `@frozen` / `@inlinable` are permanent; defaulted Kotlin parameters need `@JvmOverloads`.
+- **Distribution**: signed XCFrameworks with a privacy manifest as checksummed `.binaryTarget`s; signed Maven Central (Central Portal) artifacts with sources, Dokka, and a full POM, released from CI on a tag.
+- **Consumers' floors**: minimum OS, `minSdk`, Kotlin `apiVersion` / `coreLibrariesVersion`, and Java target chosen for consumers; raising one is a major change.
+- **Android modules**: no `targetSdk`, `resourcePrefix`, not self-minified, reflection keeps in `consumer-rules.pro`.
+
+The `swift-library-pro` skill classifies API changes, builds XCFrameworks, and runs releases; `android-library-pro` sets up library modules, ABI checks, and publishing. `install.sh audit` flags a Swift library with no breaking-change check in CI, and Android library modules without explicit API mode or an ABI check, that minify themselves, or that set `targetSdk`.
 
 ### Profiling (`instruments-profiling-pro`, performance)
 

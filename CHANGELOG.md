@@ -20,6 +20,20 @@ The `1.0.0` section reconstructs the bundle's capabilities from pre-tag history.
   and agent skills (Tuist, Develocity, the Gradle test-retry plugin, Firebase
   Test Lab, Marathon). The testing rules and the `testing` audit topic point
   to it.
+- **`library` feature category** for repos that ship libraries rather than
+  apps. `apple-library-authoring.md` and the `swift-library-pro` skill cover
+  public API stability, `package` access, source vs binary breaking changes,
+  `swift package diagnose-api-breaking-changes` in CI, library evolution,
+  signed XCFrameworks with privacy manifests, `.binaryTarget`s, multi-platform
+  CI, the Swift Package Index, and releases. `android-library-authoring.md`
+  and `android-library-pro` cover library module setup, explicit API mode,
+  ABI dumps (binary-compatibility-validator / KGP `abiValidation`), Java
+  interop, consumer R8 rules, Compose library APIs, Dokka, and signed Maven
+  Central publishing through the Central Portal. `recommend` suggests the
+  category for library repos, `audit --topic library` scopes an audit to it,
+  and library audits add `lib-*` findings and the two skills to the deep
+  reviews.
+
 - **npm publishing.** A release tag also publishes
   `@kelvinkosbab/appbootstrap-mcp` to npm with provenance, at the tag's
   version and with the bundle packed inside. It needs an `NPM_TOKEN`

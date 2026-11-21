@@ -70,6 +70,8 @@ file_category() {
             echo "security" ;;
         instruments-profiling-pro)
             echo "performance" ;;
+        apple-library-authoring.md|swift-library-pro|android-library-authoring.md|android-library-pro)
+            echo "library" ;;
         apple-objc-best-practices.md)
             echo "objc-gated" ;;
         *)

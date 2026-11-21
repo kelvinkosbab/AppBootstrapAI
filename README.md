@@ -18,8 +18,8 @@ One `install.sh` bootstraps modern review, testing, style, accessibility, locali
 
 | Area | What's inside |
 |------|---------------|
-| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · motion design · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · memory + storage · App Intents + Siri (opt-in) · Xcode build security (opt-in) · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
-| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · motion design · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · memory + storage · Gemini Nano / Firebase AI · Play beta · regional store compliance |
+| **Apple rules** | Swift 6 concurrency · SwiftUI MVVM · design system + iconography · motion design · adaptive layout / iPhone Duo · touch on Mac · accessibility · testing · DocC · localization · SPM + modular architecture · repository pattern (opt-in) · linting · logging · memory + storage · App Intents + Siri (opt-in) · Xcode build security (opt-in) · library authoring: API stability, XCFrameworks (opt-in) · Foundation Models · visionOS · TestFlight · regional App Store compliance · Objective-C |
+| **Android rules** | Kotlin/Compose/MVVM/Hilt · modular architecture · MVVM + repository pattern (opt-in) · coroutines · design system + iconography · motion design · accessibility · large screens / foldables / desktop windows · testing · KDoc · localization · Gradle · linting · logging · memory + storage · Gemini Nano / Firebase AI · Play beta · regional store compliance · library modules: explicit API, ABI checks, Maven Central (opt-in) |
 | **Skills (Claude)** | On-demand deep-review agents for both platforms |
 | **Agents** | One rule source → Claude Code, Copilot, Cursor, Gemini, Codex, Kiro, Android Studio |
 | **MCP recipes** | XcodeBuildMCP · Xcode-native · android-mcp-server · Firebase · Sentry |
@@ -31,7 +31,9 @@ The full list of rules and skills, with counts and categories, is in
 
 The default `--features recommended` set covers what most apps need on day one.
 Specialized categories (`persistence`, `ai`, `migration`, `shrinking`,
-`spatial`, `deployment`, `architecture`, `intents`, `security`) are opt-in.
+`spatial`, `deployment`, `architecture`, `intents`, `security`, `library`) are opt-in.
+Building a Swift package or Android library rather than an app? Add `library`
+(`--features recommended,library`); `recommend` suggests it automatically.
 
 ## Getting started
 
@@ -146,6 +148,8 @@ gates CI on the same checks.
 - Android skills (`android-gradle-architecture-pro`, `xml-to-compose-migration-pro`, `r8-shrink-pro`) authored by AppBootstrapAI contributors. Grounded in [Android's Now in Android](https://github.com/android/nowinandroid) reference app and the official [Android Developers documentation](https://developer.android.com/build) for AGP, Compose, and R8 — the canonical primary sources. Licensed MIT.
 
 - App Intents, Siri, Xcode security, Instruments profiling, and parts of the accessibility, adaptive-layout, and testing guidance draw on the agent skills Apple ships with Xcode 27, which **Artem Novichkov** ([@artemnovichkov](https://github.com/artemnovichkov)) extracted and published in [`artemnovichkov/xcode-skills`](https://github.com/artemnovichkov/xcode-skills). Thank you, Artem, for making them readable outside Xcode. The underlying content is Apple's and that repository has no license, so nothing is copied: the guidance here is rewritten and condensed in this bundle's own words, and every file that draws on it credits Artem's repository in a **Sources** note. Files: `apple-app-intents.md`, `apple-build-security.md`, and `apple-testing-strategy.md` (rules); `app-intents-pro`, `xcode-security-pro`, and `instruments-profiling-pro` (skills); `swift-accessibility-pro/references/nutrition-label-audit.md`, `swift-adaptive-layout-pro/references/uikit-api-replacements.md`, and `readiness-checklist.md`.
+
+- `swift-library-pro` points to the [Swift API Design Guidelines agent skill](https://github.com/Erikote04/Swift-API-Design-Guidelines-Agent-Skill) by **Erik Sebastián de Erice Jerez** (MIT) for naming reviews, rather than duplicating it.
 
 - Motion design guidance (`apple-motion-design.md`, `android-motion-design.md`, and the `motion-design-pro` skill) is adapted from the [motion design skill](https://github.com/lottiefiles/motion-design-skill) by **LottieFiles** ([@LottieFiles](https://github.com/LottieFiles)), MIT-licensed, © 2025 LottieFiles. Thank you, LottieFiles, for publishing it openly. Its principles, timing tables, and patterns are rewritten for SwiftUI and Jetpack Compose and checked against Apple's and Material 3's motion guidance; each file that draws on it credits LottieFiles in a **Sources** note, and the MIT notice ships in `.claude/skills/motion-design-pro/NOTICE.md`.
 

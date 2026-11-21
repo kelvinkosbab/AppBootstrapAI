@@ -443,7 +443,7 @@ source "$SCRIPT_DIR/lib/detect_platform.sh"
 
 # --- Feature categories -------------------------------------------------------
 
-ALL_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting compliance memory-storage performance persistence ai migration shrinking spatial deployment architecture intents security"
+ALL_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting compliance memory-storage performance persistence ai migration shrinking spatial deployment architecture intents security library"
 RECOMMENDED_CATEGORIES="core concurrency ui testing docs error-handling packaging logging localization linting compliance memory-storage performance"
 
 # --- recommend: analyze a directory and print the suggested command ----------

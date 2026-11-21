@@ -339,7 +339,8 @@ ids = [x['id'] for x in d['findings']]
 skills = [s['skill'] for s in d['skills_to_run']]
 assert d['kind'] == 'package' and d['playbook'].endswith('playbooks/audit.md')
 assert 'bundle-not-installed' not in ids and 'no-compliance-register' not in ids
-assert 'swift-package-pro' in skills and 'swift-design-system-pro' not in skills
+assert 'swift-package-pro' in skills and 'swift-library-pro' in skills and 'swift-design-system-pro' not in skills
+assert 'lib-apple-no-api-break-check' in ids
 assert 'bundle-not-installed' in [x['id'] for x in f['findings']]
 " "$js" "$full" 2>/dev/null; then
     PASS=$((PASS + 1))

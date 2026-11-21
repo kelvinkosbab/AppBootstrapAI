@@ -249,5 +249,82 @@ class ProjectKind(unittest.TestCase):
         self.assertEqual(audit.project_kind(self.root), "app")
 
 
+class LibraryChecks(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def run_checks(self, platforms):
+        findings = {}
+
+        def add(id_, title, sev, rule, skill, fix, loc):
+            findings.setdefault(id_, audit.Finding(id_, title, sev, rule, skill, fix)).add(loc)
+
+        audit._library_checks(self.root, platforms, add)
+        return findings
+
+    def test_swift_library_without_break_check(self):
+        write(self.root, "Package.swift")
+        write(self.root, ".github/workflows/ci.yml", "steps:\n  - run: swift test\n")
+        self.assertIn("lib-apple-no-api-break-check", self.run_checks({"apple"}))
+
+    def test_swift_library_with_break_check(self):
+        write(self.root, "Package.swift")
+        write(self.root, ".github/workflows/ci.yml",
+              "steps:\n  - run: swift package diagnose-api-breaking-changes 1.0.0\n")
+        self.assertEqual(self.run_checks({"apple"}), {})
+
+    BAD_LIB = """plugins { id("com.android.library") }
+android {
+    defaultConfig { minSdk = 23; targetSdk = 35 }
+    buildTypes { release { isMinifyEnabled = true } }
+}
+"""
+    GOOD_LIB = """plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlinx.binary.compatibility.validator)
+}
+android {
+    defaultConfig { minSdk = 23; consumerProguardFiles("consumer-rules.pro") }
+    lint { targetSdk = 35 }
+    buildTypes { release { isMinifyEnabled = false } }
+}
+kotlin { explicitApi() }
+"""
+
+    def test_android_library_problems(self):
+        write(self.root, "widgets/build.gradle.kts", self.BAD_LIB)
+        found = set(self.run_checks({"android"}))
+        self.assertEqual(found, {"lib-android-no-explicit-api", "lib-android-no-abi-check",
+                                 "lib-android-self-minify", "lib-android-target-sdk"})
+
+    def test_android_library_clean(self):
+        write(self.root, "widgets/build.gradle.kts", self.GOOD_LIB)
+        self.assertEqual(self.run_checks({"android"}), {})
+
+    def test_abi_plugin_at_root_and_explicit_api_in_convention(self):
+        write(self.root, "build.gradle.kts", "plugins {\n    alias(libs.plugins.android.library) apply false\n"
+              "    alias(libs.plugins.kotlinx.binary.compatibility.validator)\n}\n")
+        write(self.root, "build-logic/convention/src/main/kotlin/Lib.kt", "extensions.configure<KotlinAndroidProjectExtension> { explicitApi() }\n")
+        write(self.root, "widgets/build.gradle.kts", 'plugins { id("com.android.library") }\n')
+        self.assertEqual(self.run_checks({"android"}), {})
+
+    def test_app_modules_are_ignored(self):
+        write(self.root, "app/build.gradle.kts", 'plugins { id("com.android.application") }\nandroid { defaultConfig { targetSdk = 35 } }\n')
+        self.assertEqual(self.run_checks({"android"}), {})
+
+    def test_recommend_suggests_library_category(self):
+        import recommend
+        write(self.root, "Package.swift")
+        rec = recommend.build(self.root, ["core"], ["core", "library"], "install.sh")
+        self.assertIn("library", rec["features_detected_extras"])
+        write(self.root, "MyApp.xcodeproj/project.pbxproj")
+        rec = recommend.build(self.root, ["core"], ["core", "library"], "install.sh")
+        self.assertNotIn("library", rec["features_detected_extras"])
+
+
 if __name__ == "__main__":
     unittest.main()
