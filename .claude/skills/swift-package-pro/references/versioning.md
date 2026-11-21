@@ -24,7 +24,7 @@ Non-breaking (minor bump is fine):
 
 - Adding new `public` declarations.
 - Adding new methods to a protocol *with a default implementation*.
-- Adding a new case to a `@frozen public enum` is breaking; to a non-frozen enum it's not breaking under resilient compilation but still risky.
+- Adding a case to a public enum breaks consumers' exhaustive `switch` in a source package. Only binary frameworks built with library evolution can add cases to non-`@frozen` enums safely (consumers handle `@unknown default`). See `swift-library-pro/references/api-stability.md` for the full change table.
 
 ## `@available` annotations
 

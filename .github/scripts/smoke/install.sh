@@ -141,9 +141,11 @@ assert_file_exists "$target_rec/.claude/rules/apple-motion-design.md"           
 assert_file_exists "$target_rec/.claude/rules/android-motion-design.md"                    "recommended includes motion rule (android)"
 assert_file_exists "$target_rec/.claude/skills/motion-design-pro/NOTICE.md"                "recommended includes motion skill with its license notice"
 
-# recommended EXCLUDES: persistence, ai, migration, shrinking, intents, security.
+# recommended EXCLUDES: persistence, ai, migration, shrinking, intents, security, library.
 assert_dir_empty_or_missing "$target_rec/.claude/skills/app-intents-pro"                    "recommended excludes intents"
 assert_file_absent "$target_rec/.claude/rules/apple-build-security.md"                      "recommended excludes security"
+assert_file_absent "$target_rec/.claude/rules/apple-library-authoring.md"                   "recommended excludes library"
+assert_file_absent "$target_rec/.claude/skills/swift-library-pro/SKILL.md"                      "recommended excludes library skill"
 assert_file_absent "$target_rec/.claude/rules/apple-foundation-models.md"                   "recommended excludes ai (Foundation Models)"
 assert_dir_empty_or_missing "$target_rec/.claude/skills/coredata-swift6-pro"                "recommended excludes persistence (Core Data)"
 assert_dir_empty_or_missing "$target_rec/.claude/skills/xml-to-compose-migration-pro"       "recommended excludes migration"

@@ -42,8 +42,8 @@ MAX_READ_BYTES = 2_000_000  # skip absurdly large files
 
 # Which opt-in categories are meaningful per platform. Recommended categories
 # install regardless; these are the extras `recommend` may suggest on top.
-APPLE_OPT_INS = {"ai", "spatial", "persistence", "deployment", "architecture"}
-ANDROID_OPT_INS = {"ai", "migration", "shrinking", "persistence", "deployment", "architecture"}
+APPLE_OPT_INS = {"ai", "spatial", "persistence", "deployment", "architecture", "library"}
+ANDROID_OPT_INS = {"ai", "migration", "shrinking", "persistence", "deployment", "architecture", "library"}
 
 
 def detect_state(target: str) -> str:
@@ -190,6 +190,49 @@ def _scan_text(ext: str, text: str, add) -> None:
             add("deployment", "CI (Play shipping)")
 
 
+def _read_text(path: str) -> str:
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+            return fh.read(MAX_READ_BYTES)
+    except OSError:
+        return ""
+
+
+_EXAMPLE_DIR = re.compile(r"^(examples?|demos?|samples?|sample ?apps?|playgrounds?)$", re.I)
+
+
+def project_kind(target: str) -> str:
+    """'package' for a library (Swift package or Android library), else 'app'."""
+    def app_projects():
+        hits = []
+        for pattern in ("*.xcodeproj", "*.xcworkspace"):
+            for p in glob.glob(os.path.join(target, "**", pattern), recursive=True):
+                rel = os.path.relpath(p, target)
+                parts = rel.split(os.sep)
+                if set(parts) & SKIP_DIRS or parts[-1] == "project.xcworkspace":
+                    continue
+                hits.append(parts)
+        return hits
+
+    projects = app_projects()
+    if os.path.isfile(os.path.join(target, "Package.swift")) and projects and all(
+            len(parts) > 1 and _EXAMPLE_DIR.match(parts[0]) for parts in projects):
+        # A library whose only Xcode projects live in Example/, Demo/, … folders.
+        return "package"
+    if projects:
+        return "app"
+    scripts = " ".join(_read_text(p) for pat in ("build.gradle", "build.gradle.kts")
+                       for p in glob.glob(os.path.join(target, "**", pat), recursive=True)
+                       if not (set(p.split(os.sep)) & SKIP_DIRS))
+    if re.search(r"com\.android\.application|android\.application\b|\bapplicationId\b", scripts):
+        return "app"
+    if os.path.isfile(os.path.join(target, "Package.swift")):
+        return "package"
+    if re.search(r"com\.android\.library|android\.library\b", scripts):
+        return "package"
+    return "app"
+
+
 def detect_agents(target: str):
     """Existing agent footprints in the target → list of agent tokens (claude first)."""
     found = []
@@ -231,6 +274,8 @@ def build(target, recommended, all_cats, self_cmd):
     state = detect_state(target)
     platform, apple_sig, android_sig = detect_platform(target)
     langs, reasons = scan_tree(target)
+    if os.path.isdir(target) and project_kind(target) == "package":
+        reasons.setdefault("library", []).append("library project (Swift package or Android library, no app target)")
 
     # Which opt-in categories apply for this platform.
     if platform == "apple":

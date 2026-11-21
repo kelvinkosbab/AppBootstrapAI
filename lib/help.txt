@@ -47,7 +47,7 @@
 #                rules and skills to read: concurrency, architecture,
 #                accessibility, ui, localization, testing, compliance,
 #                logging, docs, deployment, linting, memory, storage,
-#                intents, security, performance, motion (see
+#                intents, security, performance, motion, library (see
 #                lib/topics.json).
 #   upgrade      3-way diff a prior install vs. the current bundle (plan-only;
 #                add --apply to write). Alias: the --upgrade flag.
@@ -161,6 +161,10 @@
 #                                           AppIntentsTesting, SiriEvaluations
 #                          security         Xcode security warnings, Enhanced Security,
 #                                           hardened-process entitlements, C bounds safety
+#                          library          Authoring libraries apps consume: Swift packages,
+#                                           Apple frameworks / XCFrameworks, Android + Kotlin
+#                                           library modules: public API, SemVer, breaking-change
+#                                           and ABI checks, binary distribution, Maven Central
 #
 #                        Note: apple-objc-best-practices.md is gated solely by
 #                        --apple-language, not --features.

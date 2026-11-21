@@ -678,6 +678,9 @@ def _structural(target, platforms, facts, findings, kind) -> None:
                 "Add .editorconfig with ktlint_code_style and run ktlintCheck, detekt, and lintDebug in CI.",
                 ".editorconfig")
 
+    if kind == "package":
+        _library_checks(target, platforms, add)
+
     # A library never ships to a store, so it has no regions to record.
     if kind == "app" and platforms and facts["source_files"] and not os.path.isfile(
             os.path.join(target, "docs", "compliance", "regions.md")):
@@ -687,6 +690,69 @@ def _structural(target, platforms, facts, findings, kind) -> None:
             "store-compliance-pro",
             "Record per-region availability and requirements in docs/compliance/regions.md.",
             "docs/compliance/regions.md")
+
+
+# --- Library checks (apple-library-authoring.md, android-library-authoring.md) -
+
+_LIB_APPLE_RULE, _LIB_APPLE_SKILL = "apple-library-authoring.md", "swift-library-pro"
+_LIB_ANDROID_RULE, _LIB_ANDROID_SKILL = "android-library-authoring.md", "android-library-pro"
+_ANDROID_LIBRARY_PLUGIN = re.compile(r"com\.android\.library|android\.library\b|android[-_.]library\)")
+_ABI_VALIDATION = re.compile(r"binary-compatibility-validator|binary\.compatibility\.validator|"
+                             r"apiValidation|abiValidation")
+
+
+def _ci_text(target):
+    paths = []
+    for pattern in (".github/workflows/*.yml", ".github/workflows/*.yaml", ".gitlab-ci.yml",
+                    ".circleci/config.yml", "Makefile", "scripts/*.sh", "ci_scripts/*.sh"):
+        paths += glob.glob(os.path.join(target, pattern))
+    return " ".join(_read(p) for p in paths)
+
+
+def _library_checks(target, platforms, add) -> None:
+    """Checks for a repo whose product is a library (project_kind == 'package')."""
+    ci = _ci_text(target)
+    if "apple" in platforms and os.path.isfile(os.path.join(target, "Package.swift")) \
+            and "diagnose-api-breaking-changes" not in ci:
+        add("lib-apple-no-api-break-check", "Library CI doesn't check for breaking API changes", "medium",
+            _LIB_APPLE_RULE, _LIB_APPLE_SKILL,
+            "Run `swift package diagnose-api-breaking-changes <last-tag>` on a macOS runner for every PR.",
+            ".github/workflows")
+    if "android" not in platforms:
+        return
+    scripts = []
+    for pattern in ("build.gradle.kts", "build.gradle"):
+        for p in glob.glob(os.path.join(target, "**", pattern), recursive=True):
+            rel = os.path.relpath(p, target).replace(os.sep, "/")
+            if not (set(rel.split("/")[:-1]) & SKIP_DIRS):
+                scripts.append((rel, _read(p)))
+    root_text = " ".join(t for r, t in scripts if "/" not in r)
+    root_text += _read(os.path.join(target, "build-logic", "convention", "build.gradle.kts"))
+    convention = " ".join(_read(p) for p in glob.glob(
+        os.path.join(target, "build-logic", "**", "*.kt"), recursive=True))
+    for rel, text in scripts:
+        code = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("//"))
+        applied = "\n".join(line for line in code.splitlines() if "apply false" not in line)
+        if not _ANDROID_LIBRARY_PLUGIN.search(applied):
+            continue
+        if "explicitApi" not in code and "explicitApi" not in convention:
+            add("lib-android-no-explicit-api", "Library module doesn't enable explicit API mode", "medium",
+                _LIB_ANDROID_RULE, _LIB_ANDROID_SKILL,
+                "Add `kotlin { explicitApi() }` so every public declaration is deliberate.", rel)
+        if not (_ABI_VALIDATION.search(code) or _ABI_VALIDATION.search(root_text)
+                or _ABI_VALIDATION.search(convention)):
+            add("lib-android-no-abi-check", "Library has no ABI dump check", "medium",
+                _LIB_ANDROID_RULE, _LIB_ANDROID_SKILL,
+                "Apply binary-compatibility-validator (or KGP abiValidation), commit the dump, "
+                "and run the check in CI.", rel)
+        if re.search(r"isMinifyEnabled\s*=\s*true|minifyEnabled\s+true", code):
+            add("lib-android-self-minify", "Library module minifies itself", "medium",
+                _LIB_ANDROID_RULE, _LIB_ANDROID_SKILL,
+                "Set isMinifyEnabled = false; ship keep rules in consumer-rules.pro for the app's R8.", rel)
+        if re.search(r"defaultConfig\s*\{[^}]*\btargetSdk(Version)?\b", code):
+            add("lib-android-target-sdk", "Library module sets targetSdk (deprecated for libraries)", "low",
+                _LIB_ANDROID_RULE, _LIB_ANDROID_SKILL,
+                "Move it to `lint { targetSdk = … }` and `testOptions { targetSdk = … }`.", rel)
 
 
 # --- Package.swift checks (apple-spm-package-conventions.md) -----------------
@@ -831,44 +897,13 @@ NEW_PROJECT_SKILLS = {
 }
 # Libraries: API surface, manifest, and docs matter more than app scaffolding.
 PACKAGE_SKILLS = {
-    "apple": ["swift-package-pro", "swift-concurrency-pro", "swift-testing-pro", "swift-docc-pro"],
-    "android": ["android-gradle-architecture-pro", "android-coroutines-pro", "r8-shrink-pro"],
+    "apple": ["swift-library-pro", "swift-package-pro", "swift-concurrency-pro", "swift-testing-pro", "swift-docc-pro"],
+    "android": ["android-library-pro", "android-gradle-architecture-pro", "android-coroutines-pro", "r8-shrink-pro"],
 }
 
 
-_EXAMPLE_DIR = re.compile(r"^(examples?|demos?|samples?|sample ?apps?|playgrounds?)$", re.I)
-
-
-def project_kind(target: str) -> str:
-    """'package' for a library (Swift package or Android library), else 'app'."""
-    def app_projects():
-        hits = []
-        for pattern in ("*.xcodeproj", "*.xcworkspace"):
-            for p in glob.glob(os.path.join(target, "**", pattern), recursive=True):
-                rel = os.path.relpath(p, target)
-                parts = rel.split(os.sep)
-                if set(parts) & recommend.SKIP_DIRS or parts[-1] == "project.xcworkspace":
-                    continue
-                hits.append(parts)
-        return hits
-
-    projects = app_projects()
-    if os.path.isfile(os.path.join(target, "Package.swift")) and projects and all(
-            len(parts) > 1 and _EXAMPLE_DIR.match(parts[0]) for parts in projects):
-        # A library whose only Xcode projects live in Example/, Demo/, … folders.
-        return "package"
-    if projects:
-        return "app"
-    scripts = " ".join(_read(p) for pat in ("build.gradle", "build.gradle.kts")
-                       for p in glob.glob(os.path.join(target, "**", pat), recursive=True)
-                       if not (set(p.split(os.sep)) & recommend.SKIP_DIRS))
-    if re.search(r"com\.android\.application|android\.application\b|\bapplicationId\b", scripts):
-        return "app"
-    if os.path.isfile(os.path.join(target, "Package.swift")):
-        return "package"
-    if re.search(r"com\.android\.library|android\.library\b", scripts):
-        return "package"
-    return "app"
+# Lives in recommend.py so `recommend` can suggest the `library` category.
+project_kind = recommend.project_kind
 
 
 def load_baseline(path):
